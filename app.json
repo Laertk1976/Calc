@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Calculator",
+    "slug": "calc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "android": {
+      "package": "com.example.calc"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
