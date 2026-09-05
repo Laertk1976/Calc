@@ -1,16 +1,18 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getSavedCalculations, saveCalculation } from './calculationStorage';
 
 const keys = [
   ['AC', 'C', '±', '%'],
   ['7', '8', '9', '÷'],
   ['4', '5', '6', '+'],
   ['1', '2', '3', '−'],
-  ['0', '.', '=', '×'],
+  ['0', '.', '=', '×',],
 ];
 
 const operators = ['÷', '×', '−', '+'];
+const utilityKeys = ['Add', 'List', 'C', 'D', 'E'];
 
 function pretty(value) {
   if (value === 'Error') return value;
@@ -53,6 +55,8 @@ export default function App() {
   const [operator, setOperator] = useState(null);
   const [freshInput, setFreshInput] = useState(true);
   const [expression, setExpression] = useState('');
+  const [savedCalculations, setSavedCalculations] = useState([]);
+  const [listVisible, setListVisible] = useState(false);
 
   const calculate = (first, op, second) => {
     const a = Number(first);
@@ -62,6 +66,11 @@ export default function App() {
     if (op === '×') return a * b;
     if (op === '÷') return b === 0 ? 'Error' : a / b;
     return b;
+  };
+
+  const showSavedCalculations = () => {
+    setSavedCalculations(getSavedCalculations());
+    setListVisible(true);
   };
 
   const onPress = (key) => {
@@ -132,21 +141,60 @@ export default function App() {
           {expression ? <Text style={styles.expression}>{expression}</Text> : null}
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
         </View>
-        <View style={styles.keypad}>
-          {keys.flat().map((key) => {
-            const isOperator = operators.includes(key) || key === '=';
-            const isFunction = ['AC', 'C', '±', '%'].includes(key);
-            return (
+        <View style={styles.keypadLayout}>
+          <View style={styles.keypad}>
+            {keys.map((row) => (
+              <View key={row.join('')} style={styles.keyRow}>
+                {row.map((key) => {
+                  const isOperator = operators.includes(key) || key === '=';
+                  const isFunction = ['AC', 'C', '±', '%'].includes(key);
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => onPress(key)}
+                      style={({ pressed }) => [styles.key, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}
+                    >
+                      <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+          <View style={styles.utilityColumn}>
+            {utilityKeys.map((key) => (
               <Pressable
                 key={key}
-                onPress={() => onPress(key)}
-                style={({ pressed }) => [styles.key, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}
+                onPress={() => {
+                  if (key === 'Add') saveCalculation(expression, display);
+                  if (key === 'List') showSavedCalculations();
+                }}
+                style={({ pressed }) => [styles.utilityKey, pressed && styles.pressed]}
               >
-                <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
+                <Text style={styles.keyText}>{key}</Text>
               </Pressable>
-            );
-          })}
+            ))}
+          </View>
         </View>
+        <Modal animationType="fade" transparent visible={listVisible} onRequestClose={() => setListVisible(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.listPanel}>
+              <Text style={styles.listTitle}>Saved calculations</Text>
+              <ScrollView style={styles.listScroll}>
+                {savedCalculations.length ? savedCalculations.map((calculation, index) => (
+                  <View key={`${calculation.createdAt}-${index}`} style={styles.savedItem}>
+                    <Text style={styles.savedTitle}>{calculation.title}</Text>
+                    <Text style={styles.savedExpression}>{calculation.expression}</Text>
+                    <Text style={styles.savedValue}>{calculation.value}</Text>
+                  </View>
+                )) : <Text style={styles.emptyList}>No saved calculations yet.</Text>}
+              </ScrollView>
+              <Pressable onPress={() => setListVisible(false)} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -154,16 +202,31 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#111827' },
-  calculator: { flex: 1, paddingHorizontal: 20, paddingBottom: 20, justifyContent: 'flex-end' },
+  calculator: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 20, justifyContent: 'flex-end' },
   title: { color: '#94a3b8', fontSize: 12, fontWeight: '700', letterSpacing: 2, marginBottom: 20 },
   display: { minHeight: 150, justifyContent: 'flex-end', alignItems: 'flex-end', paddingHorizontal: 8, paddingBottom: 24 },
   expression: { color: '#94a3b8', fontSize: 24, marginBottom: 8 },
   displayText: { color: '#f8fafc', fontSize: 68, fontWeight: '300', maxWidth: '100%' },
-  keypad: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  key: { width: '18%', aspectRatio: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#273449' },
+  keypadLayout: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  keypad: { flex: 1, gap: 12 },
+  keyRow: { flexDirection: 'row', gap: 12 },
+  key: { flex: 1, aspectRatio: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#273449' },
   operator: { backgroundColor: '#f59e0b' },
   function: { backgroundColor: '#cbd5e1' },
+  utilityColumn: { width: '19%', flexShrink: 0, gap: 12 },
+  utilityKey: { width: '100%', aspectRatio: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#22c55e' },
   pressed: { opacity: 0.65, transform: [{ scale: 0.97 }] },
   keyText: { color: '#fff', fontSize: 28, fontWeight: '500' },
   functionText: { color: '#172033' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.72)', justifyContent: 'center', padding: 20 },
+  listPanel: { width: '100%', maxWidth: 520, maxHeight: '80%', alignSelf: 'center', backgroundColor: '#1e293b', borderRadius: 8, padding: 20 },
+  listTitle: { color: '#f8fafc', fontSize: 22, fontWeight: '700', marginBottom: 16 },
+  listScroll: { marginBottom: 16 },
+  savedItem: { borderBottomColor: '#475569', borderBottomWidth: 1, paddingVertical: 12 },
+  savedTitle: { color: '#86efac', fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  savedExpression: { color: '#cbd5e1', fontSize: 15, marginBottom: 4 },
+  savedValue: { color: '#f8fafc', fontSize: 20 },
+  emptyList: { color: '#94a3b8', fontSize: 16, paddingVertical: 20 },
+  closeButton: { alignItems: 'center', backgroundColor: '#22c55e', borderRadius: 5, paddingVertical: 12 },
+  closeButtonText: { color: '#052e16', fontSize: 16, fontWeight: '700' },
 });
