@@ -2,6 +2,7 @@
   "expo": {
     "name": "Calculator",
     "slug": "calc",
+    "scheme": "calc",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -14,6 +15,9 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

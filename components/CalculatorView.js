@@ -25,6 +25,7 @@ export default function CalculatorView({
   onTitleChange,
   onConfirmSave,
   onOpenTable,
+  onUpdateCalculations,
 }) {
   return (
     <SafeAreaView style={styles.screen}>
@@ -56,9 +57,15 @@ export default function CalculatorView({
           <UtilityButtons onSaveType={onSaveType} onList={onList} />
         </View>
         <CalculationListModal visible={listVisible} calculations={savedCalculations} onClose={onCloseList} />
-        <CalculationTableModal visible={tableVisible} calculations={savedCalculations} onClose={onCloseTable} />
+        <CalculationTableModal
+          visible={tableVisible}
+          calculations={savedCalculations}
+          onClose={onCloseTable}
+          onUpdateCalculations={onUpdateCalculations}
+        />
         <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
       </View>
     </SafeAreaView>
   );
 }
+

@@ -19,8 +19,9 @@ export default function CalculationListModal({ visible, calculations, onClose })
             {calculations.length ? calculations.map((calculation, index) => (
               <View key={`${calculation.createdAt}-${index}`} style={[styles.savedItem, getSavedItemStyle(calculation.type)]}>
                 <Text style={styles.savedTitle}>{calculation.title}</Text>
-                <Text style={styles.savedExpression}>{calculation.expression}</Text>
-                <Text style={styles.savedValue}>{calculation.value}</Text>
+                <Text style={styles.savedExpression}>{calculation.expression || calculation.info || ''}</Text>
+                {calculation.comment ? <Text style={styles.savedComment}>Note: {calculation.comment}</Text> : null}
+                <Text style={styles.savedValue}>{calculation.value || calculation.cred || calculation.fact || calculation.fcash || ''}</Text>
                 <View style={styles.savedMetaRow}>
                   <Text style={styles.savedDate}>{formatSavedDate(calculation.savedAt || calculation.createdAt)}</Text>
                   <Text style={styles.savedType}>{calculation.type || 'Add'}</Text>

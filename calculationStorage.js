@@ -30,3 +30,13 @@ export function saveCalculation(expression, display, type = 'Add', titleOverride
     JSON.stringify([...savedCalculations, savedCalculation]),
   );
 }
+
+export function updateSavedCalculations(calculations) {
+  if (typeof globalThis.localStorage === 'undefined') return;
+  try {
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(calculations));
+  } catch (error) {
+    console.log('Storage update error:', error);
+  }
+}
+

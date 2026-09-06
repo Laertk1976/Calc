@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getSavedCalculations, saveCalculation } from './calculationStorage';
+import { getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
 import { evaluateExpression, pretty } from './calculatorUtils';
 import CalculatorView from './components/CalculatorView';
@@ -16,6 +16,11 @@ export default function App() {
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
   const [saveType, setSaveType] = useState('Add');
   const [saveTitle, setSaveTitle] = useState('');
+
+  const handleUpdateCalculations = (newCalculations) => {
+    setSavedCalculations(newCalculations);
+    updateSavedCalculations(newCalculations);
+  };
 
   const calculate = (first, currentOperator, second) => {
     const firstNumber = Number(first);
@@ -146,6 +151,7 @@ export default function App() {
       onTitleChange={setSaveTitle}
       onConfirmSave={confirmSave}
       onOpenTable={showCalculatorTable}
+      onUpdateCalculations={handleUpdateCalculations}
     />
   );
 }
