@@ -9,16 +9,20 @@ export function getSavedCalculations() {
   }
 }
 
-export function saveCalculation(expression, display) {
-  if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.prompt !== 'function') return;
-  const title = globalThis.prompt('Title for this calculation:');
+export function saveCalculation(expression, display, type = 'Add', titleOverride = '') {
+  if (typeof globalThis.localStorage === 'undefined') return;
+
+  const title = (titleOverride || '').trim() || globalThis.prompt?.('Title for this calculation:') || '';
   if (!title || !title.trim()) return;
 
+  const savedAt = new Date().toISOString();
   const savedCalculation = {
-    createdAt: new Date().toISOString(),
+    createdAt: savedAt,
+    savedAt,
     expression: expression || display,
     title: title.trim(),
     value: display,
+    type,
   };
   const savedCalculations = getSavedCalculations();
   globalThis.localStorage.setItem(
