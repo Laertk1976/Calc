@@ -2,7 +2,7 @@
   "expo": {
     "name": "Calculator",
     "slug": "calc",
-    "scheme": "calc",
+    "scheme": "com.example.calc",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

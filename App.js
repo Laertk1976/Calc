@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
 import { evaluateExpression, pretty } from './calculatorUtils';
@@ -17,9 +18,13 @@ export default function App() {
   const [saveType, setSaveType] = useState('Add');
   const [saveTitle, setSaveTitle] = useState('');
 
+  useEffect(() => {
+    getSavedCalculations().then(setSavedCalculations);
+  }, []);
+
   const handleUpdateCalculations = (newCalculations) => {
     setSavedCalculations(newCalculations);
-    updateSavedCalculations(newCalculations);
+    updateSavedCalculations(newCalculations).catch((error) => console.log('Storage update error:', error));
   };
 
   const calculate = (first, currentOperator, second) => {
@@ -33,32 +38,47 @@ export default function App() {
   };
 
   const showSavedCalculations = () => {
-    setSavedCalculations(getSavedCalculations());
-    setListVisible(true);
+    getSavedCalculations().then((calculations) => {
+      setSavedCalculations(calculations);
+      setListVisible(true);
+    });
   };
 
   const showCalculatorTable = () => {
-    setSavedCalculations(getSavedCalculations());
-    setListVisible(false);
-    setSaveDialogVisible(false);
-    setTableVisible(true);
+    getSavedCalculations().then((calculations) => {
+      setSavedCalculations(calculations);
+      setListVisible(false);
+      setSaveDialogVisible(false);
+      setTableVisible(true);
+    });
   };
 
   const openSaveDialog = (type) => {
     setSaveType(type);
     setSaveTitle('');
-    setSavedCalculations(getSavedCalculations());
+    getSavedCalculations().then(setSavedCalculations);
     setSaveDialogVisible(true);
   };
 
-  const confirmSave = () => {
-    const trimmedTitle = saveTitle.trim();
-    if (!trimmedTitle) return;
+  const confirmSave = async (titleOverride = saveTitle) => {
+    const trimmedTitle = titleOverride.trim();
+    if (!trimmedTitle) {
+      Alert.alert('Name required', 'Enter a name before saving.');
+      return;
+    }
 
-    saveCalculation(expression, display, saveType, trimmedTitle);
-    setSaveDialogVisible(false);
-    setSaveTitle('');
-    setSavedCalculations(getSavedCalculations());
+    try {
+      const saved = await saveCalculation(expression, display, saveType, trimmedTitle);
+      if (!saved) return;
+
+      const calculations = await getSavedCalculations();
+      setSavedCalculations(calculations);
+      setSaveDialogVisible(false);
+      setSaveTitle('');
+    } catch (error) {
+      console.log('Save calculation error:', error);
+      Alert.alert('Save failed', 'The calculation could not be saved on this device.');
+    }
   };
 
   const onPress = (key) => {

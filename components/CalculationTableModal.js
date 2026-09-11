@@ -1,12 +1,14 @@
-import { ResponseType, makeRedirectUri } from 'expo-auth-session';
+import { ResponseType } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { styles } from '../calculatorStyles';
-import { formatSavedDate, pretty } from '../calculatorUtils';
+import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
+import { uploadFileToGoogleDrive } from '../googleDrive';
+import { shareRowSummary } from '../shareUtils';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -16,6 +18,14 @@ const googleClientIds = {
   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 };
+
+function getGoogleNativeRedirectUri() {
+  const clientId = Platform.OS === 'android' ? googleClientIds.androidClientId : googleClientIds.iosClientId;
+  if (!clientId) return undefined;
+
+  const clientPrefix = clientId.replace(/\.apps\.googleusercontent\.com$/, '');
+  return `com.googleusercontent.apps.${clientPrefix}:/oauth2redirect`;
+}
 
 function getDateKey(value) {
   if (!value) return 'No Date';
@@ -76,6 +86,45 @@ function formatNumberDisplay(val) {
   if (!val && val !== 0) return '';
   const num = Number(String(val).replace(/,/g, ''));
   return Number.isNaN(num) ? String(val) : pretty(String(val));
+}
+
+function getFormulaResult(value) {
+  if (value === null || value === undefined) return null;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const resultPart = raw.includes('=') ? raw.split('=').pop().trim() : raw;
+  const normalized = resultPart
+    .replace(/,/g, '')
+    .replace(/\*/g, ' × ')
+    .replace(/–|—/g, ' − ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return null;
+
+  const directNumber = Number(normalized);
+  if (Number.isFinite(directNumber)) return directNumber;
+
+  const expression = normalized.replace(/\s*([÷×−+])\s*/g, ' $1 ').trim();
+  const evaluated = evaluateExpression(expression);
+
+  if (evaluated === 'Error' || !Number.isFinite(Number(evaluated))) return null;
+  return Number(evaluated);
+}
+
+function getInfoGrandTotal(calculations) {
+  return calculations.reduce((totals, calc) => {
+    const rawInfo = calc?.info || calc?.expression || '';
+    const result = getFormulaResult(rawInfo);
+
+    if (result === null) return totals;
+
+    totals.total += result;
+    totals.hasValue = true;
+    return totals;
+  }, { total: 0, hasValue: false });
 }
 
 function escapeCsv(value) {
@@ -273,6 +322,13 @@ function buildTableHtml(calculations, filterSummary = '') {
       text-align: left;
       line-height: 1.25;
     }
+    .cell-info-total {
+      margin-top: 4px;
+      font-size: 7.5px;
+      font-weight: 700;
+      color: #166534;
+      letter-spacing: 0.15px;
+    }
     td.cell-comment {
       font-size: 8px;
       color: #334155;
@@ -399,7 +455,7 @@ export default function CalculationTableModal({
     ...googleClientIds,
     responseType: ResponseType.Token,
     scopes: [GOOGLE_DRIVE_SCOPE],
-    redirectUri: makeRedirectUri({ scheme: 'calc' }),
+    redirectUri: Platform.OS === 'web' ? undefined : getGoogleNativeRedirectUri(),
   });
   const initialValuesRef = useRef({});
   const [warningModal, setWarningModal] = useState({
@@ -424,6 +480,15 @@ export default function CalculationTableModal({
   const [dateDropdownVisible, setDateDropdownVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const tableHeaderScrollRef = useRef(null);
+  const tableBodyScrollRef = useRef(null);
+
+  const syncTableHorizontalScroll = (event, targetRef) => {
+    targetRef.current?.scrollTo({
+      x: event.nativeEvent.contentOffset.x,
+      animated: false,
+    });
+  };
 
   useEffect(() => {
     if (visible) {
@@ -436,8 +501,9 @@ export default function CalculationTableModal({
   }, [visible, calculations]);
 
   useEffect(() => {
-    if (googleResponse?.type === 'success' && googleResponse.authentication?.accessToken) {
-      setDriveAccessToken(googleResponse.authentication.accessToken);
+    if (googleResponse?.type === 'success') {
+      const accessToken = googleResponse.authentication?.accessToken || googleResponse.params?.access_token;
+      if (accessToken) setDriveAccessToken(accessToken);
     }
   }, [googleResponse]);
 
@@ -641,6 +707,20 @@ export default function CalculationTableModal({
     fromDate || toDate ? `Dates: ${getFilterLabel()}` : '',
   ].filter(Boolean).join(' | ');
 
+  const infoGrandTotal = getInfoGrandTotal(filteredRows);
+  const sectionTotals = filteredRows.reduce((totals, calc) => {
+    ['cred', 'fact', 'fcash'].forEach((field) => {
+      const raw = calc?.[field];
+      if (raw === '' || raw === null || raw === undefined) return;
+
+      const num = Number(String(raw).replace(/,/g, ''));
+      if (Number.isFinite(num) && num !== 0) totals[field] += num;
+    });
+    return totals;
+  }, { cred: 0, fact: 0, fcash: 0 });
+  const hasAnyTotals = infoGrandTotal.hasValue || sectionTotals.cred || sectionTotals.fact || sectionTotals.fcash;
+  const totalLabel = infoGrandTotal.hasValue ? `TOTAL: ${pretty(String(Math.round(infoGrandTotal.total * 10000) / 10000))}` : 'TOTAL';
+
   const handleSaveCsv = async () => {
     const csv = buildTableCsv(filteredRows);
     const fileName = `calculator-table-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -655,6 +735,11 @@ export default function CalculationTableModal({
   };
 
   const handleDriveUpload = async (format) => {
+    if (format === 'pdf' && Platform.OS === 'web') {
+      Alert.alert('PDF upload unavailable', 'Google Drive PDF upload requires an Android or iOS build. Use Save PDF on web.');
+      return;
+    }
+
     if (!googleClientIds.webClientId && !googleClientIds.androidClientId && !googleClientIds.iosClientId) {
       Alert.alert('Google Drive setup required', 'Add the EXPO_PUBLIC_GOOGLE_*_CLIENT_ID values before uploading to Google Drive.');
       return;
@@ -664,10 +749,13 @@ export default function CalculationTableModal({
       let accessToken = driveAccessToken;
       if (!accessToken) {
         const loginResult = await promptGoogleLogin();
-        accessToken = loginResult?.authentication?.accessToken;
+        accessToken = loginResult?.authentication?.accessToken || loginResult?.params?.access_token;
         if (accessToken) setDriveAccessToken(accessToken);
       }
-      if (!accessToken) return;
+      if (!accessToken) {
+        Alert.alert('Google Drive sign-in cancelled', 'Sign in to Google to upload the table PDF.');
+        return;
+      }
 
       const date = new Date().toISOString().slice(0, 10);
       if (format === 'csv') {
@@ -678,9 +766,6 @@ export default function CalculationTableModal({
           content: `\ufeff${buildTableCsv(filteredRows)}`,
         });
       } else {
-        if (Platform.OS === 'web') {
-          throw new Error('PDF upload to Google Drive requires an Android or iOS build. Use Save PDF on web.');
-        }
         const pdfUri = await createPdfUri(filteredRows, filterSummary);
         const pdfResponse = await fetch(pdfUri);
         const pdfBlob = await pdfResponse.blob();
@@ -723,7 +808,7 @@ export default function CalculationTableModal({
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>Calculator table</Text>
               <Pressable
-                style={[styles.searchIconButton, searchVisible && styles.searchIconButtonActive]}
+                style={({ pressed }) => [styles.searchIconButton, searchVisible && styles.searchIconButtonActive, pressed && styles.pressed]}
                 onPress={() => setSearchVisible((current) => !current)}
                 accessibilityLabel="Search table by name"
               >
@@ -741,14 +826,14 @@ export default function CalculationTableModal({
                   style={styles.tableSearchInput}
                 />
                 {searchText ? (
-                  <Pressable onPress={() => setSearchText('')} style={styles.searchClearButton}>
+                  <Pressable onPress={() => setSearchText('')} style={({ pressed }) => [styles.searchClearButton, pressed && styles.pressed]}>
                     <Text style={styles.searchClearText}>×</Text>
                   </Pressable>
                 ) : null}
               </View>
             ) : null}
             <Pressable
-              style={styles.dateDropdownButton}
+              style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}
               onPress={() => setDateDropdownVisible(true)}
             >
               <Text style={styles.dateDropdownButtonText}>
@@ -757,10 +842,14 @@ export default function CalculationTableModal({
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
           </View>
-          <ScrollView style={styles.tableVerticalScroll} showsVerticalScrollIndicator>
-            <ScrollView horizontal showsHorizontalScrollIndicator style={styles.tableScroll}>
-              <View>
-                <View style={styles.tableHeaderRow}>
+          <ScrollView
+            ref={tableHeaderScrollRef}
+            horizontal
+            scrollEnabled={false}
+            showsHorizontalScrollIndicator={false}
+            style={styles.tableHeaderScroll}
+          >
+            <View style={styles.tableHeaderRow}>
                   <View style={[styles.tableHeaderCell, styles.nameColumn]}>
                     <Text style={styles.tableHeaderText}>Name</Text>
                   </View>
@@ -782,7 +871,25 @@ export default function CalculationTableModal({
                   <View style={[styles.tableHeaderCell, styles.actionColumn]}>
                     <Text style={styles.tableHeaderText}></Text>
                   </View>
-                </View>
+            </View>
+          </ScrollView>
+          <ScrollView
+            style={styles.tableVerticalScroll}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+          >
+            <ScrollView
+              ref={tableBodyScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator
+              style={styles.tableScroll}
+              nestedScrollEnabled
+              directionalLockEnabled
+              alwaysBounceHorizontal={false}
+              onScroll={(event) => syncTableHorizontalScroll(event, tableHeaderScrollRef)}
+              scrollEventThrottle={16}
+            >
+              <View>
                 {filteredRows.length ? (
                   filteredRows.map((calc, idx) => {
                     const realIndex = rows.findIndex((r) => r.id === calc.id);
@@ -792,13 +899,23 @@ export default function CalculationTableModal({
                       <View key={calc.id || `${calc.createdAt}-${index}`} style={styles.tableBodyRow}>
                       {/* Name section */}
                       <View style={[styles.tableCell, styles.nameColumn]}>
-                        <TextInput
-                          style={styles.cellInput}
-                          value={calc.title}
-                          onChangeText={(text) => handleCellChange(index, 'title', text)}
-                          placeholder="Name"
-                          placeholderTextColor="#64748b"
-                        />
+                        <View style={styles.shareCellRow}>
+                          <TextInput
+                            style={[styles.cellInput, styles.nameInput]}
+                            value={calc.title}
+                            onChangeText={(text) => handleCellChange(index, 'title', text)}
+                            placeholder="Name"
+                            placeholderTextColor="#64748b"
+                          />
+                          <Pressable
+                            onPress={() => shareRowSummary(calc)}
+                            style={({ pressed }) => [styles.shareRowButton, pressed && styles.pressed]}
+                            hitSlop={8}
+                            accessibilityLabel="Share this row"
+                          >
+                            <Text style={styles.shareRowButtonText}>↗</Text>
+                          </Pressable>
+                        </View>
                         {calc.savedAt ? (
                           <Text style={styles.cellDateText}>
                             {formatSavedDate(calc.savedAt || calc.createdAt)}
@@ -822,7 +939,7 @@ export default function CalculationTableModal({
                       {/* Comments section (formerly Add) */}
                       <View style={[styles.tableCell, styles.commentsColumn]}>
                         <Pressable
-                          style={styles.cellPressable}
+                          style={({ pressed }) => [styles.cellPressable, pressed && styles.pressed]}
                           onPress={() => setCommentModal({ visible: true, rowIndex: index, text: calc.comment || '' })}
                         >
                           <Text
@@ -878,7 +995,7 @@ export default function CalculationTableModal({
 
                       {/* Delete action */}
                       <View style={[styles.tableCell, styles.actionColumn]}>
-                        <Pressable onPress={() => promptDeleteRow(index)} style={styles.deleteButton} hitSlop={8}>
+                        <Pressable onPress={() => promptDeleteRow(index)} style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]} hitSlop={8}>
                           <Text style={styles.deleteButtonText}>✕</Text>
                         </Pressable>
                       </View>
@@ -892,33 +1009,53 @@ export default function CalculationTableModal({
                       : 'No saved calculations yet.'}
                   </Text>
                 )}
+
+                {filteredRows.length && hasAnyTotals ? (
+                  <View style={styles.tableTotalRow}>
+                    <View style={[styles.tableCell, styles.nameColumn, styles.totalSummaryCell]} />
+                    <View style={[styles.tableCell, styles.infoColumn, styles.totalSummaryCell]}>
+                      <Text style={styles.totalSummaryLabel}>{totalLabel}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.commentsColumn, styles.totalSummaryCell]} />
+                    <View style={[styles.tableCell, styles.credColumn, styles.totalSummaryCell]}>
+                      <Text style={styles.totalSummaryValue}>{sectionTotals.cred ? pretty(String(Math.round(sectionTotals.cred * 10000) / 10000)) : '-'}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.factColumn, styles.totalSummaryCell]}>
+                      <Text style={styles.totalSummaryValue}>{sectionTotals.fact ? pretty(String(Math.round(sectionTotals.fact * 10000) / 10000)) : '-'}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.fcashColumn, styles.totalSummaryCell]}>
+                      <Text style={styles.totalSummaryValue}>{sectionTotals.fcash ? pretty(String(Math.round(sectionTotals.fcash * 10000) / 10000)) : '-'}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.actionColumn, styles.totalSummaryCell]} />
+                  </View>
+                ) : null}
               </View>
             </ScrollView>
           </ScrollView>
           <View style={styles.tableFooter}>
             <View style={styles.tableActions}>
-              <Pressable onPress={handleAddRow} style={styles.addRowButton}>
+              <Pressable onPress={handleAddRow} style={({ pressed }) => [styles.addRowButton, pressed && styles.pressed]}>
                 <Text style={styles.addRowButtonText}>+ Add Row</Text>
               </Pressable>
-              <Pressable onPress={saveTableAsPdf} style={[styles.closeButton, styles.tableActionButton]}>
+              <Pressable onPress={saveTableAsPdf} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Save PDF</Text>
               </Pressable>
-              <Pressable onPress={handleSaveCsv} style={[styles.closeButton, styles.tableActionButton, styles.csvButton]}>
+              <Pressable onPress={handleSaveCsv} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.csvButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Save CSV</Text>
               </Pressable>
             </View>
             <View style={styles.tableActions}>
-              <Pressable onPress={shareTable} style={[styles.closeButton, styles.tableActionButton]}>
+              <Pressable onPress={shareTable} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Share</Text>
               </Pressable>
-              <Pressable onPress={() => handleDriveUpload('pdf')} style={[styles.closeButton, styles.tableActionButton, styles.driveButton]}>
+              <Pressable onPress={() => handleDriveUpload('pdf')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Drive PDF</Text>
               </Pressable>
-              <Pressable onPress={() => handleDriveUpload('csv')} style={[styles.closeButton, styles.tableActionButton, styles.driveButton]}>
+              <Pressable onPress={() => handleDriveUpload('csv')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Drive CSV</Text>
               </Pressable>
             </View>
-            <Pressable onPress={handleClose} style={[styles.closeButton, styles.listCloseButton, styles.tableCloseButton]}>
+            <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>
               <Text style={styles.closeButtonText}>Close</Text>
             </Pressable>
           </View>
@@ -973,17 +1110,18 @@ export default function CalculationTableModal({
             <View style={styles.warningActions}>
               <Pressable
                 onPress={handleCancelWarning}
-                style={[styles.closeButton, styles.warningCancelButton]}
+                style={({ pressed }) => [styles.closeButton, styles.warningCancelButton, pressed && styles.pressed]}
               >
                 <Text style={styles.warningCancelText}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleConfirmWarning}
-                style={[
+                style={({ pressed }) => [
                   styles.closeButton,
                   warningModal.type === 'delete_line'
                     ? styles.warningConfirmButtonDelete
                     : styles.warningConfirmButton,
+                  pressed && styles.pressed,
                 ]}
               >
                 <Text style={styles.warningConfirmText}>
@@ -1017,13 +1155,13 @@ export default function CalculationTableModal({
             <View style={styles.commentModalActions}>
               <Pressable
                 onPress={handleCancelComment}
-                style={styles.commentModalCancelButton}
+                style={({ pressed }) => [styles.commentModalCancelButton, pressed && styles.pressed]}
               >
                 <Text style={styles.commentModalButtonText}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleSaveComment}
-                style={styles.commentModalSaveButton}
+                style={({ pressed }) => [styles.commentModalSaveButton, pressed && styles.pressed]}
               >
                 <Text style={styles.commentModalButtonText}>Save</Text>
               </Pressable>
@@ -1040,14 +1178,14 @@ export default function CalculationTableModal({
         onRequestClose={() => setDateDropdownVisible(false)}
       >
         <Pressable
-          style={styles.dropdownBackdrop}
+          style={({ pressed }) => [styles.dropdownBackdrop, pressed && styles.pressed]}
           onPress={() => setDateDropdownVisible(false)}
         >
-          <Pressable style={styles.dropdownPanel}>
+          <Pressable style={({ pressed }) => [styles.dropdownPanel, pressed && styles.pressed]}>
             <Text style={styles.dropdownTitle}>Choose date range</Text>
             <View style={styles.quickActionsRow}>
               <Pressable
-                style={styles.quickActionButton}
+                style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
                 onPress={() => {
                   setFromDate('');
                   setToDate('');
@@ -1056,7 +1194,7 @@ export default function CalculationTableModal({
                 <Text style={styles.quickActionText}>All dates</Text>
               </Pressable>
               <Pressable
-                style={styles.quickActionButton}
+                style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
                 onPress={() => {
                   setFromDate(availableDates[availableDates.length - 1] || '');
                   setToDate(availableDates[0] || '');
@@ -1072,7 +1210,7 @@ export default function CalculationTableModal({
                   {availableDates.map((dateStr) => (
                     <Pressable
                       key={`from-${dateStr}`}
-                      style={[styles.rangePill, fromDate === dateStr && styles.rangePillSelected]}
+                      style={({ pressed }) => [styles.rangePill, fromDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
                       onPress={() => setFromDate(dateStr)}
                     >
                       <Text style={[styles.rangePillText, fromDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
@@ -1086,7 +1224,7 @@ export default function CalculationTableModal({
                   {availableDates.map((dateStr) => (
                     <Pressable
                       key={`to-${dateStr}`}
-                      style={[styles.rangePill, toDate === dateStr && styles.rangePillSelected]}
+                      style={({ pressed }) => [styles.rangePill, toDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
                       onPress={() => setToDate(dateStr)}
                     >
                       <Text style={[styles.rangePillText, toDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
@@ -1098,7 +1236,7 @@ export default function CalculationTableModal({
             <Text style={styles.listSubtitle}>Rows in range: {filteredRows.length}</Text>
             <Pressable
               onPress={() => setDateDropdownVisible(false)}
-              style={styles.dropdownCloseButton}
+              style={({ pressed }) => [styles.dropdownCloseButton, pressed && styles.pressed]}
             >
               <Text style={styles.dropdownCloseButtonText}>Close</Text>
             </Pressable>

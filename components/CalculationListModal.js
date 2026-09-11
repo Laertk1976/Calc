@@ -29,7 +29,7 @@ export default function CalculationListModal({ visible, calculations, onClose })
               </View>
             )) : <Text style={styles.emptyList}>No saved calculations yet.</Text>}
           </ScrollView>
-          <Pressable onPress={onClose} style={[styles.closeButton, styles.listCloseButton]}>
+          <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, pressed && styles.pressed]}>
             <Text style={styles.closeButtonText}>Close</Text>
           </Pressable>
         </View>

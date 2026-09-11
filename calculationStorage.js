@@ -1,19 +1,20 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const STORAGE_KEY = 'calculatorCalculations';
 
-export function getSavedCalculations() {
-  if (typeof globalThis.localStorage === 'undefined') return [];
+export async function getSavedCalculations() {
   try {
-    return JSON.parse(globalThis.localStorage.getItem(STORAGE_KEY) || '[]');
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const calculations = JSON.parse(stored || '[]');
+    return Array.isArray(calculations) ? calculations : [];
   } catch {
     return [];
   }
 }
 
-export function saveCalculation(expression, display, type = 'Add', titleOverride = '') {
-  if (typeof globalThis.localStorage === 'undefined') return;
-
-  const title = (titleOverride || '').trim() || globalThis.prompt?.('Title for this calculation:') || '';
-  if (!title || !title.trim()) return;
+export async function saveCalculation(expression, display, type = 'Add', titleOverride = '') {
+  const title = (titleOverride || '').trim();
+  if (!title) return false;
 
   const savedAt = new Date().toISOString();
   const savedCalculation = {
@@ -24,17 +25,14 @@ export function saveCalculation(expression, display, type = 'Add', titleOverride
     value: display,
     type,
   };
-  const savedCalculations = getSavedCalculations();
-  globalThis.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify([...savedCalculations, savedCalculation]),
-  );
+  const savedCalculations = await getSavedCalculations();
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([...savedCalculations, savedCalculation]));
+  return true;
 }
 
-export function updateSavedCalculations(calculations) {
-  if (typeof globalThis.localStorage === 'undefined') return;
+export async function updateSavedCalculations(calculations) {
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(calculations));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(calculations));
   } catch (error) {
     console.log('Storage update error:', error);
   }
