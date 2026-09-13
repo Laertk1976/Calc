@@ -450,6 +450,7 @@ export default function CalculationTableModal({
 }) {
   const [rows, setRows] = useState(() => (calculations || []).map(normalizeCalculation));
   const [driveAccessToken, setDriveAccessToken] = useState(null);
+  const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const [pendingDriveFormat, setPendingDriveFormat] = useState(null);
   const [googleRequest, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
     ...googleClientIds,
@@ -735,6 +736,8 @@ export default function CalculationTableModal({
   };
 
   const handleDriveUpload = async (format) => {
+    if (driveUploadBusy) return;
+
     if (format === 'pdf' && Platform.OS === 'web') {
       Alert.alert('PDF upload unavailable', 'Google Drive PDF upload requires an Android or iOS build. Use Save PDF on web.');
       return;
@@ -745,6 +748,12 @@ export default function CalculationTableModal({
       return;
     }
 
+    if (!driveAccessToken && !googleRequest) {
+      Alert.alert('Google Drive is not ready', 'Please wait a moment and try again. If this continues, restart the app after rebuilding it.');
+      return;
+    }
+
+    setDriveUploadBusy(true);
     try {
       let accessToken = driveAccessToken;
       if (!accessToken) {
@@ -778,7 +787,9 @@ export default function CalculationTableModal({
       }
       Alert.alert('Google Drive', `${format.toUpperCase()} uploaded successfully.`);
     } catch (error) {
-      Alert.alert('Google Drive upload failed', error.message);
+      Alert.alert('Google Drive upload failed', error?.message || 'The upload could not be completed.');
+    } finally {
+      setDriveUploadBusy(false);
     }
   };
 
@@ -1048,11 +1059,11 @@ export default function CalculationTableModal({
               <Pressable onPress={shareTable} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Share</Text>
               </Pressable>
-              <Pressable onPress={() => handleDriveUpload('pdf')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Drive PDF</Text>
+              <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('pdf')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
+                <Text style={styles.closeButtonText}>{driveUploadBusy ? 'Connecting...' : 'Drive PDF'}</Text>
               </Pressable>
-              <Pressable onPress={() => handleDriveUpload('csv')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Drive CSV</Text>
+              <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('csv')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
+                <Text style={styles.closeButtonText}>{driveUploadBusy ? 'Connecting...' : 'Drive CSV'}</Text>
               </Pressable>
             </View>
             <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>

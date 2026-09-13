@@ -2,7 +2,10 @@
   "expo": {
     "name": "Calculator",
     "slug": "calc",
-    "scheme": "com.example.calc",
+    "scheme": [
+      "com.example.calc",
+      "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

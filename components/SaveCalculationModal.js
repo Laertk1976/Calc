@@ -3,15 +3,15 @@ import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextI
 import { getSavedCalculations } from '../calculationStorage';
 import { styles } from '../calculatorStyles';
 
-export default function SaveCalculationModal({ visible, title, onTitleChange, onConfirm, onClose }) {
+export default function SaveCalculationModal({ visible, title, userId, onTitleChange, onConfirm, onClose }) {
   const [savedTitles, setSavedTitles] = useState([]);
   const [localTitle, setLocalTitle] = useState(title);
 
   useEffect(() => {
     if (!visible) return;
     setLocalTitle(title);
-    getSavedCalculations().then((items) => setSavedTitles(items.map((item) => item.title)));
-  }, [visible, title]);
+    getSavedCalculations(userId).then((items) => setSavedTitles(items.map((item) => item.title)));
+  }, [visible, title, userId]);
 
   const suggestions = savedTitles
     .filter((item) => typeof item === 'string' && item.trim())

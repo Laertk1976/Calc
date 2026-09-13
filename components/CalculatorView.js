@@ -16,6 +16,7 @@ export default function CalculatorView({
   tableVisible,
   saveDialogVisible,
   saveTitle,
+  user,
   onKeyPress,
   onSaveType,
   onList,
@@ -26,14 +27,21 @@ export default function CalculatorView({
   onConfirmSave,
   onOpenTable,
   onUpdateCalculations,
+  onOpenAuth,
+  onSignOut,
 }) {
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
       <View style={styles.calculator}>
-        <Pressable onPress={onOpenTable} style={styles.titleButton} hitSlop={10}>
-          <Text style={styles.title}>CALCULATOR</Text>
-        </Pressable>
+        <View style={styles.topBar}>
+          <Pressable onPress={onOpenTable} style={styles.titleButton} hitSlop={10}>
+            <Text style={styles.title}>CALCULATOR</Text>
+          </Pressable>
+          <Pressable onPress={user ? onSignOut : onOpenAuth} style={styles.authButton}>
+            <Text style={styles.authButtonText}>{user ? 'Sign out' : 'Sign in'}</Text>
+          </Pressable>
+        </View>
         <View style={styles.display}>
           {expression ? <Text style={styles.expression}>{expression}</Text> : null}
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
@@ -63,7 +71,7 @@ export default function CalculatorView({
           onClose={onCloseTable}
           onUpdateCalculations={onUpdateCalculations}
         />
-        <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
+        <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.id} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
       </View>
     </SafeAreaView>
   );

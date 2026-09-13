@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="com.example.calc"/>
         <data android:scheme="com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu" android:path="/oauth2redirect"/>
+        <data android:scheme="com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu" android:path="/oauthredirect"/>
       </intent-filter>
     </activity>
   </application>

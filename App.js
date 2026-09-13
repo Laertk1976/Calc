@@ -1,8 +1,11 @@
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { auth } from './authClient';
 import { getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
 import { evaluateExpression, pretty } from './calculatorUtils';
+import AuthModal from './components/AuthModal';
 import CalculatorView from './components/CalculatorView';
 
 export default function App() {
@@ -17,14 +20,28 @@ export default function App() {
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
   const [saveType, setSaveType] = useState('Add');
   const [saveTitle, setSaveTitle] = useState('');
+  const [user, setUser] = useState(null);
+  const [authVisible, setAuthVisible] = useState(false);
 
   useEffect(() => {
-    getSavedCalculations().then(setSavedCalculations);
+    if (!auth) {
+      getSavedCalculations().then(setSavedCalculations);
+      return undefined;
+    }
+
+    return onAuthStateChanged(auth, setUser);
   }, []);
+
+  useEffect(() => {
+    getSavedCalculations(user?.id).then(setSavedCalculations).catch((error) => {
+      console.log('Calculation load error:', error);
+      Alert.alert('Sync failed', 'Your calculations could not be loaded from your account.');
+    });
+  }, [user]);
 
   const handleUpdateCalculations = (newCalculations) => {
     setSavedCalculations(newCalculations);
-    updateSavedCalculations(newCalculations).catch((error) => console.log('Storage update error:', error));
+    updateSavedCalculations(newCalculations, user?.id).catch((error) => console.log('Storage update error:', error));
   };
 
   const calculate = (first, currentOperator, second) => {
@@ -38,14 +55,14 @@ export default function App() {
   };
 
   const showSavedCalculations = () => {
-    getSavedCalculations().then((calculations) => {
+    getSavedCalculations(user?.id).then((calculations) => {
       setSavedCalculations(calculations);
       setListVisible(true);
     });
   };
 
   const showCalculatorTable = () => {
-    getSavedCalculations().then((calculations) => {
+    getSavedCalculations(user?.id).then((calculations) => {
       setSavedCalculations(calculations);
       setListVisible(false);
       setSaveDialogVisible(false);
@@ -56,7 +73,7 @@ export default function App() {
   const openSaveDialog = (type) => {
     setSaveType(type);
     setSaveTitle('');
-    getSavedCalculations().then(setSavedCalculations);
+    getSavedCalculations(user?.id).then(setSavedCalculations);
     setSaveDialogVisible(true);
   };
 
@@ -68,10 +85,10 @@ export default function App() {
     }
 
     try {
-      const saved = await saveCalculation(expression, display, saveType, trimmedTitle);
+      const saved = await saveCalculation(expression, display, saveType, trimmedTitle, user?.id);
       if (!saved) return;
 
-      const calculations = await getSavedCalculations();
+      const calculations = await getSavedCalculations(user?.id);
       setSavedCalculations(calculations);
       setSaveDialogVisible(false);
       setSaveTitle('');
@@ -154,24 +171,30 @@ export default function App() {
   };
 
   return (
-    <CalculatorView
-      display={display}
-      expression={expression}
-      savedCalculations={savedCalculations}
-      listVisible={listVisible}
-      tableVisible={tableVisible}
-      saveDialogVisible={saveDialogVisible}
-      saveTitle={saveTitle}
-      onKeyPress={onPress}
-      onSaveType={openSaveDialog}
-      onList={showSavedCalculations}
-      onCloseList={() => setListVisible(false)}
-      onCloseTable={() => setTableVisible(false)}
-      onCloseSaveDialog={() => setSaveDialogVisible(false)}
-      onTitleChange={setSaveTitle}
-      onConfirmSave={confirmSave}
-      onOpenTable={showCalculatorTable}
-      onUpdateCalculations={handleUpdateCalculations}
-    />
+    <>
+      <CalculatorView
+        display={display}
+        expression={expression}
+        savedCalculations={savedCalculations}
+        listVisible={listVisible}
+        tableVisible={tableVisible}
+        saveDialogVisible={saveDialogVisible}
+        saveTitle={saveTitle}
+        user={user}
+        onKeyPress={onPress}
+        onSaveType={openSaveDialog}
+        onList={showSavedCalculations}
+        onCloseList={() => setListVisible(false)}
+        onCloseTable={() => setTableVisible(false)}
+        onCloseSaveDialog={() => setSaveDialogVisible(false)}
+        onTitleChange={setSaveTitle}
+        onConfirmSave={confirmSave}
+        onOpenTable={showCalculatorTable}
+        onUpdateCalculations={handleUpdateCalculations}
+        onOpenAuth={() => setAuthVisible(true)}
+        onSignOut={() => auth && signOut(auth)}
+      />
+      <AuthModal visible={authVisible} user={user} onClose={() => setAuthVisible(false)} />
+    </>
   );
 }
