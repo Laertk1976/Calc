@@ -3,3 +3,5 @@ node_modules/
 dist/
 npm-debug.*
 .env
+.history-browser-test/
+.history-ui-check.png

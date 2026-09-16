@@ -49,9 +49,10 @@ export default function App() {
     });
   }, [user]);
 
-  const handleUpdateCalculations = (newCalculations) => {
-    setSavedCalculations(newCalculations);
-    updateSavedCalculations(newCalculations, user?.id).catch((error) => console.log('Storage update error:', error));
+  const handleUpdateCalculations = async (change) => {
+    const calculations = await updateSavedCalculations(change, user?.id);
+    setSavedCalculations(calculations);
+    return calculations;
   };
 
   const calculate = (first, currentOperator, second) => {

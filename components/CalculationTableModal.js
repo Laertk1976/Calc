@@ -7,6 +7,9 @@ import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils'
 import { uploadFileToGoogleDrive } from '../googleDrive';
 import { shareRowSummary } from '../shareUtils';
 import useDriveAuthorization from '../useDriveAuthorization';
+import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
+import CalculationHistoryModal from './CalculationHistoryModal';
+import { buildDriveExportFileName } from '../driveExportNames';
 
 function getDateKey(value) {
   if (!value) return 'No Date';
@@ -35,32 +38,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function getCalculationInfo(calculation) {
-  const value = pretty(calculation.value || '');
-  const expr = calculation.expression;
-  if (!expr || expr === calculation.value) return value;
-  if (expr.includes('=')) return expr;
-  return `${expr} = ${value}`;
-}
-
-function normalizeCalculation(calc) {
-  const type = calc.type || 'Add';
-  const rawVal = calc.value || '';
-  return {
-    ...calc,
-    id: calc.id || calc.createdAt || `${Date.now()}-${Math.random()}`,
-    createdAt: calc.createdAt || new Date().toISOString(),
-    savedAt: calc.savedAt || calc.createdAt || new Date().toISOString(),
-    title: calc.title || '',
-    info: calc.info !== undefined ? calc.info : getCalculationInfo(calc),
-    expression: calc.expression || calc.info || rawVal,
-    comment: calc.comment !== undefined ? calc.comment : (type === 'Add' ? rawVal : ''),
-    cred: calc.cred !== undefined ? calc.cred : (type === 'Cred' ? rawVal : ''),
-    fact: calc.fact !== undefined ? calc.fact : (type === 'Fact' ? rawVal : ''),
-    fcash: calc.fcash !== undefined ? calc.fcash : (type === 'Fcash' ? rawVal : ''),
-  };
 }
 
 function formatNumberDisplay(val) {
@@ -429,7 +406,10 @@ export default function CalculationTableModal({
   onClose,
   onUpdateCalculations,
 }) {
-  const [rows, setRows] = useState(() => (calculations || []).map(normalizeCalculation));
+  const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const undoable = latestUndoableChange(calculations || []);
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
@@ -467,13 +447,18 @@ export default function CalculationTableModal({
 
   useEffect(() => {
     if (visible) {
-      setRows((calculations || []).map(normalizeCalculation));
+      setRows((calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
+    }
+  }, [visible, calculations]);
+
+  useEffect(() => {
+    if (visible) {
       setFromDate('');
       setToDate('');
       setSearchVisible(false);
       setSearchText('');
     }
-  }, [visible, calculations]);
+  }, [visible]);
 
   const availableDates = Array.from(
     new Set(
@@ -536,9 +521,6 @@ export default function CalculationTableModal({
         }
         return nextItem;
       });
-      if (field === 'title' || field === 'comment') {
-        if (onUpdateCalculations) onUpdateCalculations(updated);
-      }
       return updated;
     });
   };
@@ -578,8 +560,6 @@ export default function CalculationTableModal({
         newValue: current,
         rowTitle,
       });
-    } else if (onUpdateCalculations) {
-      onUpdateCalculations(rows);
     }
   };
 
@@ -590,7 +570,7 @@ export default function CalculationTableModal({
       visible: true,
       type: 'delete_line',
       title: 'Confirm Line Deletion',
-      message: `Are you sure you want to delete "${rowTitle}"? This line will be permanently removed.`,
+      message: `Delete "${rowTitle}"? You can undo this or restore it from History later.`,
       rowIndex: index,
       rowTitle,
       field: null,
@@ -600,22 +580,32 @@ export default function CalculationTableModal({
     });
   };
 
-  const handleConfirmWarning = () => {
+  const commitChange = async (change) => {
+    setSaving(true);
+    try {
+      await onUpdateCalculations(change);
+      return true;
+    } catch (error) {
+      setRows((calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
+      Alert.alert('Change not saved', error?.message || 'Please try again.');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmWarning = async () => {
+    if (saving) return;
     if (warningModal.type === 'delete_line') {
-      const updated = rows.filter((_, idx) => idx !== warningModal.rowIndex);
-      setRows(updated);
-      if (onUpdateCalculations) {
-        onUpdateCalculations(updated);
-      }
+      await commitChange({ type: 'delete', id: rows[warningModal.rowIndex].id });
     } else if (warningModal.type === 'change_number') {
-      if (onUpdateCalculations) {
-        onUpdateCalculations(rows);
-      }
+      await commitChange({ type: 'edit', id: rows[warningModal.rowIndex].id, changes: { [warningModal.field]: warningModal.newValue } });
     }
     setWarningModal({ visible: false, type: null });
   };
 
   const handleCancelWarning = () => {
+    if (saving) return;
     if (warningModal.type === 'change_number') {
       const updated = rows.map((item, idx) => {
         if (idx !== warningModal.rowIndex) return item;
@@ -626,16 +616,13 @@ export default function CalculationTableModal({
         return reverted;
       });
       setRows(updated);
-      if (onUpdateCalculations) {
-        onUpdateCalculations(updated);
-      }
     }
     setWarningModal({ visible: false, type: null });
   };
 
   const handleSaveComment = () => {
     if (commentModal.rowIndex !== null) {
-      handleCellChange(commentModal.rowIndex, 'comment', commentModal.text);
+      commitChange({ type: 'edit', id: rows[commentModal.rowIndex].id, changes: { comment: commentModal.text } });
     }
     setCommentModal({ visible: false, rowIndex: null, text: '' });
   };
@@ -663,11 +650,7 @@ export default function CalculationTableModal({
       type: 'Add',
       value: '',
     };
-    const updated = [newRow, ...rows];
-    setRows(updated);
-    if (onUpdateCalculations) {
-      onUpdateCalculations(updated);
-    }
+    commitChange({ type: 'add', row: newRow });
   };
 
   const filterSummary = [
@@ -728,11 +711,11 @@ export default function CalculationTableModal({
         return;
       }
 
-      const date = new Date().toISOString().slice(0, 10);
+      const fileName = buildDriveExportFileName(filteredRows, format);
       if (format === 'csv') {
         await uploadFileToGoogleDrive({
           accessToken,
-          fileName: `calculator-table-${date}.csv`,
+          fileName,
           mimeType: 'text/csv',
           content: `\ufeff${buildTableCsv(filteredRows)}`,
         });
@@ -742,12 +725,12 @@ export default function CalculationTableModal({
         const pdfBlob = await pdfResponse.blob();
         await uploadFileToGoogleDrive({
           accessToken,
-          fileName: `calculator-table-${date}.pdf`,
+          fileName,
           mimeType: 'application/pdf',
           content: pdfBlob,
         });
       }
-      Alert.alert('Google Drive', `${format.toUpperCase()} uploaded successfully.`);
+      Alert.alert('Google Drive', `Saved to Calculator/${fileName}`);
     } catch (error) {
       Alert.alert('Google Drive upload failed', error?.message || 'The upload could not be completed.');
     } finally {
@@ -767,8 +750,24 @@ export default function CalculationTableModal({
     }, filterSummary).catch((error) => console.log('Share error:', error));
 
   const handleClose = () => {
-    if (onUpdateCalculations) {
-      onUpdateCalculations(rows);
+    if (saving || warningModal.visible) return;
+    const dirtyIndex = rows.findIndex((row) => {
+      const saved = (calculations || []).find((item) => (item.id || item.createdAt) === row.id);
+      return saved && ['info', 'cred', 'fact', 'fcash'].some((field) => String(row[field] ?? '') !== String(normalizeCalculation(saved)[field] ?? ''));
+    });
+    if (dirtyIndex !== -1) {
+      const row = rows[dirtyIndex];
+      const saved = normalizeCalculation(calculations.find((item) => (item.id || item.createdAt) === row.id));
+      const field = ['info', 'cred', 'fact', 'fcash'].find((key) => String(row[key] ?? '') !== String(saved[key] ?? ''));
+      initialValuesRef.current[`${dirtyIndex}-${field}`] = String(saved[field] ?? '');
+      handleNumberCellBlur(dirtyIndex, field);
+      return;
+    }
+    const pending = Object.keys(initialValuesRef.current)[0];
+    if (pending) {
+      const [index, field] = pending.split('-');
+      handleNumberCellBlur(Number(index), field);
+      return;
     }
     onClose();
   };
@@ -776,7 +775,18 @@ export default function CalculationTableModal({
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
       <View style={[styles.modalBackdrop, styles.tableModalBackdrop]}>
-        <View style={styles.tablePanel}>
+        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
+              <Text style={styles.authButtonText}>History</Text>
+            </Pressable>
+            {undoable ? (
+              <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={styles.authButton} accessibilityRole="button">
+                <Text style={styles.authButtonText}>{undoable.event.type === 'delete' ? 'Undo delete' : 'Undo edit'}</Text>
+              </Pressable>
+            ) : null}
+            {saving ? <Text style={{ color: '#cbd5e1' }}>Saving...</Text> : null}
+          </View>
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>Calculator table</Text>
@@ -877,6 +887,7 @@ export default function CalculationTableModal({
                             style={[styles.cellInput, styles.nameInput]}
                             value={calc.title}
                             onChangeText={(text) => handleCellChange(index, 'title', text)}
+                            onBlur={() => commitChange({ type: 'edit', id: calc.id, changes: { title: calc.title } })}
                             placeholder="Name"
                             placeholderTextColor="#64748b"
                           />
@@ -1089,6 +1100,7 @@ export default function CalculationTableModal({
               </Pressable>
               <Pressable
                 onPress={handleConfirmWarning}
+                disabled={saving}
                 style={({ pressed }) => [
                   styles.closeButton,
                   warningModal.type === 'delete_line'
@@ -1216,6 +1228,13 @@ export default function CalculationTableModal({
           </Pressable>
         </Pressable>
       </Modal>
+      <CalculationHistoryModal
+        visible={historyVisible}
+        calculations={calculations || []}
+        saving={saving}
+        onChange={commitChange}
+        onClose={() => setHistoryVisible(false)}
+      />
     </Modal>
   );
 }

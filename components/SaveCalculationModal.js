@@ -10,7 +10,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
   useEffect(() => {
     if (!visible) return;
     setLocalTitle(title);
-    getSavedCalculations(userId).then((items) => setSavedTitles(items.map((item) => item.title)));
+    getSavedCalculations(userId).then((items) => setSavedTitles(items.filter((item) => !item.deletedAt).map((item) => item.title)));
   }, [visible, title, userId]);
 
   const suggestions = savedTitles

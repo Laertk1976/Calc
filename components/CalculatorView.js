@@ -65,7 +65,7 @@ export default function CalculatorView({
           </View>
           <UtilityButtons onSaveType={onSaveType} onList={onList} />
         </View>
-        <CalculationListModal visible={listVisible} calculations={savedCalculations} onClose={onCloseList} />
+        <CalculationListModal visible={listVisible} calculations={savedCalculations.filter((item) => !item.deletedAt)} onClose={onCloseList} />
         <CalculationTableModal
           visible={tableVisible}
           calculations={savedCalculations}
