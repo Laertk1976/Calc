@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, SafeAreaView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
 import { styles } from '../calculatorStyles';
 import { pretty } from '../calculatorUtils';

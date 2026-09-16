@@ -1,6 +1,7 @@
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { auth } from './authClient';
 import { getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
@@ -22,6 +23,15 @@ export default function App() {
   const [saveTitle, setSaveTitle] = useState('');
   const [user, setUser] = useState(null);
   const [authVisible, setAuthVisible] = useState(false);
+
+  const expressionTokens = expression.trim() ? expression.trim().split(/\s+/) : [];
+  const lastExpressionToken = expressionTokens[expressionTokens.length - 1];
+  const canShowLiveResult = !freshInput
+    && !expressionTokens.includes('=')
+    && !operators.includes(lastExpressionToken)
+    && expressionTokens.some((token) => operators.includes(token));
+  const calculatedDisplay = canShowLiveResult ? evaluateExpression(expression) : display;
+  const visibleDisplay = String(calculatedDisplay);
 
   useEffect(() => {
     if (!auth) {
@@ -85,7 +95,7 @@ export default function App() {
     }
 
     try {
-      const saved = await saveCalculation(expression, display, saveType, trimmedTitle, user?.id);
+      const saved = await saveCalculation(expression, visibleDisplay, saveType, trimmedTitle, user?.id);
       if (!saved) return;
 
       const calculations = await getSavedCalculations(user?.id);
@@ -99,21 +109,76 @@ export default function App() {
   };
 
   const onPress = (key) => {
-    if (key === 'AC') {
+    const resetCalculatorState = () => {
       setDisplay('0');
       setStoredValue(null);
       setOperator(null);
       setFreshInput(true);
       setExpression('');
+    };
+
+    if (key === 'AC') {
+      resetCalculatorState();
       return;
     }
 
     if (key === 'C') {
-      if (display === 'Error') return;
-      const nextDisplay = display.length > 1 ? display.slice(0, -1) : '0';
-      setDisplay(nextDisplay);
-      setExpression((current) => display.length > 1 ? current.slice(0, -1) : current.replace(/\s?\d+$/, ''));
-      setFreshInput(display.length <= 1);
+      if (display === 'Error') {
+        resetCalculatorState();
+        return;
+      }
+
+      const currentExpression = expression.trimEnd();
+      if (!currentExpression) {
+        resetCalculatorState();
+        return;
+      }
+
+      const nextExpression = currentExpression.slice(0, -1).trimEnd();
+      if (!nextExpression) {
+        resetCalculatorState();
+        return;
+      }
+
+      const tokens = nextExpression.split(/\s+/);
+      const lastToken = tokens[tokens.length - 1];
+      const equalsIndex = tokens.lastIndexOf('=');
+      const normalizeNumber = (value) => value.replace(/,/g, '');
+
+      setExpression(nextExpression);
+
+      if (equalsIndex >= 0) {
+        const resultToken = tokens[equalsIndex + 1];
+        const fallbackToken = tokens[equalsIndex - 1];
+        setDisplay(normalizeNumber(resultToken || fallbackToken || '0'));
+        setStoredValue(null);
+        setOperator(null);
+        setFreshInput(!resultToken);
+        return;
+      }
+
+      if (operators.includes(lastToken)) {
+        const precedingExpression = tokens.slice(0, -1).join(' ');
+        const precedingToken = tokens[tokens.length - 2] || '0';
+        const precedingValue = evaluateExpression(precedingExpression);
+        setDisplay(normalizeNumber(precedingToken));
+        setStoredValue(precedingValue === 'Error' ? null : precedingValue);
+        setOperator(lastToken);
+        setFreshInput(true);
+        return;
+      }
+
+      const lastOperatorIndex = tokens.findLastIndex((token) => operators.includes(token));
+      setDisplay(normalizeNumber(lastToken));
+      if (lastOperatorIndex > 0) {
+        const precedingValue = evaluateExpression(tokens.slice(0, lastOperatorIndex).join(' '));
+        setStoredValue(precedingValue === 'Error' ? null : precedingValue);
+        setOperator(tokens[lastOperatorIndex]);
+      } else {
+        setStoredValue(null);
+        setOperator(null);
+      }
+      setFreshInput(false);
       return;
     }
 
@@ -171,30 +236,30 @@ export default function App() {
   };
 
   return (
-    <>
-      <CalculatorView
-        display={display}
-        expression={expression}
-        savedCalculations={savedCalculations}
-        listVisible={listVisible}
-        tableVisible={tableVisible}
-        saveDialogVisible={saveDialogVisible}
-        saveTitle={saveTitle}
-        user={user}
-        onKeyPress={onPress}
-        onSaveType={openSaveDialog}
-        onList={showSavedCalculations}
-        onCloseList={() => setListVisible(false)}
-        onCloseTable={() => setTableVisible(false)}
-        onCloseSaveDialog={() => setSaveDialogVisible(false)}
-        onTitleChange={setSaveTitle}
-        onConfirmSave={confirmSave}
-        onOpenTable={showCalculatorTable}
-        onUpdateCalculations={handleUpdateCalculations}
-        onOpenAuth={() => setAuthVisible(true)}
-        onSignOut={() => auth && signOut(auth)}
-      />
-      <AuthModal visible={authVisible} user={user} onClose={() => setAuthVisible(false)} />
-    </>
+    <SafeAreaProvider>
+        <CalculatorView
+          display={visibleDisplay}
+          expression={expression}
+          savedCalculations={savedCalculations}
+          listVisible={listVisible}
+          tableVisible={tableVisible}
+          saveDialogVisible={saveDialogVisible}
+          saveTitle={saveTitle}
+          user={user}
+          onKeyPress={onPress}
+          onSaveType={openSaveDialog}
+          onList={showSavedCalculations}
+          onCloseList={() => setListVisible(false)}
+          onCloseTable={() => setTableVisible(false)}
+          onCloseSaveDialog={() => setSaveDialogVisible(false)}
+          onTitleChange={setSaveTitle}
+          onConfirmSave={confirmSave}
+          onOpenTable={showCalculatorTable}
+          onUpdateCalculations={handleUpdateCalculations}
+          onOpenAuth={() => setAuthVisible(true)}
+          onSignOut={() => auth && signOut(auth)}
+        />
+        <AuthModal visible={authVisible} user={user} onClose={() => setAuthVisible(false)} />
+    </SafeAreaProvider>
   );
 }

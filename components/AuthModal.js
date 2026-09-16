@@ -1,32 +1,16 @@
-import { makeRedirectUri } from 'expo-auth-session';
-import { useIdTokenAuthRequest } from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithCredential, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { auth, isFirebaseConfigured } from '../authClient';
 import { styles } from '../calculatorStyles';
-
-const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
-const nativeGoogleRedirectUri = androidClientId
-  ? `com.googleusercontent.apps.${androidClientId.replace(/\.apps\.googleusercontent\.com$/, '')}:/oauthredirect`
-  : undefined;
-const redirectUri = Platform.OS === 'android'
-  ? nativeGoogleRedirectUri
-  : makeRedirectUri({ scheme: 'com.example.calc' });
+import { isGoogleSignInConfigured, signInWithGoogle } from '../googleSignIn';
 
 export default function AuthModal({ visible, user, onClose }) {
   const [mode, setMode] = useState('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [googleRequest, , promptGoogleLogin] = useIdTokenAuthRequest({
-    androidClientId,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ['profile', 'email'],
-  });
-  const googleAuthReady = Platform.OS === 'web' ? isFirebaseConfigured : Boolean(googleRequest);
+  const googleAuthReady = isFirebaseConfigured && isGoogleSignInConfigured;
 
   useEffect(() => {
     if (visible) {
@@ -58,17 +42,8 @@ export default function AuthModal({ visible, user, onClose }) {
   const handleGoogleAuth = async () => {
     setBusy(true);
     try {
-      if (Platform.OS === 'web') {
-        await signInWithPopup(auth, new GoogleAuthProvider());
-      } else {
-        const result = await promptGoogleLogin();
-        if (result?.type !== 'success' || !result.authentication?.idToken) {
-          if (result?.type !== 'cancel' && result?.type !== 'dismiss') Alert.alert('Google sign-in failed', 'Google did not return an ID token.');
-          return;
-        }
-        const credential = GoogleAuthProvider.credential(result.authentication.idToken, result.authentication.accessToken);
-        await signInWithCredential(auth, credential);
-      }
+      const signedIn = await signInWithGoogle();
+      if (!signedIn) return;
       onClose();
     } catch (error) {
       Alert.alert('Google sign-in failed', error.message || 'Google sign-in could not be completed.');

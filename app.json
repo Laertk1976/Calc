@@ -2,6 +2,10 @@
   "expo": {
     "name": "Calculator",
     "slug": "calc",
+     "android": {
+      "package": "com.example.calc",
+       "googleServicesFile": "./google-services.json"
+    },
     "scheme": [
       "com.example.calc",
       "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
@@ -9,18 +13,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#111827"
-    },
-    "android": {
-      "package": "com.example.calc"
-    },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#111827",
+          "resizeMode": "contain"
+        }
+      ]
     ]
   }
 }

@@ -1,31 +1,12 @@
-import { ResponseType } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { styles } from '../calculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
 import { uploadFileToGoogleDrive } from '../googleDrive';
 import { shareRowSummary } from '../shareUtils';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const googleClientIds = {
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-};
-
-function getGoogleNativeRedirectUri() {
-  const clientId = Platform.OS === 'android' ? googleClientIds.androidClientId : googleClientIds.iosClientId;
-  if (!clientId) return undefined;
-
-  const clientPrefix = clientId.replace(/\.apps\.googleusercontent\.com$/, '');
-  return `com.googleusercontent.apps.${clientPrefix}:/oauth2redirect`;
-}
+import useDriveAuthorization from '../useDriveAuthorization';
 
 function getDateKey(value) {
   if (!value) return 'No Date';
@@ -449,15 +430,8 @@ export default function CalculationTableModal({
   onUpdateCalculations,
 }) {
   const [rows, setRows] = useState(() => (calculations || []).map(normalizeCalculation));
-  const [driveAccessToken, setDriveAccessToken] = useState(null);
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
-  const [pendingDriveFormat, setPendingDriveFormat] = useState(null);
-  const [googleRequest, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
-    ...googleClientIds,
-    responseType: ResponseType.Token,
-    scopes: [GOOGLE_DRIVE_SCOPE],
-    redirectUri: Platform.OS === 'web' ? undefined : getGoogleNativeRedirectUri(),
-  });
+  const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
   const [warningModal, setWarningModal] = useState({
     visible: false,
@@ -500,13 +474,6 @@ export default function CalculationTableModal({
       setSearchText('');
     }
   }, [visible, calculations]);
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const accessToken = googleResponse.authentication?.accessToken || googleResponse.params?.access_token;
-      if (accessToken) setDriveAccessToken(accessToken);
-    }
-  }, [googleResponse]);
 
   const availableDates = Array.from(
     new Set(
@@ -743,26 +710,21 @@ export default function CalculationTableModal({
       return;
     }
 
-    if (!googleClientIds.webClientId && !googleClientIds.androidClientId && !googleClientIds.iosClientId) {
-      Alert.alert('Google Drive setup required', 'Add the EXPO_PUBLIC_GOOGLE_*_CLIENT_ID values before uploading to Google Drive.');
+    if (!driveAuthorization.configured) {
+      Alert.alert('Google Drive setup required', 'Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID before uploading to Google Drive.');
       return;
     }
 
-    if (!driveAccessToken && !googleRequest) {
+    if (!driveAuthorization.ready) {
       Alert.alert('Google Drive is not ready', 'Please wait a moment and try again. If this continues, restart the app after rebuilding it.');
       return;
     }
 
     setDriveUploadBusy(true);
     try {
-      let accessToken = driveAccessToken;
+      const accessToken = await driveAuthorization.authorize();
       if (!accessToken) {
-        const loginResult = await promptGoogleLogin();
-        accessToken = loginResult?.authentication?.accessToken || loginResult?.params?.access_token;
-        if (accessToken) setDriveAccessToken(accessToken);
-      }
-      if (!accessToken) {
-        Alert.alert('Google Drive sign-in cancelled', 'Sign in to Google to upload the table PDF.');
+        Alert.alert('Google Drive sign-in cancelled', 'Sign in to Google to upload the table.');
         return;
       }
 
@@ -871,13 +833,13 @@ export default function CalculationTableModal({
                     <Text style={styles.tableHeaderText}>Comments</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.credColumn, styles.headerCred]}>
-                    <Text style={styles.tableHeaderText}>Cred</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Cred</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.factColumn, styles.headerFact]}>
-                    <Text style={styles.tableHeaderText}>Fact</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Fact</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.fcashColumn, styles.headerFcash]}>
-                    <Text style={styles.tableHeaderText}>Fcash</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Fcash</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.actionColumn]}>
                     <Text style={styles.tableHeaderText}></Text>

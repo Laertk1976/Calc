@@ -18,7 +18,14 @@ export default function UtilityButtons({ onSaveType, onList }) {
           onPress={() => key === 'List' ? onList() : onSaveType(key)}
           style={({ pressed }) => [styles.utilityKey, getUtilityKeyStyle(key), pressed && styles.pressed]}
         >
-          <Text style={styles.keyText}>{key}</Text>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+            numberOfLines={1}
+            style={styles.utilityKeyText}
+          >
+            {key}
+          </Text>
         </Pressable>
       ))}
     </View>

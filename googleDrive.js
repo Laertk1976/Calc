@@ -27,7 +27,8 @@ export async function uploadFileToGoogleDrive({ accessToken, fileName, mimeType,
   });
 
   if (!response.ok) {
-    throw new Error(`Google Drive upload failed (${response.status})`);
+    const details = await response.json().catch(() => null);
+    throw new Error(details?.error?.message || `Google Drive upload failed (${response.status})`);
   }
 
   return response.json();
