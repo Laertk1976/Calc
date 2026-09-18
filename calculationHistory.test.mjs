@@ -103,12 +103,14 @@ async function storageHarness(initial) {
     },
   };
   const mockStorage = moduleUrl(`export default globalThis[${JSON.stringify(key)}];`);
-  const mockFirestore = moduleUrl('export const addDoc=()=>{},collection=()=>{},doc=()=>{},getDocs=()=>{},query=()=>{},serverTimestamp=()=>{},where=()=>{},writeBatch=()=>{};');
+  const mockFirestore = moduleUrl('export const addDoc=()=>{},collection=()=>{},doc=()=>{},getDocsFromServer=()=>{},runTransaction=()=>{},query=()=>{},serverTimestamp=()=>{},where=()=>{},writeBatch=()=>{};');
   const mockAuth = moduleUrl('export const db = null;');
+  const offline = moduleUrl((await readFile(new URL('./offlineCalculationStore.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(moduleUrl(source))));
   const storageSource = (await readFile(new URL('./calculationStorage.js', import.meta.url), 'utf8'))
     .replace("'@react-native-async-storage/async-storage'", JSON.stringify(mockStorage))
     .replace("'firebase/firestore'", JSON.stringify(mockFirestore))
     .replace("'./authClient'", JSON.stringify(mockAuth))
+    .replace("'./offlineCalculationStore'", JSON.stringify(offline))
     .replace("'./calculationHistory'", JSON.stringify(moduleUrl(source)));
   const api = await import(moduleUrl(storageSource));
   return { api, setFailure: (value) => { failWrite = value; }, corrupt: () => { stored = '{'; }, writes: () => writes };

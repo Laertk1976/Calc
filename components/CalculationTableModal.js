@@ -1,3 +1,4 @@
+import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
@@ -401,6 +402,8 @@ async function createPdfUri(calculations, filterSummary) {
 }
 
 export default function CalculationTableModal({
+  syncStatus,
+  onRetrySync,
   visible,
   calculations,
   onClose,
@@ -787,6 +790,7 @@ export default function CalculationTableModal({
             ) : null}
             {saving ? <Text style={{ color: '#cbd5e1' }}>Saving...</Text> : null}
           </View>
+          <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>Calculator table</Text>
@@ -1162,71 +1166,84 @@ export default function CalculationTableModal({
         visible={dateDropdownVisible}
         onRequestClose={() => setDateDropdownVisible(false)}
       >
-        <Pressable
-          style={({ pressed }) => [styles.dropdownBackdrop, pressed && styles.pressed]}
-          onPress={() => setDateDropdownVisible(false)}
-        >
-          <Pressable style={({ pressed }) => [styles.dropdownPanel, pressed && styles.pressed]}>
-            <Text style={styles.dropdownTitle}>Choose date range</Text>
-            <View style={styles.quickActionsRow}>
-              <Pressable
-                style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
-                onPress={() => {
-                  setFromDate('');
-                  setToDate('');
-                }}
-              >
-                <Text style={styles.quickActionText}>All dates</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
-                onPress={() => {
-                  setFromDate(availableDates[availableDates.length - 1] || '');
-                  setToDate(availableDates[0] || '');
-                }}
-              >
-                <Text style={styles.quickActionText}>All available</Text>
-              </Pressable>
-            </View>
-            <View style={styles.rangeContainer}>
-              <View style={styles.rangeCol}>
-                <Text style={styles.rangeLabel}>From</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeScroll}>
-                  {availableDates.map((dateStr) => (
-                    <Pressable
-                      key={`from-${dateStr}`}
-                      style={({ pressed }) => [styles.rangePill, fromDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
-                      onPress={() => setFromDate(dateStr)}
-                    >
-                      <Text style={[styles.rangePillText, fromDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+        <View style={styles.dropdownBackdrop}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss date picker"
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={() => setDateDropdownVisible(false)}
+          />
+          <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
+              <Text style={styles.dropdownTitle}>Choose date range</Text>
+              <View style={styles.quickActionsRow}>
+                <Pressable
+                  style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
+                  onPress={() => {
+                    setFromDate('');
+                    setToDate('');
+                  }}
+                >
+                  <Text style={styles.quickActionText}>All dates</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
+                  onPress={() => {
+                    setFromDate(availableDates[availableDates.length - 1] || '');
+                    setToDate(availableDates[0] || '');
+                  }}
+                >
+                  <Text style={styles.quickActionText}>All available</Text>
+                </Pressable>
               </View>
-              <View style={styles.rangeCol}>
-                <Text style={styles.rangeLabel}>To</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeScroll}>
-                  {availableDates.map((dateStr) => (
-                    <Pressable
-                      key={`to-${dateStr}`}
-                      style={({ pressed }) => [styles.rangePill, toDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
-                      onPress={() => setToDate(dateStr)}
-                    >
-                      <Text style={[styles.rangePillText, toDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+              <View style={styles.rangeContainer}>
+                <View style={styles.rangeCol}>
+                  <Text style={styles.rangeLabel}>From</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {availableDates.map((dateStr) => (
+                      <Pressable
+                        key={`from-${dateStr}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`From ${dateStr}`}
+                        accessibilityState={{ selected: fromDate === dateStr }}
+                        style={({ pressed }) => [styles.rangePill, fromDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
+                        onPress={() => setFromDate(dateStr)}
+                      >
+                        <Text style={[styles.rangePillText, fromDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.rangeCol}>
+                  <Text style={styles.rangeLabel}>To</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {availableDates.map((dateStr) => (
+                      <Pressable
+                        key={`to-${dateStr}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`To ${dateStr}`}
+                        accessibilityState={{ selected: toDate === dateStr }}
+                        style={({ pressed }) => [styles.rangePill, toDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
+                        onPress={() => setToDate(dateStr)}
+                      >
+                        <Text style={[styles.rangePillText, toDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
               </View>
-            </View>
-            <Text style={styles.listSubtitle}>Rows in range: {filteredRows.length}</Text>
-            <Pressable
-              onPress={() => setDateDropdownVisible(false)}
-              style={({ pressed }) => [styles.dropdownCloseButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.dropdownCloseButtonText}>Close</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
+              {!availableDates.length ? <Text style={styles.listSubtitle}>Save a record to choose a date range.</Text> : null}
+              <Text style={styles.listSubtitle}>{getFilterLabel()}</Text>
+              <Text style={styles.listSubtitle}>Rows in range: {filteredRows.length}</Text>
+              <Pressable
+                onPress={() => setDateDropdownVisible(false)}
+                style={({ pressed }) => [styles.dropdownCloseButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.dropdownCloseButtonText}>Apply dates</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
       <CalculationHistoryModal
         visible={historyVisible}

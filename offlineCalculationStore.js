@@ -100,12 +100,21 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
     });
   }
 
+  async function withDeadline(task) {
+    let timer;
+    try {
+      return await Promise.race([task, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error('Connection unavailable. Changes will sync automatically when reachable.'), { code: 'deadline-exceeded' })), 12000);
+      })]);
+    } finally { clearTimeout(timer); }
+  }
+
   async function runSync(userId) {
     let state = await read(userId);
     statuses.set(userId, { phase: 'syncing' });
     notify(userId, state);
     try {
-      const records = await remote.list(userId);
+      const records = await withDeadline(remote.list(userId));
       state = await serialize(async () => {
         const latest = await read(userId);
         const dirty = new Set(latest.queue.map((item) => item.rowId));

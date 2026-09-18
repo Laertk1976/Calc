@@ -6,6 +6,14 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "standalone": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
     }
   }
 }

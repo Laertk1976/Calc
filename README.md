@@ -81,3 +81,19 @@ Export names use the customers in the currently filtered rows and local export d
 4. Restart Expo after changing `.env`. The Drive authorization change uses the native module already included in the development APK, so it does not itself require a native rebuild.
 
 The table supports saving CSV locally, uploading CSV to Google Drive, and uploading PDF to Google Drive from Android or iOS. Web PDF export opens the clean table in the browser print dialog.
+
+## Standalone Android APK
+
+Build a release APK with Java 21, Node.js, and the Android SDK available:
+
+```powershell
+$env:NODE_ENV = 'production'
+cd android
+.\gradlew.bat app:assembleRelease --console=plain --no-daemon
+```
+
+Output: `android/app/build/outputs/apk/release/app-release.apk`. Install this APK and open **Calculator** directly. The release contains its JavaScript bundle and does not need Expo Go, Metro, a USB connection, or a running computer. Account sign-in, cloud sync, and Drive uploads still need internet; saved calculations remain available offline.
+
+The local release currently uses the existing development signing key, allowing it to update the development app without clearing saved data. This is a standalone release for personal installation, not a Play Store signing setup. Keep the same signing key for future updates.
+
+For an EAS cloud APK build, configure/link the project and run `eas build --profile standalone --platform android`. The `standalone` profile disables the development client and builds the release variant. EAS signing credentials may differ from the local key.

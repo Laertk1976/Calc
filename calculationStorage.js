@@ -1,84 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { addDoc, collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocsFromServer, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { db } from './authClient';
-import { applyCalculationChange, normalizeCalculation } from './calculationHistory';
+import { createOfflineCalculationStore, mergeRemoteCalculation } from './offlineCalculationStore';
 
-const STORAGE_KEY = 'calculatorCalculations';
+export const calculationStore = createOfflineCalculationStore({
+  storage: AsyncStorage,
+  remote: {
+    async list(userId) {
+      const snapshot = await getDocsFromServer(query(collection(db, 'calculations'), where('userId', '==', userId)));
+      return snapshot.docs.filter((item) => item.data().payload).map((item) => {
+        const row = item.data().payload;
+        return { docId: item.id, row: { ...row, id: row.id || row.createdAt || item.id } };
+      });
+    },
+    async push(userId, operation, existingId) {
+      const ref = doc(db, 'calculations', existingId || `local-${encodeURIComponent(userId)}-${encodeURIComponent(operation.rowId)}`);
+      return runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (snapshot.exists() && snapshot.data().userId !== userId) throw new Error('This calculation belongs to another account.');
+        if (snapshot.exists() && snapshot.data().lastOperation === operation.id) return { docId: ref.id, row: snapshot.data().payload };
+        const row = mergeRemoteCalculation(snapshot.exists() ? snapshot.data().payload : null, operation);
+        transaction.set(ref, { userId, payload: row, lastOperation: operation.id, updatedAt: serverTimestamp() });
+        return { docId: ref.id, row };
+      });
+    },
+  },
+});
 
-export async function getSavedCalculations(userId = null) {
-  if (userId && db) {
-    const calculationsQuery = query(
-      collection(db, 'calculations'),
-      where('userId', '==', userId)
-    );
-    const snapshot = await getDocs(calculationsQuery);
-    return snapshot.docs
-      .map((item) => item.data().payload ? { ...item.data().payload, id: item.data().payload.id || item.data().payload.createdAt || item.id } : null)
-      .filter(Boolean)
-      .map(normalizeCalculation)
-      .sort((first, second) => new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime());
-  }
-
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
-  const calculations = JSON.parse(stored || '[]');
-  if (!Array.isArray(calculations)) throw new Error('Saved calculations could not be read.');
-  return calculations.map((row, index) => normalizeCalculation({ ...row, id: row.id || row.createdAt || `legacy-${index}` }));
+export const getSavedCalculations = (userId = null) => calculationStore.getRows(userId);
+export function syncCalculations(userId) {
+  return calculationStore.sync(userId).catch(() => {});
 }
-
+export async function updateSavedCalculations(change, userId = null) {
+  const rows = await calculationStore.change(change, userId);
+  void syncCalculations(userId);
+  return rows;
+}
 export async function saveCalculation(expression, display, type = 'Add', titleOverride = '', userId = null) {
-  const title = (titleOverride || '').trim();
+  const title = titleOverride.trim();
   if (!title) return false;
-
   const savedAt = new Date().toISOString();
-  const savedCalculation = {
+  await updateSavedCalculations({ type: 'add', row: {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt: savedAt,
-    savedAt,
-    expression: expression || display,
-    title: title.trim(),
-    value: display,
-    type,
-  };
-  if (userId && db) {
-    await addDoc(collection(db, 'calculations'), {
-      userId,
-      payload: savedCalculation,
-      createdAt: serverTimestamp(),
-    });
-    return true;
-  }
-
-  const savedCalculations = await getSavedCalculations(userId);
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([...savedCalculations, savedCalculation]));
+    createdAt: savedAt, savedAt, expression: expression || display, title, value: display, type,
+  } }, userId);
   return true;
 }
-
-async function writeCalculations(calculations, userId = null) {
-  if (userId && db) {
-    const snapshot = await getDocs(query(collection(db, 'calculations'), where('userId', '==', userId)));
-    const batch = writeBatch(db);
-    snapshot.docs.forEach((item) => batch.delete(doc(db, 'calculations', item.id)));
-    calculations.forEach((payload) => batch.set(doc(collection(db, 'calculations')), {
-      userId,
-      payload,
-      createdAt: serverTimestamp(),
-    }));
-    await batch.commit();
-    return;
-  }
-
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(calculations));
-}
-
-let pendingUpdate = Promise.resolve();
-export function updateSavedCalculations(change, userId = null) {
-  const update = pendingUpdate.catch(() => {}).then(async () => {
-    const previous = await getSavedCalculations(userId);
-    const calculations = applyCalculationChange(previous, change);
-    await writeCalculations(calculations, userId);
-    return calculations;
-  });
-  pendingUpdate = update;
-  return update;
-}
-

@@ -1,9 +1,9 @@
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { auth } from './authClient';
-import { getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
+import { calculationStore, syncCalculations, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
 import { evaluateExpression, pretty } from './calculatorUtils';
 import AuthModal from './components/AuthModal';
@@ -22,6 +22,7 @@ export default function App() {
   const [saveType, setSaveType] = useState('Add');
   const [saveTitle, setSaveTitle] = useState('');
   const [user, setUser] = useState(null);
+  const [syncStatus, setSyncStatus] = useState({ phase: 'local', pending: 0 });
   const [authVisible, setAuthVisible] = useState(false);
 
   const expressionTokens = expression.trim() ? expression.trim().split(/\s+/) : [];
@@ -33,24 +34,33 @@ export default function App() {
   const calculatedDisplay = canShowLiveResult ? evaluateExpression(expression) : display;
   const visibleDisplay = String(calculatedDisplay);
 
+  useEffect(() => auth ? onAuthStateChanged(auth, setUser) : undefined, []);
   useEffect(() => {
-    if (!auth) {
-      getSavedCalculations().then(setSavedCalculations);
-      return undefined;
-    }
-
-    return onAuthStateChanged(auth, setUser);
-  }, []);
-
-  useEffect(() => {
-    getSavedCalculations(user?.id).then(setSavedCalculations).catch((error) => {
-      console.log('Calculation load error:', error);
-      Alert.alert('Sync failed', 'Your calculations could not be loaded from your account.');
+    const userId = user?.uid || null;
+    let active = true;
+    setSavedCalculations([]);
+    setSyncStatus({ phase: userId ? 'checking' : 'local', pending: 0 });
+    const unsubscribe = calculationStore.subscribe(userId, ({ rows, status }) => {
+      if (active) { setSavedCalculations(rows); setSyncStatus(status); }
     });
-  }, [user]);
+    const retry = () => { void syncCalculations(userId); };
+    calculationStore.getSnapshot(userId).then(() => { if (active) retry(); }).catch(() => {
+      if (active) setSyncStatus({ phase: 'error', error: 'Saved device data could not be read.', pending: 0 });
+    });
+    const timer = userId ? setInterval(retry, 30000) : null;
+    const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') retry(); });
+    globalThis.addEventListener?.('online', retry);
+    return () => {
+      active = false;
+      unsubscribe();
+      clearInterval(timer);
+      subscription.remove();
+      globalThis.removeEventListener?.('online', retry);
+    };
+  }, [user?.uid]);
 
   const handleUpdateCalculations = async (change) => {
-    const calculations = await updateSavedCalculations(change, user?.id);
+    const calculations = await updateSavedCalculations(change, user?.uid);
     setSavedCalculations(calculations);
     return calculations;
   };
@@ -66,14 +76,14 @@ export default function App() {
   };
 
   const showSavedCalculations = () => {
-    getSavedCalculations(user?.id).then((calculations) => {
+    getSavedCalculations(user?.uid).then((calculations) => {
       setSavedCalculations(calculations);
       setListVisible(true);
     });
   };
 
   const showCalculatorTable = () => {
-    getSavedCalculations(user?.id).then((calculations) => {
+    getSavedCalculations(user?.uid).then((calculations) => {
       setSavedCalculations(calculations);
       setListVisible(false);
       setSaveDialogVisible(false);
@@ -84,7 +94,7 @@ export default function App() {
   const openSaveDialog = (type) => {
     setSaveType(type);
     setSaveTitle('');
-    getSavedCalculations(user?.id).then(setSavedCalculations);
+    getSavedCalculations(user?.uid).then(setSavedCalculations);
     setSaveDialogVisible(true);
   };
 
@@ -96,10 +106,10 @@ export default function App() {
     }
 
     try {
-      const saved = await saveCalculation(expression, visibleDisplay, saveType, trimmedTitle, user?.id);
+      const saved = await saveCalculation(expression, visibleDisplay, saveType, trimmedTitle, user?.uid);
       if (!saved) return;
 
-      const calculations = await getSavedCalculations(user?.id);
+      const calculations = await getSavedCalculations(user?.uid);
       setSavedCalculations(calculations);
       setSaveDialogVisible(false);
       setSaveTitle('');
@@ -247,6 +257,8 @@ export default function App() {
           saveDialogVisible={saveDialogVisible}
           saveTitle={saveTitle}
           user={user}
+          syncStatus={syncStatus}
+          onRetrySync={() => syncCalculations(user?.uid)}
           onKeyPress={onPress}
           onSaveType={openSaveDialog}
           onList={showSavedCalculations}

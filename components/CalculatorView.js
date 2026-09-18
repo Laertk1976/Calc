@@ -1,3 +1,4 @@
+import SyncStatus from './SyncStatus';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,8 @@ export default function CalculatorView({
   saveDialogVisible,
   saveTitle,
   user,
+  syncStatus,
+  onRetrySync,
   onKeyPress,
   onSaveType,
   onList,
@@ -43,6 +46,7 @@ export default function CalculatorView({
             <Text style={styles.authButtonText}>{user ? 'Sign out' : 'Sign in'}</Text>
           </Pressable>
         </View>
+        <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />
         <View style={styles.display}>
           {expression ? <Text style={styles.expression}>{expression}</Text> : null}
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
@@ -69,10 +73,12 @@ export default function CalculatorView({
         <CalculationTableModal
           visible={tableVisible}
           calculations={savedCalculations}
+          syncStatus={syncStatus}
+          onRetrySync={onRetrySync}
           onClose={onCloseTable}
           onUpdateCalculations={onUpdateCalculations}
         />
-        <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.id} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
+        <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
       </View>
     </SafeAreaView>
   );
