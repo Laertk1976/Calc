@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
-export default function SyncStatus({ syncStatus, onRetrySync }) {
-  return (<View accessibilityLiveRegion="polite" style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
+export default function SyncStatus({ syncStatus, onRetrySync, compact = false }) {
+  return (<View accessibilityLiveRegion="polite" style={{ paddingHorizontal: compact ? 0 : 12, paddingBottom: compact ? 0 : 8 }}>
           <Text style={{ color: syncStatus?.phase === 'synced' ? '#8cdbb0' : '#e1c995', fontSize: 12 }}>
             {syncStatus?.phase === 'local' ? 'Saved on this device' :
               syncStatus?.phase === 'synced' ? 'All changes synced ? ' + new Date(syncStatus.lastSyncedAt).toLocaleTimeString() :

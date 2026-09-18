@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { HISTORY_FIELDS } from '../calculationHistory';
 import { formatSavedDate } from '../calculatorUtils';
+import KeyboardModalFrame from './KeyboardModalFrame';
 
 const labels = { edit: 'Edited', delete: 'Deleted', restore: 'Restored', undo: 'Undone' };
 
@@ -15,8 +16,9 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.backdrop}>
+      <KeyboardModalFrame style={s.backdrop}>
         <View style={s.panel}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={s.scroll} contentContainerStyle={{ paddingBottom: 12, gap: 12 }}>
           <Text style={s.heading}>Calculation history</Text>
           <Text style={s.description}>Changes are recorded from now on. Deleted rows stay here until restored.</Text>
           <TextInput value={search} onChangeText={setSearch} placeholder="Search names..." placeholderTextColor="#94a3b8" style={s.input} accessibilityLabel="Search calculation history" />
@@ -24,7 +26,6 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
             <Pressable onPress={() => setDeletedOnly(false)} accessibilityRole="button" accessibilityState={{ selected: !deletedOnly }} style={[s.button, !deletedOnly && s.selected]}><Text style={s.text}>All changes</Text></Pressable>
             <Pressable onPress={() => setDeletedOnly(true)} accessibilityRole="button" accessibilityState={{ selected: deletedOnly }} style={[s.button, deletedOnly && s.selected]}><Text style={s.text}>Deleted rows</Text></Pressable>
           </View>
-          <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 12 }}>
             {events.length ? events.map(({ row, event }) => {
               const latest = row.history.at(-1)?.id === event.id;
               const changes = Object.entries(HISTORY_FIELDS).filter(([field]) => String(event.before[field] ?? '') !== String(event.after[field] ?? ''));
@@ -51,7 +52,7 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
           </ScrollView>
           <Pressable style={[s.button, s.selected]} onPress={onClose} accessibilityRole="button"><Text style={s.text}>Back to table</Text></Pressable>
         </View>
-      </View>
+      </KeyboardModalFrame>
     </Modal>
   );
 }

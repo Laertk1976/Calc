@@ -1,7 +1,9 @@
 export function pretty(value) {
+  value = String(value);
   if (value === 'Error') return value;
+  if (/[eE]/.test(value)) return Number(value).toLocaleString('en-US', { maximumSignificantDigits: 15 });
   const [whole, decimal] = value.split('.');
-  const formatted = Number(whole).toLocaleString('en-US');
+  const formatted = whole === '-0' ? '-0' : Number(whole).toLocaleString('en-US');
   return decimal === undefined ? formatted : `${formatted}.${decimal}`;
 }
 
@@ -19,29 +21,49 @@ export function formatSavedDate(value) {
 }
 
 export function evaluateExpression(value) {
-  const tokens = value.replace(/,/g, '').match(/-?\d*\.?\d+|[÷×−+]/g) || [];
-  if (!tokens.length) return 'Error';
-
-  const values = [Number(tokens[0])];
-  const pendingOperators = [];
-  for (let index = 1; index < tokens.length; index += 2) {
-    const nextOperator = tokens[index];
-    const nextValue = Number(tokens[index + 1]);
-    if (!Number.isFinite(nextValue)) return 'Error';
-    if (nextOperator === '×' || nextOperator === '÷') {
-      const previousValue = values.pop();
-      const result = nextOperator === '×'
-        ? previousValue * nextValue
-        : nextValue === 0 ? 'Error' : previousValue / nextValue;
-      if (result === 'Error') return result;
-      values.push(result);
-    } else {
-      pendingOperators.push(nextOperator);
-      values.push(nextValue);
+  let remaining = String(value).trim().replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/');
+  const readNumber = () => {
+    const match = remaining.match(/^[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?/i);
+    if (!match) return NaN;
+    remaining = remaining.slice(match[0].length).trimStart();
+    return Number(match[0].replace(/,/g, ''));
+  };
+  let term = readNumber();
+  let total = 0;
+  let sign = 1;
+  if (!Number.isFinite(term)) return 'Error';
+  while (remaining) {
+    const operator = remaining[0];
+    if (!['+', '-', '*', '/'].includes(operator)) return 'Error';
+    remaining = remaining.slice(1).trimStart();
+    const operand = readNumber();
+    if (!Number.isFinite(operand) || (operator === '/' && operand === 0)) return 'Error';
+    if (operator === '*') term *= operand;
+    else if (operator === '/') term /= operand;
+    else {
+      total += sign * term;
+      sign = operator === '+' ? 1 : -1;
+      term = operand;
     }
+    if (!Number.isFinite(total) || !Number.isFinite(term)) return 'Error';
   }
+  const result = total + sign * term;
+  return Number.isFinite(result) ? Number(result.toPrecision(15)) : 'Error';
+}
 
-  return values.slice(1).reduce((result, valueToAdd, index) => (
-    pendingOperators[index] === '+' ? result + valueToAdd : result - valueToAdd
-  ), values[0]);
+export function applyPercentage(expression, display) {
+  const operand = Number(String(display).replace(/,/g, ''));
+  if (!Number.isFinite(operand)) return null;
+  const tokens = expression.includes('=') ? [] : expression.trim().split(/\s+/).filter(Boolean);
+  const isOperator = (token) => ['+', '−', '×', '÷'].includes(token);
+  if (tokens.length && !isOperator(tokens.at(-1))) tokens.pop();
+  const operator = tokens.at(-1);
+  const base = operator === '+' || operator === '−'
+    ? evaluateExpression(tokens.slice(0, -1).join(' '))
+    : 1;
+  if (base === 'Error') return null;
+  const percentage = Number(base) * operand / 100;
+  if (!Number.isFinite(percentage)) return null;
+  const value = percentage.toLocaleString('en-US', { useGrouping: false, maximumSignificantDigits: 15 });
+  return { display: value, expression: [...tokens, value].join(' ') };
 }

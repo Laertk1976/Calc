@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import KeyboardModalFrame from './KeyboardModalFrame';
 import { getSavedCalculations } from '../calculationStorage';
-import { styles } from '../calculatorStyles';
+import useCalculatorStyles from '../useCalculatorStyles';
 
 export default function SaveCalculationModal({ visible, title, userId, onTitleChange, onConfirm, onClose }) {
+  const styles = useCalculatorStyles();
+  const titleInputRef = useRef(null);
   const [savedTitles, setSavedTitles] = useState([]);
   const [localTitle, setLocalTitle] = useState(title);
 
@@ -20,15 +23,19 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
     .slice(0, 6);
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.savePanel}>
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      onShow={() => titleInputRef.current?.focus()}
+    >
+      <KeyboardModalFrame style={styles.modalBackdrop}>
+          <View style={[styles.savePanel, { maxHeight: '100%', flexShrink: 1 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
             <Text style={styles.listTitle}>Save as</Text>
             <TextInput
+              ref={titleInputRef}
               value={localTitle}
               onChangeText={(value) => {
                 setLocalTitle(value);
@@ -36,7 +43,8 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
               }}
               placeholder="Type a name or choose one below"
               placeholderTextColor="#94a3b8"
-              autoFocus
+              autoFocus={Platform.OS === 'web'}
+              showSoftInputOnFocus
               returnKeyType="done"
               onSubmitEditing={() => onConfirm(localTitle)}
               style={styles.saveInput}
@@ -57,7 +65,8 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
                 ))}
               </View>
             ) : null}
-            <View style={styles.saveActions}>
+            </ScrollView>
+            <View style={[styles.saveActions, { flexShrink: 0 }]}>
               <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, styles.cancelButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>Cancel</Text>
               </Pressable>
@@ -74,8 +83,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
               </Pressable>
             </View>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </KeyboardModalFrame>
     </Modal>
   );
 }

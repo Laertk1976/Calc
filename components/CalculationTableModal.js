@@ -3,7 +3,8 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { styles } from '../calculatorStyles';
+import KeyboardModalFrame from './KeyboardModalFrame';
+import useCalculatorStyles from '../useCalculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
 import { uploadFileToGoogleDrive } from '../googleDrive';
 import { shareRowSummary } from '../shareUtils';
@@ -409,6 +410,7 @@ export default function CalculationTableModal({
   onClose,
   onUpdateCalculations,
 }) {
+  const styles = useCalculatorStyles();
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -440,6 +442,7 @@ export default function CalculationTableModal({
   const [searchText, setSearchText] = useState('');
   const tableHeaderScrollRef = useRef(null);
   const tableBodyScrollRef = useRef(null);
+  const commentInputRef = useRef(null);
 
   const syncTableHorizontalScroll = (event, targetRef) => {
     targetRef.current?.scrollTo({
@@ -777,9 +780,9 @@ export default function CalculationTableModal({
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
-      <View style={[styles.modalBackdrop, styles.tableModalBackdrop]}>
+      <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop]}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
               <Text style={styles.authButtonText}>History</Text>
             </Pressable>
@@ -829,6 +832,11 @@ export default function CalculationTableModal({
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
           </View>
+          <Text style={styles.listSubtitle} accessibilityLiveRegion="polite">
+            {filteredRows.length === rows.length
+              ? `${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`
+              : `${filteredRows.length} of ${rows.length} rows`}
+          </Text>
           <ScrollView
             ref={tableHeaderScrollRef}
             horizontal
@@ -837,6 +845,9 @@ export default function CalculationTableModal({
             style={styles.tableHeaderScroll}
           >
             <View style={styles.tableHeaderRow}>
+                  <View style={[styles.tableHeaderCell, styles.rowNumberColumn]}>
+                    <Text style={styles.tableHeaderText}>#</Text>
+                  </View>
                   <View style={[styles.tableHeaderCell, styles.nameColumn]}>
                     <Text style={styles.tableHeaderText}>Name</Text>
                   </View>
@@ -884,6 +895,9 @@ export default function CalculationTableModal({
 
                     return (
                       <View key={calc.id || `${calc.createdAt}-${index}`} style={styles.tableBodyRow}>
+                      <View style={[styles.tableCell, styles.rowNumberColumn]}>
+                        <Text style={styles.tableCellText}>{idx + 1}</Text>
+                      </View>
                       {/* Name section */}
                       <View style={[styles.tableCell, styles.nameColumn]}>
                         <View style={styles.shareCellRow}>
@@ -1000,6 +1014,7 @@ export default function CalculationTableModal({
 
                 {filteredRows.length && hasAnyTotals ? (
                   <View style={styles.tableTotalRow}>
+                    <View style={[styles.tableCell, styles.rowNumberColumn, styles.totalSummaryCell]} />
                     <View style={[styles.tableCell, styles.nameColumn, styles.totalSummaryCell]} />
                     <View style={[styles.tableCell, styles.infoColumn, styles.totalSummaryCell]}>
                       <Text style={styles.totalSummaryLabel}>{totalLabel}</Text>
@@ -1048,7 +1063,7 @@ export default function CalculationTableModal({
             </Pressable>
           </View>
         </View>
-      </View>
+      </KeyboardModalFrame>
 
       {/* Warning Confirmation Modal */}
       <Modal
@@ -1057,8 +1072,9 @@ export default function CalculationTableModal({
         visible={warningModal.visible}
         onRequestClose={handleCancelWarning}
       >
-        <View style={styles.warningBackdrop}>
-          <View style={styles.warningPanel}>
+        <KeyboardModalFrame style={styles.warningBackdrop}>
+          <View style={[styles.warningPanel, { flexShrink: 1 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
             <View style={styles.warningHeaderRow}>
               <View
                 style={[
@@ -1095,7 +1111,8 @@ export default function CalculationTableModal({
               </View>
             ) : null}
 
-            <View style={styles.warningActions}>
+            </ScrollView>
+            <View style={[styles.warningActions, { flexShrink: 0 }]}>
               <Pressable
                 onPress={handleCancelWarning}
                 style={({ pressed }) => [styles.closeButton, styles.warningCancelButton, pressed && styles.pressed]}
@@ -1119,7 +1136,7 @@ export default function CalculationTableModal({
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardModalFrame>
       </Modal>
 
       {/* Comments Editor Modal */}
@@ -1128,20 +1145,25 @@ export default function CalculationTableModal({
         transparent
         visible={commentModal.visible}
         onRequestClose={handleCancelComment}
+        onShow={() => commentInputRef.current?.focus()}
       >
-        <View style={styles.commentModalBackdrop}>
-          <View style={styles.commentModalPanel}>
+        <KeyboardModalFrame style={styles.commentModalBackdrop}>
+          <View style={[styles.commentModalPanel, { flexShrink: 1 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
             <Text style={styles.commentModalTitle}>Edit Comment</Text>
             <TextInput
+              ref={commentInputRef}
               style={styles.commentModalInput}
               value={commentModal.text}
               onChangeText={(text) => setCommentModal((prev) => ({ ...prev, text }))}
               placeholder="Enter your comment here..."
               placeholderTextColor="#64748b"
               multiline
-              autoFocus
+              autoFocus={Platform.OS === 'web'}
+              showSoftInputOnFocus
             />
-            <View style={styles.commentModalActions}>
+            </ScrollView>
+            <View style={[styles.commentModalActions, { flexShrink: 0 }]}>
               <Pressable
                 onPress={handleCancelComment}
                 style={({ pressed }) => [styles.commentModalCancelButton, pressed && styles.pressed]}
@@ -1156,7 +1178,7 @@ export default function CalculationTableModal({
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardModalFrame>
       </Modal>
 
       {/* Date Filter Dropdown Modal */}
@@ -1166,7 +1188,7 @@ export default function CalculationTableModal({
         visible={dateDropdownVisible}
         onRequestClose={() => setDateDropdownVisible(false)}
       >
-        <View style={styles.dropdownBackdrop}>
+        <KeyboardModalFrame style={styles.dropdownBackdrop}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Dismiss date picker"
@@ -1243,7 +1265,7 @@ export default function CalculationTableModal({
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardModalFrame>
       </Modal>
       <CalculationHistoryModal
         visible={historyVisible}

@@ -1,11 +1,13 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import KeyboardModalFrame from './KeyboardModalFrame';
 import { auth, isFirebaseConfigured } from '../authClient';
-import { styles } from '../calculatorStyles';
+import useCalculatorStyles from '../useCalculatorStyles';
 import { isGoogleSignInConfigured, signInWithGoogle } from '../googleSignIn';
 
 export default function AuthModal({ visible, user, onClose }) {
+  const styles = useCalculatorStyles();
   const [mode, setMode] = useState('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,15 +58,16 @@ export default function AuthModal({ visible, user, onClose }) {
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.authPanel}>
+      <KeyboardModalFrame style={styles.modalBackdrop}>
+          <View style={[styles.authPanel, { maxHeight: '100%', flexShrink: 1 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
             <Text style={styles.listTitle}>Sign in</Text>
             {!isFirebaseConfigured ? (
               <Text style={styles.authHint}>Add the Firebase configuration values to your .env file to enable account sign-in.</Text>
             ) : null}
             <TextInput value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor="#94a3b8" autoCapitalize="none" keyboardType="email-address" style={styles.authInput} />
             <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor="#94a3b8" secureTextEntry style={styles.authInput} />
+            </ScrollView>
             <View style={styles.authActions}>
               <Pressable disabled={busy || !isFirebaseConfigured} onPress={handleEmailAuth} style={({ pressed }) => [styles.authActionButton, styles.authEmailButton, (busy || !isFirebaseConfigured) && styles.disabledButton, pressed && styles.pressed]}>
                 <Text style={styles.closeButtonText}>{mode === 'signIn' ? 'Sign in' : 'Create account'}</Text>
@@ -76,12 +79,11 @@ export default function AuthModal({ visible, user, onClose }) {
             <Pressable onPress={() => setMode((current) => current === 'signIn' ? 'signUp' : 'signIn')} style={styles.authModeButton}>
               <Text style={styles.authModeText}>{mode === 'signIn' ? 'Create a new account' : 'Already have an account? Sign in'}</Text>
             </Pressable>
-            <Pressable onPress={onClose} style={[styles.authActionButton, styles.cancelButton]}>
+            <Pressable onPress={onClose} style={[styles.authActionButton, styles.cancelButton, { flexShrink: 0 }]}>
               <Text style={styles.closeButtonText}>Cancel</Text>
             </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </KeyboardModalFrame>
     </Modal>
   );
 }

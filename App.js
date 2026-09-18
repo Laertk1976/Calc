@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { auth } from './authClient';
 import { calculationStore, syncCalculations, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
-import { evaluateExpression, pretty } from './calculatorUtils';
+import { applyPercentage, evaluateExpression, pretty } from './calculatorUtils';
 import AuthModal from './components/AuthModal';
 import CalculatorView from './components/CalculatorView';
 
@@ -76,10 +76,10 @@ export default function App() {
   };
 
   const showSavedCalculations = () => {
+    setListVisible(true);
     getSavedCalculations(user?.uid).then((calculations) => {
       setSavedCalculations(calculations);
-      setListVisible(true);
-    });
+    }).catch(() => {});
   };
 
   const showCalculatorTable = () => {
@@ -199,7 +199,12 @@ export default function App() {
     }
 
     if (key === '%') {
-      if (display !== 'Error') setDisplay(String(Number(display) / 100));
+      const percentage = applyPercentage(expression, display);
+      if (percentage) {
+        setDisplay(percentage.display);
+        setExpression(percentage.expression);
+        setFreshInput(false);
+      }
       return;
     }
 

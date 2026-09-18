@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { utilityKeys } from '../calculatorConstants';
 import { styles } from '../calculatorStyles';
+import useCalculatorStyles from '../useCalculatorStyles';
 
 function getUtilityKeyStyle(key) {
   if (key === 'Cred') return styles.utilityKeyRed;
@@ -10,6 +11,7 @@ function getUtilityKeyStyle(key) {
 }
 
 export default function UtilityButtons({ onSaveType, onList }) {
+  const styles = useCalculatorStyles();
   return (
     <View style={styles.utilityColumn}>
       {utilityKeys.map((key) => (
