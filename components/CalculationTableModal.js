@@ -1,3 +1,4 @@
+import DateRangeCalendar from './DateRangeCalendar';
 import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -411,6 +412,7 @@ export default function CalculationTableModal({
   onUpdateCalculations,
 }) {
   const styles = useCalculatorStyles();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -418,6 +420,7 @@ export default function CalculationTableModal({
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
+  const initialNamesRef = useRef(new Map());
   const [warningModal, setWarningModal] = useState({
     visible: false,
     type: null,
@@ -435,8 +438,8 @@ export default function CalculationTableModal({
     rowIndex: null,
     text: '',
   });
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(() => getDateKey(new Date()));
+  const [toDate, setToDate] = useState(() => getDateKey(new Date()));
   const [dateDropdownVisible, setDateDropdownVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -459,24 +462,13 @@ export default function CalculationTableModal({
 
   useEffect(() => {
     if (visible) {
-      setFromDate('');
-      setToDate('');
+      const today = getDateKey(new Date());
+      setFromDate(today);
+      setToDate(today);
       setSearchVisible(false);
       setSearchText('');
     }
   }, [visible]);
-
-  const availableDates = Array.from(
-    new Set(
-      rows
-        .map((r) => getDateKey(r.savedAt || r.createdAt))
-        .filter((d) => d && d !== 'No Date')
-    )
-  ).sort((a, b) => {
-    const timeA = parseDateKeyToTime(a);
-    const timeB = parseDateKeyToTime(b);
-    return timeB - timeA;
-  });
 
   const filteredRows = rows.filter((r) => {
     if (searchText.trim()) {
@@ -503,6 +495,7 @@ export default function CalculationTableModal({
 
   const getFilterLabel = () => {
     if (fromDate && toDate) {
+      if (fromDate === toDate) return fromDate;
       return `${fromDate} ➔ ${toDate}`;
     }
     if (fromDate) {
@@ -780,7 +773,7 @@ export default function CalculationTableModal({
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
-      <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop]}>
+      <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop]} onKeyboardVisibilityChange={setKeyboardVisible}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
@@ -873,11 +866,17 @@ export default function CalculationTableModal({
           </ScrollView>
           <ScrollView
             style={styles.tableVerticalScroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            removeClippedSubviews={false}
             showsVerticalScrollIndicator
             nestedScrollEnabled
           >
             <ScrollView
               ref={tableBodyScrollRef}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              removeClippedSubviews={false}
               horizontal
               showsHorizontalScrollIndicator
               style={styles.tableScroll}
@@ -904,15 +903,25 @@ export default function CalculationTableModal({
                           <TextInput
                             style={[styles.cellInput, styles.nameInput]}
                             value={calc.title}
+                            onFocus={() => initialNamesRef.current.set(calc.id, calc.title || '')}
                             onChangeText={(text) => handleCellChange(index, 'title', text)}
-                            onBlur={() => commitChange({ type: 'edit', id: calc.id, changes: { title: calc.title } })}
+                            onBlur={() => {
+                              const initialName = initialNamesRef.current.get(calc.id);
+                              initialNamesRef.current.delete(calc.id);
+                              if (initialName !== undefined && initialName !== (calc.title || '')) {
+                                void commitChange({ type: 'edit', id: calc.id, changes: { title: calc.title } });
+                              }
+                            }}
+                            autoComplete="off"
+                            importantForAutofill="no"
+                            autoCorrect={false}
                             placeholder="Name"
                             placeholderTextColor="#64748b"
                           />
                           <Pressable
                             onPress={() => shareRowSummary(calc)}
                             style={({ pressed }) => [styles.shareRowButton, pressed && styles.pressed]}
-                            hitSlop={8}
+                            hitSlop={{ top: 8, bottom: 8, left: 0, right: 4 }}
                             accessibilityLabel="Share this row"
                           >
                             <Text style={styles.shareRowButtonText}>↗</Text>
@@ -1035,7 +1044,7 @@ export default function CalculationTableModal({
               </View>
             </ScrollView>
           </ScrollView>
-          <View style={styles.tableFooter}>
+          <View style={[styles.tableFooter, keyboardVisible && { display: 'none' }]}>
             <View style={styles.tableActions}>
               <Pressable onPress={handleAddRow} style={({ pressed }) => [styles.addRowButton, pressed && styles.pressed]}>
                 <Text style={styles.addRowButtonText}>+ Add Row</Text>
@@ -1198,63 +1207,7 @@ export default function CalculationTableModal({
           <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
               <Text style={styles.dropdownTitle}>Choose date range</Text>
-              <View style={styles.quickActionsRow}>
-                <Pressable
-                  style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
-                  onPress={() => {
-                    setFromDate('');
-                    setToDate('');
-                  }}
-                >
-                  <Text style={styles.quickActionText}>All dates</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.quickActionButton, pressed && styles.pressed]}
-                  onPress={() => {
-                    setFromDate(availableDates[availableDates.length - 1] || '');
-                    setToDate(availableDates[0] || '');
-                  }}
-                >
-                  <Text style={styles.quickActionText}>All available</Text>
-                </Pressable>
-              </View>
-              <View style={styles.rangeContainer}>
-                <View style={styles.rangeCol}>
-                  <Text style={styles.rangeLabel}>From</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {availableDates.map((dateStr) => (
-                      <Pressable
-                        key={`from-${dateStr}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`From ${dateStr}`}
-                        accessibilityState={{ selected: fromDate === dateStr }}
-                        style={({ pressed }) => [styles.rangePill, fromDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
-                        onPress={() => setFromDate(dateStr)}
-                      >
-                        <Text style={[styles.rangePillText, fromDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                <View style={styles.rangeCol}>
-                  <Text style={styles.rangeLabel}>To</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {availableDates.map((dateStr) => (
-                      <Pressable
-                        key={`to-${dateStr}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`To ${dateStr}`}
-                        accessibilityState={{ selected: toDate === dateStr }}
-                        style={({ pressed }) => [styles.rangePill, toDate === dateStr && styles.rangePillSelected, pressed && styles.pressed]}
-                        onPress={() => setToDate(dateStr)}
-                      >
-                        <Text style={[styles.rangePillText, toDate === dateStr && styles.rangePillTextSelected]}>{dateStr}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              </View>
-              {!availableDates.length ? <Text style={styles.listSubtitle}>Save a record to choose a date range.</Text> : null}
+              {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} />}
               <Text style={styles.listSubtitle}>{getFilterLabel()}</Text>
               <Text style={styles.listSubtitle}>Rows in range: {filteredRows.length}</Text>
               <Pressable

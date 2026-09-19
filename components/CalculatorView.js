@@ -1,7 +1,7 @@
 import SyncStatus from './SyncStatus';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, BackHandler, Easing, PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Easing, PanResponder, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -14,6 +14,7 @@ import UtilityButtons from './UtilityButtons';
 export default function CalculatorView({
   display,
   expression,
+  onEditExpression,
   savedCalculations,
   listVisible,
   tableVisible,
@@ -36,6 +37,18 @@ export default function CalculatorView({
   onSignOut,
 }) {
   const styles = useCalculatorStyles();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const expressionInput = useRef(null);
+  const beginEditing = () => {
+    setDraft((expression || display).split('=')[0].trim());
+    setEditing(true);
+  };
+  const finishEditing = () => {
+    if (!editing) return;
+    onEditExpression(draft);
+    setEditing(false);
+  };
   const { height } = useWindowDimensions();
   const scrollRef = useRef(null);
   const reveal = useRef(new Animated.Value(0)).current;
@@ -47,12 +60,17 @@ export default function CalculatorView({
     setSizes((previous) => previous[part] === measured ? previous : { ...previous, [part]: measured });
   };
   const panelHeight = Math.max(0, (sizes.viewport || height) - sizes.header - sizes.display);
-  const settle = (open) => Animated.timing(reveal, {
-    toValue: open ? panelHeight : 0,
-    duration: 450,
-    easing: Easing.inOut(Easing.cubic),
-    useNativeDriver: false,
-  }).start();
+  const settle = (open) => {
+    const target = open ? panelHeight : 0;
+    const remaining = Math.abs(target - currentReveal.current);
+    reveal.stopAnimation();
+    Animated.timing(reveal, {
+      toValue: target,
+      duration: Math.max(60, Math.round(220 * Math.min(1, remaining / Math.max(1, panelHeight)))),
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  };
 
   useEffect(() => {
     const listener = reveal.addListener(({ value }) => { currentReveal.current = value; });
@@ -84,8 +102,10 @@ export default function CalculatorView({
     },
     onPanResponderRelease: (_, { dy, vy }) => {
       const open = Math.abs(dy) > 40 ? dy > 0 : Math.abs(vy) > 0.5 ? vy > 0 : listVisible;
-      settle(open);
-      if (open) onList();
+      // A visibility change starts its animation in the effect above.
+      // Only settle here when the gesture returns to the current state.
+      if (open === listVisible) settle(open);
+      else if (open) onList();
       else onCloseList();
     },
     onPanResponderTerminate: () => settle(listVisible),
@@ -109,14 +129,35 @@ export default function CalculatorView({
         </Pressable>
         </View>
         <View onLayout={measure('display')} style={[styles.display, { touchAction: 'none', marginTop: listVisible ? 0 : 'auto' }]} {...swipe.panHandlers}>
-          {expression ? <Text style={styles.expression}>{expression}</Text> : null}
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
+          {editing ? (
+            <TextInput
+              ref={expressionInput}
+              autoFocus
+              accessibilityLabel="Edit calculation"
+              style={[styles.expression, { width: '100%', minHeight: 48 }]}
+              value={draft}
+              onChangeText={setDraft}
+              onBlur={finishEditing}
+              onSubmitEditing={() => expressionInput.current?.blur()}
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType="default"
+              returnKeyType="done"
+            />
+          ) : (
+            <Pressable onPress={beginEditing} accessibilityRole="button" accessibilityLabel="Edit calculation">
+              {expression ? <Text style={styles.expression}>{expression}</Text> : null}
+              <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
+            </Pressable>
+          )}
           <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? 'Close saved calculations' : 'Open saved calculations'} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
           </Pressable>
         </View>
         <Animated.View style={{ height: reveal, overflow: 'hidden' }} pointerEvents={listVisible ? 'auto' : 'none'} accessibilityElementsHidden={!listVisible} importantForAccessibility={listVisible ? 'auto' : 'no-hide-descendants'}>
+          <View style={{ height: panelHeight }}>
           <CalculationListModal inline visible={listVisible} swipeHandlers={swipe.panHandlers} calculations={savedCalculations.filter((item) => !item.deletedAt)} onClose={onCloseList} />
+          </View>
         </Animated.View>
         {!listVisible && <View style={styles.keypadLayout}>
           <View style={styles.keypad}>

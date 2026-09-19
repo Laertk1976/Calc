@@ -251,11 +251,44 @@ export default function App() {
     setFreshInput(false);
   };
 
+  const editExpression = (value) => {
+    const formula = value.split('=')[0].replace(/,/g, '').trim();
+    if (formula && evaluateExpression(formula) === 'Error') {
+      Alert.alert('Invalid calculation', 'Enter a complete calculation using numbers and +, -, × or ÷.');
+      return;
+    }
+    const tokens = formula.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[+\-−×÷*/]/gi) || [];
+    for (let index = 0; index < tokens.length - 1; index += 1) {
+      if (/^[+\-−]$/.test(tokens[index]) && (index === 0 || /^[+\-−×÷*/]$/.test(tokens[index - 1]))) {
+        tokens.splice(index, 2, `${tokens[index] === '−' ? '-' : tokens[index]}${tokens[index + 1]}`);
+      }
+    }
+    const normalized = tokens.map((token) => ({ '-': '−', '*': '×', '/': '÷' }[token] || token)).join(' ');
+    const last = tokens.at(-1);
+    const pending = last && /^[+\-−×÷*/]$/.test(last);
+    const result = evaluateExpression(normalized);
+    setExpression(normalized);
+    setDisplay(String(!formula ? '0' : pending ? evaluateExpression(tokens.slice(0, -1).join(' ')) : result));
+    setStoredValue(null);
+    setOperator(null);
+    setFreshInput(false);
+    const normalizedTokens = normalized.split(' ');
+    const lastOperatorIndex = normalizedTokens.findLastIndex((token) => operators.includes(token));
+    if (lastOperatorIndex > 0) {
+      const preceding = evaluateExpression(normalizedTokens.slice(0, lastOperatorIndex).join(' '));
+      setStoredValue(preceding === 'Error' ? null : preceding);
+      setOperator(normalizedTokens[lastOperatorIndex]);
+      setDisplay(pending ? String(preceding) : normalizedTokens.at(-1));
+      setFreshInput(Boolean(pending));
+    }
+  };
+
   return (
     <SafeAreaProvider>
         <CalculatorView
           display={visibleDisplay}
           expression={expression}
+          onEditExpression={editExpression}
           savedCalculations={savedCalculations}
           listVisible={listVisible}
           tableVisible={tableVisible}

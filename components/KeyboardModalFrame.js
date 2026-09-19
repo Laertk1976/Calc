@@ -3,11 +3,14 @@ import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 
 // Measure the modal window itself: Android may already resize it for the keyboard.
 // Only remove the remaining overlap, so the keyboard space is never counted twice.
-export default function KeyboardModalFrame({ children, style }) {
+export default function KeyboardModalFrame({ children, style, onKeyboardVisibilityChange }) {
   const frame = useRef(null);
   const keyboardTop = useRef(Keyboard.metrics?.()?.screenY ?? null);
   const [overlap, setOverlap] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(Keyboard.isVisible());
+  useEffect(() => {
+    onKeyboardVisibilityChange?.(keyboardVisible);
+  }, [keyboardVisible, onKeyboardVisibilityChange]);
   const measure = useCallback(() => {
     frame.current?.measureInWindow((x, y, width, height) => {
       setOverlap(keyboardTop.current === null ? 0 : Math.max(0, y + height - keyboardTop.current));

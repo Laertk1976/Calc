@@ -96,4 +96,6 @@ Output: `android/app/build/outputs/apk/release/app-release.apk`. Install this AP
 
 The local release currently uses the existing development signing key, allowing it to update the development app without clearing saved data. This is a standalone release for personal installation, not a Play Store signing setup. Keep the same signing key for future updates.
 
+To update an existing local installation, open the newer APK on the phone and choose **Update**. Do not uninstall the previous app or clear its storage: the update reuses its saved calculations. Version 1.0.1 uses Android version code 2 and the same `com.example.calc` package and signing key. For later releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict, obtain a build signed with the original installation's key instead of uninstalling the app.
+
 For an EAS cloud APK build, configure/link the project and run `eas build --profile standalone --platform android`. The `standalone` profile disables the development client and builds the release variant. EAS signing credentials may differ from the local key.
