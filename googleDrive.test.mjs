@@ -9,19 +9,13 @@ const date = new Date(2026, 8, 16, 0, 5, 9);
 const args = { accessToken: 'account-a', fileName: 'Eric.pdf', mimeType: 'application/pdf', content: new Blob(['PDF content']) };
 const reply = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
-test('filenames use distinct customer names, Unicode, and local date/time', () => {
-  assert.equal(name([{ title: 'Արամ' }, { title: 'Արամ' }], 'pdf', date), 'Արամ_2026-09-16_00-05-09.pdf');
-  assert.equal(name([{ title: 'Eric' }, { title: 'Vardan' }], 'csv', date), 'Eric + Vardan_2026-09-16_00-05-09.csv');
+test('filenames use only the local export date and format', () => {
+  assert.equal(name([{ title: 'Eric' }, { title: 'Vardan' }], 'pdf', date), '2026-09-16.pdf');
+  assert.equal(name([{ title: 'Eric' }], 'csv', date), '2026-09-16.csv');
+  assert.equal(name([], 'pdf', date), '2026-09-16.pdf');
+  assert.equal(name([], 'csv', new Date(2026, 0, 2, 23, 59)), '2026-01-02.csv');
+  assert.throws(() => name([], 'txt', date), /Unsupported export format/);
 });
-
-test('filenames handle mixed, unsafe, blank, and deleted customer names', () => {
-  assert.equal(name([{ title: 'A/B:*?' }, { title: 'Ignored', deletedAt: 'today' }], 'pdf', date), 'A-B---_2026-09-16_00-05-09.pdf');
-  assert.match(name([{ title: ' ' }], 'csv', date), /^Unnamed customer_/);
-  assert.match(name([], 'csv', date), /^Calculator table_/);
-  assert.match(name(['D', 'A', 'C', 'B'].map(title => ({ title })), 'pdf', date), /^A \+ B \+ C \+ 1 more_/);
-  assert.ok(name([{ title: 'Ա'.repeat(1000) }], 'pdf', date).length < 100);
-});
-
 test('existing writable Calculator folder receives upload without recreation', async (t) => {
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {

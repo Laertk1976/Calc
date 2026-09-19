@@ -124,8 +124,8 @@ export default function CalculatorView({
             <Text style={styles.authButtonText}>{user ? 'Sign out' : 'Sign in'}</Text>
           </Pressable>
         </View>
-        <Pressable onPress={onOpenTable} style={[styles.titleButton, { marginBottom: 0, marginTop: 4 }]} hitSlop={6} accessibilityRole="button">
-          <Text style={styles.title}>CALCULATOR</Text>
+        <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { marginBottom: 0, marginTop: 4 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
+          <Text style={styles.title}>CALC</Text>
         </Pressable>
         </View>
         <View onLayout={measure('display')} style={[styles.display, { touchAction: 'none', marginTop: listVisible ? 0 : 'auto' }]} {...swipe.panHandlers}>
@@ -190,4 +190,3 @@ export default function CalculatorView({
     </SafeAreaView>
   );
 }
-

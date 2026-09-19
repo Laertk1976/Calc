@@ -73,7 +73,7 @@ service cloud.firestore {
 
 Drive PDF and Drive CSV exports are saved inside a **Calculator** folder in My Drive. The app reuses an accessible, writable folder with that name, or creates one. With the existing `drive.file` permission, a manually created folder may not be visible to the app; no broader Drive permission is requested.
 
-Export names use the customers in the currently filtered rows and local export date/time, for example `Eric_2026-09-16_21-40-05.pdf`. Multiple customers use up to three names followed by a count of additional customers. Unsafe filename characters are replaced; Armenian and other Unicode names are preserved. Each upload creates a new file and leaves previous exports intact.
+Export names use only the local export date, for example `2026-09-19.pdf` or `2026-09-19.csv`. Each upload creates a new file and leaves previous exports intact, including exports with the same date and name.
 
 1. Enable the Google Drive API in the same Google Cloud project used by Firebase (`calc-7271f`). Configure the OAuth consent screen and add your Google account as a test user if the app is in testing.
 2. Mobile Drive uploads use the native Google Sign-In SDK with `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` and the registered Android package/SHA-1. Drive access (`drive.file`) is requested only when an upload is pressed. The old Android browser OAuth client and redirect are no longer used for Drive.
