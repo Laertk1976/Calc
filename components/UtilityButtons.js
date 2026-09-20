@@ -1,7 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Pressable, View } from 'react-native';
 import { utilityKeys } from '../calculatorConstants';
 import { styles } from '../calculatorStyles';
 import useCalculatorStyles from '../useCalculatorStyles';
+import ButtonLabel from './ButtonLabel';
 
 function getUtilityKeyStyle(key) {
   if (key === 'Cred') return styles.utilityKeyRed;
@@ -11,6 +13,7 @@ function getUtilityKeyStyle(key) {
 }
 
 export default function UtilityButtons({ onSaveType, onList }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   return (
     <View style={styles.utilityColumn}>
@@ -20,14 +23,18 @@ export default function UtilityButtons({ onSaveType, onList }) {
           onPress={() => key === 'List' ? onList() : onSaveType(key)}
           style={({ pressed }) => [styles.utilityKey, getUtilityKeyStyle(key), pressed && styles.pressed]}
         >
-          <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-            numberOfLines={1}
+          <ButtonLabel
+            accessibilityLabel={t(key)}
             style={styles.utilityKeyText}
           >
-            {key}
-          </Text>
+            {key === 'Fcash' && i18n.resolvedLanguage === 'ja'
+              ? t(key).replace('現金払い', '現金払い\n')
+              : key === 'Fcash' && i18n.resolvedLanguage === 'hy'
+                ? t(key).replace('Կանխիկ ', 'Կանխիկ\n').replace('հաշիվ-', 'հաշիվ-\n')
+              : key === 'Fact' && i18n.resolvedLanguage === 'hy'
+                ? t(key).replace('Հաշիվ-', 'Հաշիվ-\n')
+              : t(key)}
+          </ButtonLabel>
         </Pressable>
       ))}
     </View>

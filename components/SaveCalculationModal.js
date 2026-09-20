@@ -1,3 +1,5 @@
+import ButtonLabel from './ButtonLabel';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
@@ -5,6 +7,7 @@ import { getSavedCalculations } from '../calculationStorage';
 import useCalculatorStyles from '../useCalculatorStyles';
 
 export default function SaveCalculationModal({ visible, title, userId, onTitleChange, onConfirm, onClose }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const titleInputRef = useRef(null);
   const [savedTitles, setSavedTitles] = useState([]);
@@ -33,7 +36,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
       <KeyboardModalFrame style={styles.modalBackdrop}>
           <View style={[styles.savePanel, { maxHeight: '100%', flexShrink: 1 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            <Text style={styles.listTitle}>Save as</Text>
+            <Text style={styles.listTitle}>{t("Save as")}</Text>
             <TextInput
               ref={titleInputRef}
               value={localTitle}
@@ -41,7 +44,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
                 setLocalTitle(value);
                 onTitleChange(value);
               }}
-              placeholder="Type a name or choose one below"
+              placeholder={t("Type a name or choose one below")}
               placeholderTextColor="#94a3b8"
               autoFocus={Platform.OS === 'web'}
               showSoftInputOnFocus
@@ -68,7 +71,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
             </ScrollView>
             <View style={[styles.saveActions, { flexShrink: 0 }]}>
               <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, styles.cancelButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Cancel</Text>
+                <ButtonLabel style={styles.closeButtonText}>{t("Cancel")}</ButtonLabel>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -77,9 +80,9 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
                 }}
                 style={({ pressed }) => [styles.closeButton, styles.saveButton, pressed && styles.pressed]}
                 accessibilityRole="button"
-                accessibilityLabel="Save calculation"
+                accessibilityLabel={t("Save calculation")}
               >
-                <Text style={styles.closeButtonText}>Save</Text>
+                <ButtonLabel style={styles.closeButtonText}>{t("Save")}</ButtonLabel>
               </Pressable>
             </View>
           </View>

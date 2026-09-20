@@ -1,4 +1,7 @@
+import ButtonLabel from './ButtonLabel';
+import { useTranslation } from 'react-i18next';
 import SyncStatus from './SyncStatus';
+import LanguageSelector from './LanguageSelector';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, BackHandler, Easing, PanResponder, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -36,6 +39,7 @@ export default function CalculatorView({
   onOpenAuth,
   onSignOut,
 }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -116,12 +120,13 @@ export default function CalculatorView({
       <StatusBar style="light" />
       <ScrollView ref={scrollRef} scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, flexWrap: 'wrap' }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} compact />
           </View>
+          <LanguageSelector />
           <Pressable onPress={user ? onSignOut : onOpenAuth} style={[styles.authButton, { marginBottom: 0 }]}>
-            <Text style={styles.authButtonText}>{user ? 'Sign out' : 'Sign in'}</Text>
+            <ButtonLabel style={styles.authButtonText}>{user ? t("Sign out") : t("Sign in")}</ButtonLabel>
           </Pressable>
         </View>
         <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { marginBottom: 0, marginTop: 4 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
@@ -133,7 +138,7 @@ export default function CalculatorView({
             <TextInput
               ref={expressionInput}
               autoFocus
-              accessibilityLabel="Edit calculation"
+              accessibilityLabel={t("Edit calculation")}
               style={[styles.expression, { width: '100%', minHeight: 48 }]}
               value={draft}
               onChangeText={setDraft}
@@ -145,12 +150,12 @@ export default function CalculatorView({
               returnKeyType="done"
             />
           ) : (
-            <Pressable onPress={beginEditing} accessibilityRole="button" accessibilityLabel="Edit calculation">
+            <Pressable onPress={beginEditing} accessibilityRole="button" accessibilityLabel={t("Edit calculation")}>
               {expression ? <Text style={styles.expression}>{expression}</Text> : null}
-              <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{pretty(display)}</Text>
+              <Text adjustsFontSizeToFit numberOfLines={1} style={styles.displayText}>{display === 'Error' ? t('Error') : pretty(display)}</Text>
             </Pressable>
           )}
-          <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? 'Close saved calculations' : 'Open saved calculations'} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? t("Close saved calculations") : t("Open saved calculations")} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
           </Pressable>
         </View>

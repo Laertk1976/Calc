@@ -1,3 +1,5 @@
+import './i18n';
+import { useTranslation } from 'react-i18next';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Alert, AppState } from 'react-native';
@@ -10,6 +12,7 @@ import AuthModal from './components/AuthModal';
 import CalculatorView from './components/CalculatorView';
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const [display, setDisplay] = useState('0');
   const [storedValue, setStoredValue] = useState(null);
   const [operator, setOperator] = useState(null);
@@ -101,7 +104,7 @@ export default function App() {
   const confirmSave = async (titleOverride = saveTitle) => {
     const trimmedTitle = titleOverride.trim();
     if (!trimmedTitle) {
-      Alert.alert('Name required', 'Enter a name before saving.');
+      Alert.alert(t("Name required"), t("Enter a name before saving."));
       return;
     }
 
@@ -115,7 +118,7 @@ export default function App() {
       setSaveTitle('');
     } catch (error) {
       console.log('Save calculation error:', error);
-      Alert.alert('Save failed', 'The calculation could not be saved on this device.');
+      Alert.alert(t("Save failed"), t("The calculation could not be saved on this device."));
     }
   };
 
@@ -254,7 +257,7 @@ export default function App() {
   const editExpression = (value) => {
     const formula = value.split('=')[0].replace(/,/g, '').trim();
     if (formula && evaluateExpression(formula) === 'Error') {
-      Alert.alert('Invalid calculation', 'Enter a complete calculation using numbers and +, -, × or ÷.');
+      Alert.alert(t("Invalid calculation"), t("Enter a complete calculation using numbers and +, -, × or ÷."));
       return;
     }
     const tokens = formula.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[+\-−×÷*/]/gi) || [];

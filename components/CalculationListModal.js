@@ -1,3 +1,5 @@
+import ButtonLabel from './ButtonLabel';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { styles } from '../calculatorStyles';
@@ -24,6 +26,7 @@ function dateLabel(value) {
 }
 
 export default function CalculationListModal({ visible, calculations, onClose, inline = false, swipeHandlers }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [searchVisible, setSearchVisible] = useState(false);
   const [search, setSearch] = useState('');
@@ -61,13 +64,13 @@ export default function CalculationListModal({ visible, calculations, onClose, i
             {inline && <View style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b', marginBottom: 12 }} />}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
-                Saved calculations · {search.trim() ? `${filteredCalculations.length}/${dayCalculations.length}` : dayCalculations.length}
+                {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${dayCalculations.length}` : dayCalculations.length}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Search saved calculations" accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
                 <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
                 <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
               </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Choose calculation date, ${dateLabel(selectedDate)}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => {
+          <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date')}, ${dateLabel(selectedDate)}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => {
             const [selectedYear, selectedMonth] = selectedDate.split('-').map(Number);
             setCalendarMonth(new Date(selectedYear, selectedMonth - 1, 1));
             setDatePickerVisible(true);
@@ -81,44 +84,44 @@ export default function CalculationListModal({ visible, calculations, onClose, i
               <Pressable accessibilityLabel="Dismiss calendar" accessibilityRole="button" onPress={() => setDatePickerVisible(false)} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} />
               <View style={[styles.dropdownPanel, { width: '100%', maxWidth: 320 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => setCalendarMonth(new Date(year, month - 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>‹</Text></Pressable>
-                  <Text style={styles.quickActionText}>{calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setCalendarMonth(new Date(year, month + 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>›</Text></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("Previous month")} onPress={() => setCalendarMonth(new Date(year, month - 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>‹</Text></Pressable>
+                  <Text style={styles.quickActionText}>{calendarMonth.toLocaleDateString(i18n.resolvedLanguage, { month: 'long', year: 'numeric' })}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("Next month")} onPress={() => setCalendarMonth(new Date(year, month + 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>›</Text></Pressable>
                 </View>
                 <View style={{ flexDirection: 'row' }}>
-                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((day) => <Text key={day} style={[styles.quickActionText, { width: '14.285714%', textAlign: 'center', fontSize: 11, marginBottom: 8 }]}>{day}</Text>)}
+                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((day) => <Text key={day} style={[styles.quickActionText, { width: '14.285714%', textAlign: 'center', fontSize: 11, marginBottom: 8 }]}>{typeof day === 'string' ? t(day) : day}</Text>)}
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                   {calendarDays.map((day, index) => {
                     const date = day ? dateKey(new Date(year, month, day)) : '';
                     return day ? (
-                      <Pressable key={index} accessibilityRole="button" accessibilityLabel={`Show ${dateLabel(date)}`} accessibilityState={{ selected: selectedDate === date }} onPress={() => { setSelectedDate(date); setDatePickerVisible(false); }} style={[{ width: '14.285714%', height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 }, selectedDate === date && { backgroundColor: '#2563eb' }]}>
-                        <Text style={styles.quickActionText}>{day}</Text>
+                      <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${t('Date')}: ${dateLabel(date)}`} accessibilityState={{ selected: selectedDate === date }} onPress={() => { setSelectedDate(date); setDatePickerVisible(false); }} style={[{ width: '14.285714%', height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 }, selectedDate === date && { backgroundColor: '#2563eb' }]}>
+                        <Text style={styles.quickActionText}>{typeof day === 'string' ? t(day) : day}</Text>
                       </Pressable>
                     ) : <View key={index} style={{ width: '14.285714%', height: 40 }} />;
                   })}
                 </View>
-                <Pressable accessibilityRole="button" onPress={() => { setSelectedDate(dateKey(new Date())); setDatePickerVisible(false); }} style={[styles.quickActionButton, { marginTop: 12 }]}><Text style={styles.quickActionText}>Today</Text></Pressable>
+                <Pressable accessibilityRole="button" onPress={() => { setSelectedDate(dateKey(new Date())); setDatePickerVisible(false); }} style={[styles.quickActionButton, { marginTop: 12 }]}><Text style={styles.quickActionText}>{t("Today")}</Text></Pressable>
               </View>
             </KeyboardModalFrame>
           </Modal>
-          {searchVisible && <TextInput autoFocus value={search} onChangeText={setSearch} placeholder="Search saved calculations..." placeholderTextColor="#94a3b8" accessibilityLabel="Search saved calculations" style={[styles.authInput, { paddingVertical: 8, marginBottom: 8 }]} />}
+          {searchVisible && <TextInput autoFocus value={search} onChangeText={setSearch} placeholder={t("Search saved calculations...")} placeholderTextColor="#94a3b8" accessibilityLabel={t("Search saved calculations")} style={[styles.authInput, { paddingVertical: 8, marginBottom: 8 }]} />}
           <ScrollView keyboardShouldPersistTaps="handled" style={[styles.listScroll, inline && { flex: 1 }]} nestedScrollEnabled>
             {filteredCalculations.length ? filteredCalculations.map((calculation, index) => (
               <View key={`${calculation.createdAt}-${index}`} style={[styles.savedItem, getSavedItemStyle(calculation.type)]}>
                 <Text style={styles.savedTitle}>{index + 1}. {calculation.title}</Text>
                 <Text style={styles.savedExpression}>{calculation.expression || calculation.info || ''}</Text>
-                {calculation.comment ? <Text style={styles.savedComment}>Note: {calculation.comment}</Text> : null}
+                {calculation.comment ? <Text style={styles.savedComment}>{t('Note')}: {calculation.comment}</Text> : null}
                 <Text style={styles.savedValue}>{calculation.value || calculation.cred || calculation.fact || calculation.fcash || ''}</Text>
                 <View style={styles.savedMetaRow}>
                   <Text style={styles.savedDate}>{formatSavedDate(calculation.savedAt || calculation.createdAt)}</Text>
-                  <Text style={styles.savedType}>{calculation.type || 'Add'}</Text>
+                  <Text style={styles.savedType}>{t(calculation.type || 'Add')}</Text>
                 </View>
               </View>
-            )) : <Text style={styles.emptyList}>{search.trim() ? 'No matching calculations for this date.' : 'No saved calculations for this date.'}</Text>}
+            )) : <Text style={styles.emptyList}>{search.trim() ? t("No matching calculations for this date.") : t("No saved calculations for this date.")}</Text>}
           </ScrollView>
           <Pressable onPress={closeList} hitSlop={{ top: 4, bottom: 4 }} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, { minHeight: 36, paddingVertical: 6 }, pressed && styles.pressed]}>
-            <Text numberOfLines={1} style={[styles.closeButtonText, { flexShrink: 0 }]}>Close</Text>
+            <ButtonLabel numberOfLines={1} style={[styles.closeButtonText, { flexShrink: 0 }]}>{t("Close")}</ButtonLabel>
           </Pressable>
         </View>
   );

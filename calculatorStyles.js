@@ -175,6 +175,6 @@ export const styles = StyleSheet.create({
   commentModalSaveButton: { ...raisedButton, backgroundColor: '#3b82f6', borderRadius: 5, paddingVertical: 12, flex: 1, alignItems: 'center' },
   commentModalButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   cellPressable: { flex: 1, backgroundColor: 'rgba(30, 41, 59, 0.8)', borderRadius: 4, borderWidth: 1, borderColor: '#334155', paddingHorizontal: 8, paddingVertical: 6, minHeight: 34, height: 34, justifyContent: 'center' },
-  cellPressableText: { color: '#f8fafc', fontSize: 13, lineHeight: 16 },
+  cellPressableText: { color: '#ffffff', fontSize: 13, lineHeight: 16 },
 });
 

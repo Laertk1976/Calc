@@ -99,3 +99,11 @@ The local release currently uses the existing development signing key, allowing 
 To update an existing local installation, open the newer APK on the phone and choose **Update**. Do not uninstall the previous app or clear its storage: the update reuses its saved calculations. Version 1.0.1 uses Android version code 2 and the same `com.example.calc` package and signing key. For later releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict, obtain a build signed with the original installation's key instead of uninstalling the app.
 
 For an EAS cloud APK build, configure/link the project and run `eas build --profile standalone --platform android`. The `standalone` profile disables the development client and builds the release variant. EAS signing credentials may differ from the local key.
+
+### Languages
+
+Use the language dropdown beside Sign in / Sign out to choose Armenian, English, Russian, Japanese, or Hindi. The selection applies immediately and is saved on the device. English is the initial language and fallback.
+
+Translations live in `locales/hy.json`, `locales/en.json`, `locales/ru.json`, `locales/ja.json`, and `locales/hi.json`. Components use `useTranslation` from `react-i18next`; initialization and preference storage are in `i18n.js`. Add matching keys to every JSON file and preserve `{{variable}}` placeholders. User-entered names, comments, formulas, and stored category IDs are not translated. The internal IDs `Cred`, `Fact`, and `Fcash` display as Debt, Invoice, and Cash Invoice in English. Cash Invoice means an invoice paid in cash in every language.
+
+Run translation checks with `node --test translations.test.cjs`.

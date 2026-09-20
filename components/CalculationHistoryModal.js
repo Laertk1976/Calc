@@ -1,3 +1,5 @@
+import ButtonLabel from './ButtonLabel';
+import { useTranslation } from 'react-i18next';
 import { raisedButton } from '../buttonAppearance';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -8,6 +10,7 @@ import KeyboardModalFrame from './KeyboardModalFrame';
 const labels = { edit: 'Edited', delete: 'Deleted', restore: 'Restored', undo: 'Undone' };
 
 export default function CalculationHistoryModal({ visible, calculations, saving, onChange, onClose }) {
+  const { t, i18n } = useTranslation();
   const [search, setSearch] = useState('');
   const [deletedOnly, setDeletedOnly] = useState(false);
   const events = calculations.flatMap((row) => (row.history || []).map((event) => ({ row, event })))
@@ -20,38 +23,38 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
       <KeyboardModalFrame style={s.backdrop}>
         <View style={s.panel}>
           <ScrollView keyboardShouldPersistTaps="handled" style={s.scroll} contentContainerStyle={{ paddingBottom: 12, gap: 12 }}>
-          <Text style={s.heading}>Calculation history</Text>
-          <Text style={s.description}>Changes are recorded from now on. Deleted rows stay here until restored.</Text>
-          <TextInput value={search} onChangeText={setSearch} placeholder="Search names..." placeholderTextColor="#94a3b8" style={s.input} accessibilityLabel="Search calculation history" />
+          <Text style={s.heading}>{t("Calculation history")}</Text>
+          <Text style={s.description}>{t("Changes are recorded from now on. Deleted rows stay here until restored.")}</Text>
+          <TextInput value={search} onChangeText={setSearch} placeholder={t("Search names...")} placeholderTextColor="#94a3b8" style={s.input} accessibilityLabel={t("Search calculation history")} />
           <View style={s.actions}>
-            <Pressable onPress={() => setDeletedOnly(false)} accessibilityRole="button" accessibilityState={{ selected: !deletedOnly }} style={[s.button, !deletedOnly && s.selected]}><Text style={s.text}>All changes</Text></Pressable>
-            <Pressable onPress={() => setDeletedOnly(true)} accessibilityRole="button" accessibilityState={{ selected: deletedOnly }} style={[s.button, deletedOnly && s.selected]}><Text style={s.text}>Deleted rows</Text></Pressable>
+            <Pressable onPress={() => setDeletedOnly(false)} accessibilityRole="button" accessibilityState={{ selected: !deletedOnly }} style={[s.button, !deletedOnly && s.selected]}><ButtonLabel style={s.text}>{t("All changes")}</ButtonLabel></Pressable>
+            <Pressable onPress={() => setDeletedOnly(true)} accessibilityRole="button" accessibilityState={{ selected: deletedOnly }} style={[s.button, deletedOnly && s.selected]}><ButtonLabel style={s.text}>{t("Deleted rows")}</ButtonLabel></Pressable>
           </View>
             {events.length ? events.map(({ row, event }) => {
               const latest = row.history.at(-1)?.id === event.id;
               const changes = Object.entries(HISTORY_FIELDS).filter(([field]) => String(event.before[field] ?? '') !== String(event.after[field] ?? ''));
               return (
                 <View key={`${row.id}-${event.id}`} style={s.card}>
-                  <Text style={s.title}>{event.after.title || event.before.title || 'Untitled calculation'}</Text>
-                  <Text style={s.description}>{labels[event.type]} · {formatSavedDate(event.at)}</Text>
-                  {event.type === 'delete' ? <Text style={s.text}>{event.before.info || event.before.expression || 'Empty calculation'}</Text> : null}
+                  <Text style={s.title}>{event.after.title || event.before.title || t("Untitled calculation")}</Text>
+                  <Text style={s.description}>{t(labels[event.type])} · {formatSavedDate(event.at)}</Text>
+                  {event.type === 'delete' ? <Text style={s.text}>{event.before.info || event.before.expression || t("Empty calculation")}</Text> : null}
                   {changes.map(([field, label]) => (
                     <View key={field} style={s.change}>
-                      <Text style={s.label}>{label}</Text>
-                      <Text selectable style={s.old}>Before: {String(event.before[field] ?? '') || '(empty)'}</Text>
-                      <Text selectable style={s.text}>After: {String(event.after[field] ?? '') || '(empty)'}</Text>
+                      <Text style={s.label}>{t(label)}</Text>
+                      <Text selectable style={s.old}>{t('Before')}: {String(event.before[field] ?? '') || t("(empty)")}</Text>
+                      <Text selectable style={s.text}>{t('After')}: {String(event.after[field] ?? '') || t("(empty)")}</Text>
                     </View>
                   ))}
                   {row.deletedAt && latest ? (
-                    <Pressable disabled={saving} style={[s.button, s.selected, saving && s.disabled]} onPress={() => onChange({ type: 'restore', id: row.id })} accessibilityRole="button"><Text style={s.text}>Restore calculation</Text></Pressable>
+                    <Pressable disabled={saving} style={[s.button, s.selected, saving && s.disabled]} onPress={() => onChange({ type: 'restore', id: row.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Restore calculation")}</ButtonLabel></Pressable>
                   ) : latest && event.type === 'edit' && !row.deletedAt ? (
-                    <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => onChange({ type: 'undo', id: row.id, eventId: event.id })} accessibilityRole="button"><Text style={s.text}>Undo this edit</Text></Pressable>
+                    <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => onChange({ type: 'undo', id: row.id, eventId: event.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Undo this edit")}</ButtonLabel></Pressable>
                   ) : null}
                 </View>
               );
-            }) : <Text style={s.description}>{deletedOnly ? 'No deleted calculations found.' : 'No changes recorded yet. Saved edits and deletions will appear here.'}</Text>}
+            }) : <Text style={s.description}>{deletedOnly ? t("No deleted calculations found.") : t("No changes recorded yet. Saved edits and deletions will appear here.")}</Text>}
           </ScrollView>
-          <Pressable style={[s.button, s.selected]} onPress={onClose} accessibilityRole="button"><Text style={s.text}>Back to table</Text></Pressable>
+          <Pressable style={[s.button, s.selected]} onPress={onClose} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Back to table")}</ButtonLabel></Pressable>
         </View>
       </KeyboardModalFrame>
     </Modal>

@@ -1,3 +1,6 @@
+import ButtonLabel from './ButtonLabel';
+import translations from '../i18n';
+import { useTranslation } from 'react-i18next';
 import DateRangeCalendar from './DateRangeCalendar';
 import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
@@ -94,11 +97,12 @@ function escapeCsv(value) {
 }
 
 function buildTableCsv(calculations) {
-  const header = ['Name', 'Date', 'Info', 'Comments', 'Cred', 'Fact', 'Fcash'];
+  const t = translations.t.bind(translations);
+  const header = ['Name', 'Date', 'Info', 'Comments', 'Cred', 'Fact', 'Fcash'].map(key => t(key));
   const rows = calculations.map((calculation) => {
     const norm = normalizeCalculation(calculation);
     return [
-      norm.title || 'Untitled',
+      norm.title || t('Untitled'),
       formatSavedDate(norm.savedAt || norm.createdAt),
       norm.info || norm.expression || '',
       norm.comment || '',
@@ -124,12 +128,13 @@ function downloadCsv(csv, fileName) {
 }
 
 function buildTableHtml(calculations, filterSummary = '') {
+  const t = translations.t.bind(translations);
   const totals = { Cred: 0, Fact: 0, Fcash: 0 };
   let hasTotals = false;
 
   const rows = calculations.map((calculation) => {
     const norm = normalizeCalculation(calculation);
-    const title = escapeHtml(norm.title || 'Untitled');
+    const title = escapeHtml(norm.title || t('Untitled'));
     const dateStr = formatSavedDate(norm.savedAt || norm.createdAt);
     const info = escapeHtml(norm.info || norm.expression || '');
     const comment = escapeHtml(norm.comment || '');
@@ -176,7 +181,7 @@ function buildTableHtml(calculations, filterSummary = '') {
   const footerRow = hasTotals && calculations.length > 0 ? `
     <tfoot>
       <tr class="total-row">
-        <td colspan="3" class="total-label">TOTAL</td>
+        <td colspan="3" class="total-label">${escapeHtml(t('TOTAL'))}</td>
         <td class="cell-num total-cell">${formatTotal(totals.Cred)}</td>
         <td class="cell-num total-cell">${formatTotal(totals.Fact)}</td>
         <td class="cell-num total-cell">${formatTotal(totals.Fcash)}</td>
@@ -188,7 +193,7 @@ function buildTableHtml(calculations, filterSummary = '') {
   const exportDateStr = formatSavedDate(exportDate.toISOString());
 
   return `<!DOCTYPE html>
-<html>
+<html lang="${escapeHtml(translations.resolvedLanguage)}">
 <head>
   <meta charset="utf-8" />
   <style>
@@ -345,22 +350,22 @@ function buildTableHtml(calculations, filterSummary = '') {
 </head>
 <body>
   <div class="header-bar">
-    <h2>CALCULATOR TABLE</h2>
-    <div class="meta">${escapeHtml(filterSummary ? `${filterSummary} • ` : '')}${escapeHtml(exportDateStr)} &bull; ${calculations.length} ${calculations.length === 1 ? 'record' : 'records'}</div>
+    <h2>${escapeHtml(t('Calculator table'))}</h2>
+    <div class="meta">${escapeHtml(filterSummary ? `${filterSummary} • ` : '')}${escapeHtml(exportDateStr)} &bull; ${escapeHtml(t('Rows: {{count}}', { count: calculations.length }))}</div>
   </div>
   <table>
     <thead>
       <tr>
-        <th class="col-name">Name</th>
-        <th class="col-info">Info</th>
-        <th class="col-comments">Comments</th>
-        <th class="col-cred">Cred</th>
-        <th class="col-fact">Fact</th>
-        <th class="col-fcash">Fcash</th>
+        <th class="col-name">${escapeHtml(t('Name'))}</th>
+        <th class="col-info">${escapeHtml(t('Info'))}</th>
+        <th class="col-comments">${escapeHtml(t('Comments'))}</th>
+        <th class="col-cred">${escapeHtml(t('Cred'))}</th>
+        <th class="col-fact">${escapeHtml(t('Fact'))}</th>
+        <th class="col-fcash">${escapeHtml(t('Fcash'))}</th>
       </tr>
     </thead>
     <tbody>
-      ${rows || '<tr class="empty-row"><td colspan="6">No saved calculations yet.</td></tr>'}
+      ${rows || `<tr class="empty-row"><td colspan="6">${escapeHtml(t('No saved calculations yet.'))}</td></tr>`}
     </tbody>
     ${footerRow}
   </table>
@@ -411,6 +416,7 @@ export default function CalculationTableModal({
   onClose,
   onUpdateCalculations,
 }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
@@ -470,10 +476,10 @@ export default function CalculationTableModal({
     }
   }, [visible]);
 
+  const searchValue = searchText.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
-    if (searchText.trim()) {
-      const searchValue = searchText.trim().toLowerCase();
-      if (!String(r.title || '').toLowerCase().includes(searchValue)) return false;
+    if (searchValue) {
+      return String(r.title || '').toLowerCase().includes(searchValue);
     }
 
     const dateKey = getDateKey(r.savedAt || r.createdAt);
@@ -494,20 +500,21 @@ export default function CalculationTableModal({
   ));
 
   const getFilterLabel = () => {
+    if (searchValue) return t('All Dates');
     if (fromDate && toDate) {
       if (fromDate === toDate) return fromDate;
       return `${fromDate} ➔ ${toDate}`;
     }
     if (fromDate) {
-      return `From ${fromDate}`;
+      return `${t('From')} ${fromDate}`;
     }
     if (toDate) {
-      return `Up to ${toDate}`;
+      return `${t('To')} ${toDate}`;
     }
     if (!fromDate && !toDate) {
-      return 'All Dates';
+      return t("All Dates");
     }
-    return `${fromDate || 'Start'} - ${toDate || 'End'}`;
+    return `${fromDate || t("Start")} - ${toDate || t("End")}`;
   };
 
   const handleCellChange = (index, field, value) => {
@@ -539,19 +546,19 @@ export default function CalculationTableModal({
 
     if (trimmedInitial !== trimmedCurrent) {
       const fieldLabels = {
-        cred: 'Cred',
-        fact: 'Fact',
-        fcash: 'Fcash',
-        info: 'Info',
+        cred: t("Cred"),
+        fact: t("Fact"),
+        fcash: t("Fcash"),
+        info: t("Info"),
       };
       const fieldName = fieldLabels[field] || field;
-      const rowTitle = rows[index]?.title?.trim() || `Row #${index + 1}`;
+      const rowTitle = rows[index]?.title?.trim() || t('Row #{{number}}', { number: index + 1 });
 
       setWarningModal({
         visible: true,
         type: 'change_number',
-        title: 'Confirm Number Change',
-        message: `Are you sure you want to change ${fieldName} for "${rowTitle}"?`,
+        title: t("Confirm Number Change"),
+        message: t('Change {{field}} for "{{name}}"?', { field: fieldName, name: rowTitle }),
         rowIndex: index,
         field,
         fieldName,
@@ -564,12 +571,12 @@ export default function CalculationTableModal({
 
   const promptDeleteRow = (index) => {
     const row = rows[index];
-    const rowTitle = row?.title?.trim() || `Row #${index + 1}`;
+    const rowTitle = row?.title?.trim() || t('Row #{{number}}', { number: index + 1 });
     setWarningModal({
       visible: true,
       type: 'delete_line',
-      title: 'Confirm Line Deletion',
-      message: `Delete "${rowTitle}"? You can undo this or restore it from History later.`,
+      title: t("Confirm Line Deletion"),
+      message: t('Delete "{{name}}"? You can restore it from History later.', { name: rowTitle }),
       rowIndex: index,
       rowTitle,
       field: null,
@@ -586,7 +593,7 @@ export default function CalculationTableModal({
       return true;
     } catch (error) {
       setRows((calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
-      Alert.alert('Change not saved', error?.message || 'Please try again.');
+      Alert.alert(t("Change not saved"), error?.message || t("Please try again."));
       return false;
     } finally {
       setSaving(false);
@@ -653,8 +660,8 @@ export default function CalculationTableModal({
   };
 
   const filterSummary = [
-    searchText.trim() ? `Name: ${searchText.trim()}` : '',
-    fromDate || toDate ? `Dates: ${getFilterLabel()}` : '',
+    searchText.trim() ? `${t('Name')}: ${searchText.trim()}` : '',
+    fromDate || toDate ? `${t('Date')}: ${getFilterLabel()}` : '',
   ].filter(Boolean).join(' | ');
 
   const infoGrandTotal = getInfoGrandTotal(filteredRows);
@@ -669,7 +676,7 @@ export default function CalculationTableModal({
     return totals;
   }, { cred: 0, fact: 0, fcash: 0 });
   const hasAnyTotals = infoGrandTotal.hasValue || sectionTotals.cred || sectionTotals.fact || sectionTotals.fcash;
-  const totalLabel = infoGrandTotal.hasValue ? `TOTAL: ${pretty(String(Math.round(infoGrandTotal.total * 10000) / 10000))}` : 'TOTAL';
+  const totalLabel = infoGrandTotal.hasValue ? `${t('TOTAL')}: ${pretty(String(Math.round(infoGrandTotal.total * 10000) / 10000))}` : t("TOTAL");
 
   const handleSaveCsv = async () => {
     const csv = buildTableCsv(filteredRows);
@@ -680,7 +687,7 @@ export default function CalculationTableModal({
       const dataUri = `data:text/csv;charset=utf-8,${encodeURIComponent(`\ufeff${csv}`)}`;
       await Sharing.shareAsync(dataUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
     } catch (error) {
-      Alert.alert('CSV export failed', error.message);
+      Alert.alert(t("CSV export failed"), error.message);
     }
   };
 
@@ -688,17 +695,17 @@ export default function CalculationTableModal({
     if (driveUploadBusy) return;
 
     if (format === 'pdf' && Platform.OS === 'web') {
-      Alert.alert('PDF upload unavailable', 'Google Drive PDF upload requires an Android or iOS build. Use Save PDF on web.');
+      Alert.alert(t("PDF upload unavailable"), t("Google Drive PDF upload requires an Android or iOS build. Use Save PDF on web."));
       return;
     }
 
     if (!driveAuthorization.configured) {
-      Alert.alert('Google Drive setup required', 'Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID before uploading to Google Drive.');
+      Alert.alert(t("Google Drive setup required"), t("Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID before uploading to Google Drive."));
       return;
     }
 
     if (!driveAuthorization.ready) {
-      Alert.alert('Google Drive is not ready', 'Please wait a moment and try again. If this continues, restart the app after rebuilding it.');
+      Alert.alert(t("Google Drive is not ready"), t("Please wait a moment and try again. If this continues, restart the app after rebuilding it."));
       return;
     }
 
@@ -706,7 +713,7 @@ export default function CalculationTableModal({
     try {
       const accessToken = await driveAuthorization.authorize();
       if (!accessToken) {
-        Alert.alert('Google Drive sign-in cancelled', 'Sign in to Google to upload the table.');
+        Alert.alert(t("Google Drive sign-in cancelled"), t("Sign in to Google to upload the table."));
         return;
       }
 
@@ -729,9 +736,9 @@ export default function CalculationTableModal({
           content: pdfBlob,
         });
       }
-      Alert.alert('Google Drive', `Saved to Calculator/${fileName}`);
+      Alert.alert('Google Drive', t('Saved to {{path}}', { path: `Calculator/${fileName}` }));
     } catch (error) {
-      Alert.alert('Google Drive upload failed', error?.message || 'The upload could not be completed.');
+      Alert.alert(t("Google Drive upload failed"), error?.message || t("The upload could not be completed."));
     } finally {
       setDriveUploadBusy(false);
     }
@@ -777,19 +784,19 @@ export default function CalculationTableModal({
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
-              <Text style={styles.authButtonText}>History</Text>
+              <ButtonLabel style={styles.authButtonText}>{t("History")}</ButtonLabel>
             </Pressable>
             {undoable ? (
               <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={styles.authButton} accessibilityRole="button">
-                <Text style={styles.authButtonText}>{undoable.event.type === 'delete' ? 'Undo delete' : 'Undo edit'}</Text>
+                <ButtonLabel style={styles.authButtonText}>{undoable.event.type === 'delete' ? t("Undo delete") : t("Undo edit")}</ButtonLabel>
               </Pressable>
             ) : null}
-            {saving ? <Text style={{ color: '#cbd5e1' }}>Saving...</Text> : null}
+            {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           </View>
           <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
-              <Text style={[styles.listTitle, styles.tableTitle]}>Calculator table</Text>
+              <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>
               <Pressable
                 style={({ pressed }) => [styles.searchIconButton, searchVisible && styles.searchIconButtonActive, pressed && styles.pressed]}
                 onPress={() => setSearchVisible((current) => !current)}
@@ -804,7 +811,7 @@ export default function CalculationTableModal({
                   autoFocus
                   value={searchText}
                   onChangeText={setSearchText}
-                  placeholder="Search names..."
+                  placeholder={t("Search names...")}
                   placeholderTextColor="#94a3b8"
                   style={styles.tableSearchInput}
                 />
@@ -827,8 +834,8 @@ export default function CalculationTableModal({
           </View>
           <Text style={styles.listSubtitle} accessibilityLiveRegion="polite">
             {filteredRows.length === rows.length
-              ? `${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`
-              : `${filteredRows.length} of ${rows.length} rows`}
+              ? t('Rows: {{count}}', { count: rows.length })
+              : t('Rows: {{shown}} / {{total}}', { shown: filteredRows.length, total: rows.length })}
           </Text>
           <ScrollView
             ref={tableHeaderScrollRef}
@@ -842,22 +849,22 @@ export default function CalculationTableModal({
                     <Text style={styles.tableHeaderText}>#</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.nameColumn]}>
-                    <Text style={styles.tableHeaderText}>Name</Text>
+                    <Text style={styles.tableHeaderText}>{t("Name")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.infoColumn]}>
-                    <Text style={styles.tableHeaderText}>Info</Text>
+                    <Text style={styles.tableHeaderText}>{t("Info")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.commentsColumn]}>
-                    <Text style={styles.tableHeaderText}>Comments</Text>
+                    <Text style={styles.tableHeaderText}>{t("Comments")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.credColumn, styles.headerCred]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Cred</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Debt")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.factColumn, styles.headerFact]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Fact</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Invoice")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.fcashColumn, styles.headerFcash]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>Fcash</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Cash Invoice")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.actionColumn]}>
                     <Text style={styles.tableHeaderText}></Text>
@@ -915,7 +922,7 @@ export default function CalculationTableModal({
                             autoComplete="off"
                             importantForAutofill="no"
                             autoCorrect={false}
-                            placeholder="Name"
+                            placeholder={t("Name")}
                             placeholderTextColor="#64748b"
                           />
                           <Pressable
@@ -942,7 +949,7 @@ export default function CalculationTableModal({
                           onChangeText={(text) => handleCellChange(index, 'info', text)}
                           onFocus={() => handleNumberCellFocus(index, 'info')}
                           onBlur={() => handleNumberCellBlur(index, 'info')}
-                          placeholder="Formula / Info"
+                          placeholder={t("Formula / Info")}
                           placeholderTextColor="#64748b"
                         />
                       </View>
@@ -957,7 +964,7 @@ export default function CalculationTableModal({
                             style={[styles.cellPressableText, !calc.comment && { color: '#64748b' }]}
                             numberOfLines={1}
                           >
-                            {calc.comment || 'Comment...'}
+                            {calc.comment || t("Comment...")}
                           </Text>
                         </Pressable>
                       </View>
@@ -1015,9 +1022,11 @@ export default function CalculationTableModal({
                 })
                 ) : (
                   <Text style={styles.emptyList}>
-                    {fromDate || toDate
-                      ? `No saved calculations from ${fromDate || 'the beginning'} to ${toDate || 'the end'}.`
-                      : 'No saved calculations yet.'}
+                    {searchValue
+                      ? t('No matching names.')
+                      : fromDate || toDate
+                      ? t('No saved calculations in this date range.')
+                      : t("No saved calculations yet.")}
                   </Text>
                 )}
 
@@ -1047,28 +1056,28 @@ export default function CalculationTableModal({
           <View style={[styles.tableFooter, keyboardVisible && { display: 'none' }]}>
             <View style={styles.tableActions}>
               <Pressable onPress={handleAddRow} style={({ pressed }) => [styles.addRowButton, pressed && styles.pressed]}>
-                <Text style={styles.addRowButtonText}>+ Add Row</Text>
+                <ButtonLabel style={styles.addRowButtonText}>{t("+ Add Row")}</ButtonLabel>
               </Pressable>
               <Pressable onPress={saveTableAsPdf} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Save PDF</Text>
+                <ButtonLabel style={styles.closeButtonText}>{t("Save PDF")}</ButtonLabel>
               </Pressable>
               <Pressable onPress={handleSaveCsv} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.csvButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Save CSV</Text>
+                <ButtonLabel style={styles.closeButtonText}>{t("Save CSV")}</ButtonLabel>
               </Pressable>
             </View>
             <View style={styles.tableActions}>
               <Pressable onPress={shareTable} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>Share</Text>
+                <ButtonLabel style={styles.closeButtonText}>{t("Share")}</ButtonLabel>
               </Pressable>
               <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('pdf')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>{driveUploadBusy ? 'Connecting...' : 'Drive PDF'}</Text>
+                <ButtonLabel style={styles.closeButtonText}>{driveUploadBusy ? t("Connecting...") : t("Drive PDF")}</ButtonLabel>
               </Pressable>
               <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('csv')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
-                <Text style={styles.closeButtonText}>{driveUploadBusy ? 'Connecting...' : 'Drive CSV'}</Text>
+                <ButtonLabel style={styles.closeButtonText}>{driveUploadBusy ? t("Connecting...") : t("Drive CSV")}</ButtonLabel>
               </Pressable>
             </View>
             <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <ButtonLabel style={styles.closeButtonText}>{t("Close")}</ButtonLabel>
             </Pressable>
           </View>
         </View>
@@ -1105,16 +1114,16 @@ export default function CalculationTableModal({
             {warningModal.type === 'change_number' ? (
               <View style={styles.warningPreviewBox}>
                 <View style={styles.warningPreviewCol}>
-                  <Text style={styles.warningPreviewLabel}>Original</Text>
+                  <Text style={styles.warningPreviewLabel}>{t("Original")}</Text>
                   <Text style={styles.warningPreviewOld}>
-                    {warningModal.oldValue || '(empty)'}
+                    {warningModal.oldValue || t("(empty)")}
                   </Text>
                 </View>
                 <Text style={styles.warningPreviewArrow}>➔</Text>
                 <View style={styles.warningPreviewCol}>
-                  <Text style={styles.warningPreviewLabel}>New</Text>
+                  <Text style={styles.warningPreviewLabel}>{t("New")}</Text>
                   <Text style={styles.warningPreviewNew}>
-                    {warningModal.newValue || '(empty)'}
+                    {warningModal.newValue || t("(empty)")}
                   </Text>
                 </View>
               </View>
@@ -1126,7 +1135,7 @@ export default function CalculationTableModal({
                 onPress={handleCancelWarning}
                 style={({ pressed }) => [styles.closeButton, styles.warningCancelButton, pressed && styles.pressed]}
               >
-                <Text style={styles.warningCancelText}>Cancel</Text>
+                <ButtonLabel style={styles.warningCancelText}>{t("Cancel")}</ButtonLabel>
               </Pressable>
               <Pressable
                 onPress={handleConfirmWarning}
@@ -1139,9 +1148,9 @@ export default function CalculationTableModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={styles.warningConfirmText}>
-                  {warningModal.type === 'delete_line' ? 'Confirm Delete' : 'Confirm'}
-                </Text>
+                <ButtonLabel style={styles.warningConfirmText}>
+                  {warningModal.type === 'delete_line' ? t("Confirm Delete") : t("Confirm")}
+                </ButtonLabel>
               </Pressable>
             </View>
           </View>
@@ -1159,13 +1168,13 @@ export default function CalculationTableModal({
         <KeyboardModalFrame style={styles.commentModalBackdrop}>
           <View style={[styles.commentModalPanel, { flexShrink: 1 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            <Text style={styles.commentModalTitle}>Edit Comment</Text>
+            <Text style={styles.commentModalTitle}>{t("Edit Comment")}</Text>
             <TextInput
               ref={commentInputRef}
               style={styles.commentModalInput}
               value={commentModal.text}
               onChangeText={(text) => setCommentModal((prev) => ({ ...prev, text }))}
-              placeholder="Enter your comment here..."
+              placeholder={t("Enter your comment here...")}
               placeholderTextColor="#64748b"
               multiline
               autoFocus={Platform.OS === 'web'}
@@ -1177,13 +1186,13 @@ export default function CalculationTableModal({
                 onPress={handleCancelComment}
                 style={({ pressed }) => [styles.commentModalCancelButton, pressed && styles.pressed]}
               >
-                <Text style={styles.commentModalButtonText}>Cancel</Text>
+                <ButtonLabel style={styles.commentModalButtonText}>{t("Cancel")}</ButtonLabel>
               </Pressable>
               <Pressable
                 onPress={handleSaveComment}
                 style={({ pressed }) => [styles.commentModalSaveButton, pressed && styles.pressed]}
               >
-                <Text style={styles.commentModalButtonText}>Save</Text>
+                <ButtonLabel style={styles.commentModalButtonText}>{t("Save")}</ButtonLabel>
               </Pressable>
             </View>
           </View>
@@ -1206,15 +1215,15 @@ export default function CalculationTableModal({
           />
           <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
-              <Text style={styles.dropdownTitle}>Choose date range</Text>
+              <Text style={styles.dropdownTitle}>{t("Choose date range")}</Text>
               {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} />}
               <Text style={styles.listSubtitle}>{getFilterLabel()}</Text>
-              <Text style={styles.listSubtitle}>Rows in range: {filteredRows.length}</Text>
+              <Text style={styles.listSubtitle}>{t('Rows in range')}: {filteredRows.length}</Text>
               <Pressable
                 onPress={() => setDateDropdownVisible(false)}
                 style={({ pressed }) => [styles.dropdownCloseButton, pressed && styles.pressed]}
               >
-                <Text style={styles.dropdownCloseButtonText}>Apply dates</Text>
+                <ButtonLabel style={styles.dropdownCloseButtonText}>{t("Apply dates")}</ButtonLabel>
               </Pressable>
             </ScrollView>
           </View>

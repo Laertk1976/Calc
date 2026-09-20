@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -12,6 +13,7 @@ function toKey(date) {
 }
 
 export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange }) {
+  const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [active, setActive] = useState('from');
   const [month, setMonth] = useState(() => toDate(fromDate));
@@ -31,20 +33,20 @@ export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange 
   return (
     <View>
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-        {[['from', 'From', fromDate], ['to', 'To', endDate]].map(([field, label, value]) => (
-          <Pressable key={field} accessibilityRole="button" accessibilityLabel={`Choose ${label.toLowerCase()} date`} accessibilityState={{ selected: active === field }} onPress={() => { setActive(field); setMonth(toDate(value)); }} style={[styles.rangePill, { flex: 1 }, active === field && styles.rangePillSelected]}>
+        {[['from', t("From"), fromDate], ['to', t("To"), endDate]].map(([field, label, value]) => (
+          <Pressable key={field} accessibilityRole="button" accessibilityLabel={t(field === 'from' ? 'Choose start date' : 'Choose end date')} accessibilityState={{ selected: active === field }} onPress={() => { setActive(field); setMonth(toDate(value)); }} style={[styles.rangePill, { flex: 1 }, active === field && styles.rangePillSelected]}>
             <Text style={styles.rangePillText}>{label}</Text>
-            <Text style={styles.quickActionText}>{value || 'Choose date'}</Text>
+            <Text style={styles.quickActionText}>{value || t("Choose date")}</Text>
           </Pressable>
         ))}
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => setMonth(new Date(year, monthIndex - 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>‹</Text></Pressable>
-        <Text style={styles.quickActionText}>{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setMonth(new Date(year, monthIndex + 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>›</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Previous month")} onPress={() => setMonth(new Date(year, monthIndex - 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>‹</Text></Pressable>
+        <Text style={styles.quickActionText}>{month.toLocaleDateString(i18n.resolvedLanguage, { month: 'long', year: 'numeric' })}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Next month")} onPress={() => setMonth(new Date(year, monthIndex + 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>›</Text></Pressable>
       </View>
       <View style={{ flexDirection: 'row' }}>
-        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => <Text key={day} style={[styles.quickActionText, { width: '14.285714%', textAlign: 'center', fontSize: 11 }]}>{day}</Text>)}
+        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => <Text key={day} style={[styles.quickActionText, { width: '14.285714%', textAlign: 'center', fontSize: 11 }]}>{typeof day === 'string' ? t(day) : day}</Text>)}
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 8 }}>
         {Array.from({ length: Math.ceil((offset + count) / 7) * 7 }, (_, index) => {
@@ -55,10 +57,10 @@ export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange 
           const key = toKey(date);
           const endpoint = key === fromDate || key === endDate;
           const inRange = fromDate && endDate && date >= toDate(fromDate) && date <= toDate(endDate);
-          return <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${active === 'from' ? 'From' : 'To'} ${key}`} accessibilityState={{ selected: endpoint }} onPress={() => choose(date)} style={[cell, inRange && { backgroundColor: '#1e3a5f' }, endpoint && { backgroundColor: '#2563eb' }]}><Text style={styles.quickActionText}>{day}</Text></Pressable>;
+          return <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${active === 'from' ? t("From") : t("To")} ${key}`} accessibilityState={{ selected: endpoint }} onPress={() => choose(date)} style={[cell, inRange && { backgroundColor: '#1e3a5f' }, endpoint && { backgroundColor: '#2563eb' }]}><Text style={styles.quickActionText}>{typeof day === 'string' ? t(day) : day}</Text></Pressable>;
         })}
       </View>
-      <Pressable accessibilityRole="button" onPress={() => { const today = new Date(); const key = toKey(today); onChange(key, key); setMonth(today); setActive('from'); }} style={[styles.quickActionButton, { flex: 0, marginBottom: 12 }]}><Text style={styles.quickActionText}>Today</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { const today = new Date(); const key = toKey(today); onChange(key, key); setMonth(today); setActive('from'); }} style={[styles.quickActionButton, { flex: 0, marginBottom: 12 }]}><Text style={styles.quickActionText}>{t("Today")}</Text></Pressable>
     </View>
   );
 }
