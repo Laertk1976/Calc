@@ -44,6 +44,7 @@ export default function useCalculatorStyles() {
       closeButtonText: { fontSize: width < 600 ? 13 : 16, textAlign: 'center', flexShrink: 1 },
       authButton: { flexShrink: 1, maxWidth: '100%' },
       authButtonText: { fontSize: compact ? 12 : 13, textAlign: 'center' },
+      headerControl: { width: compact ? 96 : 108 },
       authModeButton: { paddingHorizontal: 10 },
       closeButton: { minWidth: 0, paddingHorizontal: 6, justifyContent: 'center' },
       warningCancelButton: { minWidth: 0, paddingHorizontal: 6 },

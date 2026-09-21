@@ -6,6 +6,13 @@ export default function ButtonLabel({ children, style, numberOfLines, accessibil
   const text = Children.toArray(children).join('');
   const fontSize = StyleSheet.flatten(style)?.fontSize || 14;
   const lines = text.trim().split('\n');
+  if (numberOfLines === 1) {
+    return (
+      <View accessible accessibilityLabel={accessibilityLabel || text} style={[styles.lines, { width: '100%' }]}>
+        <FittedWord style={[style, { width: '100%' }]} {...props}>{text.replace(/\n/g, ' ')}</FittedWord>
+      </View>
+    );
+  }
   if (lines.length > 1) {
     return (
       <View accessible accessibilityLabel={accessibilityLabel || text.replace(/\n/g, ' ')} style={styles.lines}>

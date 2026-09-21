@@ -6,6 +6,7 @@ import { styles } from '../calculatorStyles';
 import useCalculatorStyles from '../useCalculatorStyles';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { formatSavedDate } from '../calculatorUtils';
+import { getCalculationListResults } from '../calculationHistory';
 
 function getSavedItemStyle(type) {
   if (type === 'Cred') return styles.savedItemRed;
@@ -66,17 +67,17 @@ export default function CalculationListModal({ visible, calculations, onClose, i
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
                 {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${dayCalculations.length}` : dayCalculations.length}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
-                <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
-                <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
-              </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date')}, ${dateLabel(selectedDate)}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => {
             const [selectedYear, selectedMonth] = selectedDate.split('-').map(Number);
             setCalendarMonth(new Date(selectedYear, selectedMonth - 1, 1));
             setDatePickerVisible(true);
-          }} hitSlop={4} style={[styles.quickActionButton, { flex: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: 24, height: 24, minWidth: 24, minHeight: 24, maxHeight: 24, borderRadius: 2, paddingHorizontal: 0, paddingVertical: 0, alignItems: 'center', justifyContent: 'center' }]}>
-            <Text numberOfLines={1} style={[styles.quickActionText, { fontSize: 12, lineHeight: 16, includeFontPadding: false }]}>{Number(selectedDate.slice(-2))}</Text>
+          }} hitSlop={4} style={styles.searchIconButton}>
+            <Text numberOfLines={1} style={[styles.quickActionText, { fontSize: 14, lineHeight: 18, includeFontPadding: false }]}>{Number(selectedDate.slice(-2))}</Text>
           </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
+                <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
+                <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
+              </Pressable>
             </View>
           </View>
           <Modal transparent animationType="fade" visible={visible && datePickerVisible} onRequestClose={() => setDatePickerVisible(false)}>
@@ -110,9 +111,11 @@ export default function CalculationListModal({ visible, calculations, onClose, i
             {filteredCalculations.length ? filteredCalculations.map((calculation, index) => (
               <View key={`${calculation.createdAt}-${index}`} style={[styles.savedItem, getSavedItemStyle(calculation.type)]}>
                 <Text style={styles.savedTitle}>{index + 1}. {calculation.title}</Text>
-                <Text style={styles.savedExpression}>{calculation.expression || calculation.info || ''}</Text>
+                <Text style={styles.savedExpression}>{calculation.info ?? calculation.expression ?? ''}</Text>
                 {calculation.comment ? <Text style={styles.savedComment}>{t('Note')}: {calculation.comment}</Text> : null}
-                <Text style={styles.savedValue}>{calculation.value || calculation.cred || calculation.fact || calculation.fcash || ''}</Text>
+                {getCalculationListResults(calculation).map(({ label, value }) => (
+                  <Text key={label || 'result'} style={styles.savedValue}>{label ? `${t(label)}: ` : ''}{value}</Text>
+                ))}
                 <View style={styles.savedMetaRow}>
                   <Text style={styles.savedDate}>{formatSavedDate(calculation.savedAt || calculation.createdAt)}</Text>
                   <Text style={styles.savedType}>{t(calculation.type || 'Add')}</Text>

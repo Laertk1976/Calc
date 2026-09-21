@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   authButton: { ...raisedButton, backgroundColor: '#334155', borderRadius: 5, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 20 },
   authButtonText: { color: '#f8fafc', fontSize: 13, fontWeight: '700' },
+  headerControl: { width: 108, height: 44, minHeight: 44, maxHeight: 44, flexGrow: 0, flexShrink: 0, marginBottom: 0, paddingHorizontal: 8, paddingVertical: 0, alignItems: 'center', justifyContent: 'center' },
   display: { minHeight: 150, justifyContent: 'flex-end', alignItems: 'flex-end', paddingHorizontal: 8, paddingBottom: 24 },
   expression: { color: '#94a3b8', fontSize: 24, marginBottom: 8 },
   displayText: { color: '#f8fafc', fontSize: 68, fontWeight: '300', maxWidth: '100%' },

@@ -120,13 +120,13 @@ export default function CalculatorView({
       <StatusBar style="light" />
       <ScrollView ref={scrollRef} scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} compact />
           </View>
           <LanguageSelector />
-          <Pressable onPress={user ? onSignOut : onOpenAuth} style={[styles.authButton, { marginBottom: 0 }]}>
-            <ButtonLabel style={styles.authButtonText}>{user ? t("Sign out") : t("Sign in")}</ButtonLabel>
+          <Pressable accessibilityRole="button" onPress={user ? onSignOut : onOpenAuth} style={[styles.authButton, styles.headerControl]}>
+            <ButtonLabel numberOfLines={1} style={styles.authButtonText}>{user ? t("Sign out") : t("Sign in")}</ButtonLabel>
           </Pressable>
         </View>
         <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { marginBottom: 0, marginTop: 4 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">

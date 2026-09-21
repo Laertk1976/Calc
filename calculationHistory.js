@@ -1,4 +1,4 @@
-import { pretty } from './calculatorUtils';
+import { evaluateExpression, pretty } from './calculatorUtils';
 
 export const HISTORY_FIELDS = {
   title: 'Name', info: 'Info', comment: 'Comment', cred: 'Cred', fact: 'Fact', fcash: 'Fcash',
@@ -25,6 +25,17 @@ export function normalizeCalculation(calc) {
     fcash: calc.fcash !== undefined ? calc.fcash : (type === 'Fcash' ? rawVal : ''),
     history: Array.isArray(calc.history) ? calc.history : [],
   };
+}
+
+export function getCalculationListResults(calculation) {
+  const row = normalizeCalculation(calculation);
+  const amounts = ['cred', 'fact', 'fcash']
+    .filter((field) => row[field] !== '' && row[field] !== null && row[field] !== undefined)
+    .map((field) => ({ label: HISTORY_FIELDS[field], value: String(row[field]) }));
+  if (amounts.length || ['Cred', 'Fact', 'Fcash'].includes(row.type)) return amounts;
+  const resultText = String(row.info ?? '').split('=').pop().trim();
+  const result = resultText ? evaluateExpression(resultText) : 'Error';
+  return result === 'Error' ? [] : [{ label: '', value: pretty(String(result)) }];
 }
 
 function snapshot(row) {

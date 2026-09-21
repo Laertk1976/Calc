@@ -19,7 +19,7 @@ export default function LanguageSelector() {
         onPress={() => {
           button.current?.measureInWindow((x, y, width, height) => setAnchor({ top: Math.min(y + height + 4, Math.max(8, viewportHeight - 290)), left: Math.max(8, Math.min(x + width - 180, viewportWidth - 188)) }));
           setOpen(true);
-        }} style={[styles.authButton, { marginBottom: 0, flexShrink: 1 }]}>
+        }} style={[styles.authButton, styles.headerControl]}>
         <ButtonLabel numberOfLines={1} adjustsFontSizeToFit style={styles.authButtonText}>{selected.name} ▾</ButtonLabel>
       </Pressable>
       <Modal transparent statusBarTranslucent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>

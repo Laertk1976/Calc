@@ -1,4 +1,5 @@
 import ButtonLabel from './ButtonLabel';
+import TableActionsMenu from './TableActionsMenu';
 import translations from '../i18n';
 import { useTranslation } from 'react-i18next';
 import DateRangeCalendar from './DateRangeCalendar';
@@ -419,6 +420,8 @@ export default function CalculationTableModal({
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [actionsVisible, setActionsVisible] = useState(false);
+  useEffect(() => { setActionsVisible(false); }, [visible, keyboardVisible]);
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -779,16 +782,16 @@ export default function CalculationTableModal({
   };
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop]} onKeyboardVisibilityChange={setKeyboardVisible}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
-              <ButtonLabel style={styles.authButtonText}>{t("History")}</ButtonLabel>
+              <ButtonLabel style={styles.authButtonText}>{t('History')}</ButtonLabel>
             </Pressable>
             {undoable ? (
               <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={styles.authButton} accessibilityRole="button">
-                <ButtonLabel style={styles.authButtonText}>{undoable.event.type === 'delete' ? t("Undo delete") : t("Undo edit")}</ButtonLabel>
+                <ButtonLabel style={styles.authButtonText}>{t(undoable.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}</ButtonLabel>
               </Pressable>
             ) : null}
             {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
@@ -799,9 +802,8 @@ export default function CalculationTableModal({
               <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>
               <Pressable
                 style={({ pressed }) => [styles.searchIconButton, searchVisible && styles.searchIconButtonActive, pressed && styles.pressed]}
-                onPress={() => setSearchVisible((current) => !current)}
-                accessibilityLabel="Search table by name"
-              >
+                onPress={() => setSearchVisible(current => !current)}
+                accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }}>
                 <Text style={styles.searchIcon}>⌕</Text>
               </Pressable>
             </View>
@@ -822,10 +824,8 @@ export default function CalculationTableModal({
                 ) : null}
               </View>
             ) : null}
-            <Pressable
-              style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}
-              onPress={() => setDateDropdownVisible(true)}
-            >
+            <Pressable style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}
+              onPress={() => setDateDropdownVisible(true)} accessibilityRole="button" accessibilityLabel={t('Choose date range')}>
               <Text style={styles.dateDropdownButtonText}>
                 📅 {getFilterLabel()}
               </Text>
@@ -1053,29 +1053,15 @@ export default function CalculationTableModal({
               </View>
             </ScrollView>
           </ScrollView>
-          <View style={[styles.tableFooter, keyboardVisible && { display: 'none' }]}>
-            <View style={styles.tableActions}>
-              <Pressable onPress={handleAddRow} style={({ pressed }) => [styles.addRowButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.addRowButtonText}>{t("+ Add Row")}</ButtonLabel>
-              </Pressable>
-              <Pressable onPress={saveTableAsPdf} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{t("Save PDF")}</ButtonLabel>
-              </Pressable>
-              <Pressable onPress={handleSaveCsv} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.csvButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{t("Save CSV")}</ButtonLabel>
-              </Pressable>
-            </View>
-            <View style={styles.tableActions}>
-              <Pressable onPress={shareTable} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{t("Share")}</ButtonLabel>
-              </Pressable>
-              <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('pdf')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{driveUploadBusy ? t("Connecting...") : t("Drive PDF")}</ButtonLabel>
-              </Pressable>
-              <Pressable disabled={driveUploadBusy} onPress={() => handleDriveUpload('csv')} style={({ pressed }) => [styles.closeButton, styles.tableActionButton, styles.driveButton, driveUploadBusy && styles.disabledButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{driveUploadBusy ? t("Connecting...") : t("Drive CSV")}</ButtonLabel>
-              </Pressable>
-            </View>
+          <View style={[styles.tableFooter, { zIndex: 11 }, keyboardVisible && { display: 'none' }]}>
+            <TableActionsMenu open={actionsVisible} onToggle={() => setActionsVisible(value => !value)} onDismiss={() => setActionsVisible(false)} actions={[
+              { id: 'add', label: t('+ Add Row'), onPress: handleAddRow },
+              { id: 'pdf', label: t('Save PDF'), onPress: saveTableAsPdf },
+              { id: 'csv', label: t('Save CSV'), onPress: handleSaveCsv },
+              { id: 'share', label: t('Share'), onPress: shareTable },
+              { id: 'drivePdf', label: driveUploadBusy ? t('Connecting...') : t('Drive PDF'), onPress: () => handleDriveUpload('pdf'), disabled: driveUploadBusy },
+              { id: 'driveCsv', label: driveUploadBusy ? t('Connecting...') : t('Drive CSV'), onPress: () => handleDriveUpload('csv'), disabled: driveUploadBusy },
+            ]} />
             <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>
               <ButtonLabel style={styles.closeButtonText}>{t("Close")}</ButtonLabel>
             </Pressable>

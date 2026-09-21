@@ -5,10 +5,37 @@ import { readFile } from 'node:fs/promises';
 const moduleUrl = (text) => `data:text/javascript;base64,${Buffer.from(text).toString('base64')}`;
 const utils = moduleUrl(await readFile(new URL('./calculatorUtils.js', import.meta.url), 'utf8'));
 const source = (await readFile(new URL('./calculationHistory.js', import.meta.url), 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils));
-const { normalizeCalculation, applyCalculationChange: apply, latestUndoableChange } = await import(moduleUrl(source));
+const { normalizeCalculation, applyCalculationChange: apply, latestUndoableChange, getCalculationListResults } = await import(moduleUrl(source));
 const original = { createdAt: '2026-09-16T12:00:00.000Z', title: 'Customer', expression: '2 + 3', value: '5', type: 'Add' };
 const id = original.createdAt;
 const time = '2026-09-16T13:00:00.000Z';
+
+test('list results follow table amount edits, zero, clearing, and undo', () => {
+  for (const type of ['Cred', 'Fact', 'Fcash']) {
+    const field = type.toLowerCase();
+    let rows = apply([{ ...original, type }], { type: 'edit', id, changes: { [field]: '12' } });
+    assert.deepEqual(getCalculationListResults(rows[0]), [{ label: type, value: '12' }]);
+    rows = apply(rows, { type: 'edit', id, changes: { [field]: 0 } });
+    assert.deepEqual(getCalculationListResults(rows[0]), [{ label: type, value: '0' }]);
+    rows = apply(rows, { type: 'edit', id, changes: { [field]: '' } });
+    assert.deepEqual(getCalculationListResults(rows[0]), []);
+    rows = apply(rows, { type: 'undo', id, eventId: rows[0].history.at(-1).id });
+    assert.deepEqual(getCalculationListResults(rows[0]), [{ label: type, value: '0' }]);
+  }
+});
+
+test('list shows all populated amount columns and current info results', () => {
+  const [row] = apply([original], { type: 'edit', id, changes: { cred: '10', fact: '20', fcash: '30' } });
+  assert.deepEqual(getCalculationListResults(row), [
+    { label: 'Cred', value: '10' }, { label: 'Fact', value: '20' }, { label: 'Fcash', value: '30' },
+  ]);
+  for (const [info, expected] of [['7 + 2 = 9', '9'], ['7 + 2', '9'], ['0', '0']]) {
+    const [edited] = apply([original], { type: 'edit', id, changes: { info } });
+    assert.deepEqual(getCalculationListResults(edited), [{ label: '', value: expected }]);
+  }
+  assert.deepEqual(getCalculationListResults({ ...original, info: '' }), []);
+  assert.deepEqual(getCalculationListResults(original), [{ label: '', value: '5' }]);
+});
 
 test('legacy records retain their displayed values without inventing history', () => {
   const row = normalizeCalculation(original);
