@@ -1,11 +1,14 @@
-import { Children, useLayoutEffect, useRef } from 'react';
+import { Children, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 // Each word is an unbreakable item; the surrounding row wraps between words.
-export default function ButtonLabel({ children, style, numberOfLines, accessibilityLabel, ...props }) {
+export default function ButtonLabel({ children, style, numberOfLines, accessibilityLabel, naturalWrap = false, ...props }) {
   const text = Children.toArray(children).join('');
   const fontSize = StyleSheet.flatten(style)?.fontSize || 14;
   const lines = text.trim().split('\n');
+  if (naturalWrap) {
+    return <WrappedLabel style={style} accessibilityLabel={accessibilityLabel || text} {...props}>{text}</WrappedLabel>;
+  }
   if (numberOfLines === 1) {
     return (
       <View accessible accessibilityLabel={accessibilityLabel || text} style={[styles.lines, { width: '100%' }]}>
@@ -28,6 +31,34 @@ export default function ButtonLabel({ children, style, numberOfLines, accessibil
       ))}
     </View>
   );
+}
+
+function WrappedLabel({ children, style, ...props }) {
+  const label = useRef(null);
+  const [bounds, setBounds] = useState({ width: 0, height: 0 });
+  const baseSize = StyleSheet.flatten(style)?.fontSize || 18;
+  useLayoutEffect(() => {
+    if (Platform.OS !== 'web' || !label.current || !bounds.height) return;
+    const element = label.current;
+    const fit = () => {
+      for (let size = baseSize; size >= 8; size -= 0.5) {
+        element.style.fontSize = `${size}px`;
+        element.style.lineHeight = `${size * 1.2}px`;
+        if (element.scrollHeight <= bounds.height && element.scrollWidth <= bounds.width) break;
+      }
+    };
+    fit();
+    let active = true;
+    document.fonts?.ready.then(() => { if (active) fit(); });
+    return () => { active = false; };
+  }, [bounds.width, bounds.height, baseSize, children]);
+  return <View onLayout={({ nativeEvent: { layout } }) => setBounds(current => current.width === layout.width && current.height === layout.height ? current : { width: layout.width, height: layout.height })}
+    style={{ position: 'absolute', left: 5, right: 5, top: 7, bottom: 7, overflow: 'hidden', justifyContent: 'center' }}>
+    <Text ref={label} {...props} textBreakStrategy="simple" android_hyphenationFrequency="none"
+      adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={Platform.OS === 'web' ? undefined : 5}
+      style={[style, { width: bounds.width || '100%', maxHeight: bounds.height || '100%', lineHeight: undefined, paddingHorizontal: 0, flexShrink: 1, textAlign: 'center', overflow: 'hidden' },
+        Platform.OS === 'web' && { whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'normal' }]}>{children}</Text>
+  </View>;
 }
 
 function FittedWord({ children, style, lineCount = 1, ...props }) {

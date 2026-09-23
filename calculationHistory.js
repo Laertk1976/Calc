@@ -2,6 +2,7 @@ import { evaluateExpression, pretty } from './calculatorUtils';
 
 export const HISTORY_FIELDS = {
   title: 'Name', info: 'Info', comment: 'Comment', cred: 'Cred', fact: 'Fact', fcash: 'Fcash',
+  paidOffAt: 'Paid off at', paidOffAmount: 'Paid off amount',
 };
 const snapshotFields = [...Object.keys(HISTORY_FIELDS), 'expression', 'value', 'type'];
 
@@ -62,6 +63,23 @@ export function applyCalculationChange(calculations, change, at = new Date().toI
       if (!(field in HISTORY_FIELDS)) throw new Error('Unknown calculation field.');
       next[field] = value;
       if (field === 'info') next.expression = value;
+    }
+    if (change.undoPayOff) {
+      if (!row.paidOffAt || row.paidOffAt !== change.paidOffAt || Number(row.cred) !== 0) {
+        throw new Error('This payoff has changed. Reopen the debt list and try again.');
+      }
+      next.cred = row.paidOffAmount;
+      next.paidOffAt = '';
+      next.paidOffAmount = '';
+    } else if (change.payOff) {
+      const amount = Number(String(next.cred).replace(/,/g, ''));
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter a positive debt amount to pay off.');
+      next.paidOffAt = at;
+      next.paidOffAmount = String(amount);
+      next.cred = '0';
+    } else if ('cred' in change.changes && Number(String(next.cred).replace(/,/g, '')) !== 0) {
+      next.paidOffAt = '';
+      next.paidOffAmount = '';
     }
     if (JSON.stringify(snapshot(row)) === JSON.stringify(snapshot(next))) return rows;
   } else if (change.type === 'delete') {

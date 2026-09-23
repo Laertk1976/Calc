@@ -114,10 +114,13 @@ export default function CalculationListModal({ visible, calculations, onClose, i
                 <Text style={styles.savedExpression}>{calculation.info ?? calculation.expression ?? ''}</Text>
                 {calculation.comment ? <Text style={styles.savedComment}>{t('Note')}: {calculation.comment}</Text> : null}
                 {getCalculationListResults(calculation).map(({ label, value }) => (
-                  <Text key={label || 'result'} style={styles.savedValue}>{label ? `${t(label)}: ` : ''}{value}</Text>
+                  <View key={label || 'result'}>
+                    <Text style={styles.savedValue}>{label ? `${t(label)}: ` : ''}{value}</Text>
+                    {label === 'Cred' && <Text style={{ color: '#f8fafc', fontSize: 16, marginTop: 6, marginBottom: 8 }}>{t('Date')}: {t(formatSavedDate(calculation.savedAt || calculation.createdAt))}</Text>}
+                  </View>
                 ))}
                 <View style={styles.savedMetaRow}>
-                  <Text style={styles.savedDate}>{formatSavedDate(calculation.savedAt || calculation.createdAt)}</Text>
+                  {!getCalculationListResults(calculation).some(result => result.label === 'Cred') && <Text style={styles.savedDate}>{formatSavedDate(calculation.savedAt || calculation.createdAt)}</Text>}
                   <Text style={styles.savedType}>{t(calculation.type || 'Add')}</Text>
                 </View>
               </View>

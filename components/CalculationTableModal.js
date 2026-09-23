@@ -261,6 +261,12 @@ function buildTableHtml(calculations, filterSummary = '') {
       text-align: center;
       padding: 6px 4px;
     }
+    th::after {
+      content: '';
+      display: block;
+      margin-top: 4px;
+      border-bottom: 1px dashed currentColor;
+    }
     th.col-name     { width: 18%; text-align: left; padding-left: 8px; }
     th.col-info     { width: 28%; text-align: left; padding-left: 8px; }
     th.col-comments { width: 24%; text-align: left; padding-left: 8px; background-color: #334155; }
@@ -856,24 +862,31 @@ export default function CalculationTableModal({
             <View style={styles.tableHeaderRow}>
                   <View style={[styles.tableHeaderCell, styles.rowNumberColumn]}>
                     <Text style={styles.tableHeaderText}>#</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.nameColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Name")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.infoColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Info")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.commentsColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Comments")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.credColumn, styles.headerCred]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Debt")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.factColumn, styles.headerFact]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Invoice")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.fcashColumn, styles.headerFcash]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Cash Invoice")}</Text>
+                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.actionColumn]}>
                     <Text style={styles.tableHeaderText}></Text>

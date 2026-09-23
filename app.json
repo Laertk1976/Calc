@@ -5,14 +5,14 @@
     "icon": "./assets/icon.png",
      "android": {
       "package": "com.example.calc",
-      "versionCode": 8,
+      "versionCode": 9,
        "googleServicesFile": "./google-services.json"
     },
     "scheme": [
       "com.example.calc",
       "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
     ],
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "web": {

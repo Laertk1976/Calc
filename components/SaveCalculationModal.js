@@ -1,7 +1,7 @@
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { InteractionManager, Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { getSavedCalculations } from '../calculationStorage';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -14,33 +14,43 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
   const [savedTitles, setSavedTitles] = useState([]);
   const [localTitle, setLocalTitle] = useState(title);
   const focusTitleInput = useCallback(() => {
-    if (!titleInputRef.current) return;
-    titleInputRef.current.focus();
-    if (Platform.OS !== 'web') {
-      requestAnimationFrame(() => titleInputRef.current?.focus());
-      focusTimers.current.forEach(clearTimeout);
-      focusTimers.current = [50, 150].map((delay) => setTimeout(() => titleInputRef.current?.focus(), delay));
-    }
+    titleInputRef.current?.focus();
+  }, []);
+  const handleShow = useCallback(() => {
+    focusTimers.current.forEach(clearTimeout);
+    const openKeyboard = () => {
+      const input = titleInputRef.current;
+      if (!input) return;
+      // Android ignores focus() when an earlier focus acquired the input
+      // without opening the IME. Clear that stale focus before retrying.
+      if (Platform.OS === 'android' && !Keyboard.isVisible()) input.blur();
+      input.focus();
+    };
+    openKeyboard();
+    focusTimers.current = Platform.OS === 'android'
+      ? [setTimeout(() => {
+          if (!Keyboard.isVisible()) openKeyboard();
+        }, 250)]
+      : [];
   }, []);
   const selectSuggestion = useCallback((suggestion) => {
     setLocalTitle(suggestion);
     onTitleChange(suggestion);
-    // Keep the text field active: otherwise Android consumes the first
-    // suggestion tap to dismiss the keyboard.
-    requestAnimationFrame(focusTitleInput);
+    focusTitleInput();
   }, [focusTitleInput, onTitleChange]);
 
   useEffect(() => {
     if (!visible) return;
     setLocalTitle(title);
     getSavedCalculations(userId).then((items) => setSavedTitles(items.filter((item) => !item.deletedAt).map((item) => item.title)));
-    const task = InteractionManager.runAfterInteractions(focusTitleInput);
+  }, [visible, title, userId]);
+
+  useEffect(() => {
     return () => {
-      task.cancel();
       focusTimers.current.forEach(clearTimeout);
       focusTimers.current = [];
     };
-  }, [visible, title, userId, focusTitleInput]);
+  }, [visible]);
 
   const suggestions = savedTitles
     .filter((item) => typeof item === 'string' && item.trim())
@@ -54,7 +64,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
       transparent
       visible={visible}
       onRequestClose={onClose}
-      onShow={focusTitleInput}
+      onShow={handleShow}
     >
       <KeyboardModalFrame style={styles.modalBackdrop}>
           <View style={[styles.savePanel, { maxHeight: '100%', flexShrink: 1 }]}>
@@ -69,9 +79,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
               }}
               placeholder={t("Type a name or choose one below")}
               placeholderTextColor="#94a3b8"
-              autoFocus
               showSoftInputOnFocus
-              onLayout={focusTitleInput}
               returnKeyType="done"
               onSubmitEditing={() => onConfirm(localTitle)}
               style={styles.saveInput}
@@ -81,7 +89,9 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
                 {suggestions.map((suggestion) => (
                   <Pressable
                     key={suggestion}
-                    onTouchStart={() => selectSuggestion(suggestion)}
+                    onPress={() => selectSuggestion(suggestion)}
+                    accessibilityRole="button"
+                    onMouseDown={Platform.OS === 'web' ? (event) => event.preventDefault() : undefined}
                     style={({ pressed }) => [styles.suggestionItem, pressed && styles.pressed]}
                   >
                     <Text style={styles.suggestionText}>{suggestion}</Text>

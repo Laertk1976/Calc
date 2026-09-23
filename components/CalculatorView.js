@@ -14,6 +14,7 @@ import CalculationListModal from './CalculationListModal';
 import CalculationTableModal from './CalculationTableModal';
 import SaveCalculationModal from './SaveCalculationModal';
 import UtilityButtons from './UtilityButtons';
+import DebtListModal from './DebtListModal';
 
 export default function CalculatorView({
   display,
@@ -44,6 +45,7 @@ export default function CalculatorView({
   const styles = useCalculatorStyles();
   const keypadClick = useAudioPlayer(require('../assets/keypad-click.wav'), { keepAudioSessionActive: true });
   const [editing, setEditing] = useState(false);
+  const [debtsVisible, setDebtsVisible] = useState(false);
   const [draft, setDraft] = useState('');
   const expressionInput = useRef(null);
   const beginEditing = () => {
@@ -192,7 +194,7 @@ export default function CalculatorView({
               </View>
             ))}
           </View>
-          <UtilityButtons onSaveType={onSaveType} onList={onList} onButtonPress={playKeyClick} />
+          <UtilityButtons onSaveType={onSaveType} onList={onList} onButtonPress={playKeyClick} onDebts={() => setDebtsVisible(true)} />
         </View>}
         <CalculationTableModal
           visible={tableVisible}
@@ -202,8 +204,9 @@ export default function CalculatorView({
           onClose={onCloseTable}
           onUpdateCalculations={onUpdateCalculations}
         />
-        <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
       </ScrollView>
+      <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
+      {debtsVisible && <DebtListModal calculations={savedCalculations} onClose={() => setDebtsVisible(false)} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
     </SafeAreaView>
   );
 }

@@ -17,6 +17,23 @@ function fixture() {
   return { storage, remote, cloud, connect: () => { online = true; } };
 }
 const row = { id: 'one', title: 'Work', value: '5', createdAt: '2026-09-17T10:00:00Z' };
+
+test('payoff time survives offline restart and later cloud upload', async () => {
+  const f = fixture();
+  const paidAt = '2026-09-23T12:34:56.789Z';
+  let store = createOfflineCalculationStore({ ...f, now: () => paidAt });
+  await store.change({ type: 'add', row: { ...row, type: 'Cred' } }, 'account');
+  await store.change({ type: 'edit', id: row.id, payOff: true, changes: {} }, 'account');
+  store = createOfflineCalculationStore(f);
+  const saved = (await store.getRows('account'))[0];
+  assert.equal(saved.paidOffAt, paidAt);
+  assert.equal(saved.paidOffAmount, '5');
+  assert.equal(saved.cred, '0');
+  f.connect();
+  await store.sync('account');
+  assert.equal(f.cloud.get(row.id).row.paidOffAt, paidAt);
+  assert.equal(f.cloud.get(row.id).row.cred, '0');
+});
 test('offline work survives restart and sync clears queue only after upload', async () => {
   const f = fixture();
   let store = createOfflineCalculationStore(f);

@@ -98,6 +98,7 @@ export const styles = StyleSheet.create({
   tableTotalRow: { flexDirection: 'row', borderTopWidth: 2, borderTopColor: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.12)' },
   tableHeaderCell: { paddingHorizontal: 2, paddingVertical: 6, borderRightWidth: 1, borderRightColor: '#64748b', backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
   tableHeaderText: { fontWeight: '700', color: '#f8fafc', textAlign: 'center', fontSize: 13, includeFontPadding: false },
+  tableHeaderUnderline: { alignSelf: 'stretch', height: 0, marginTop: 4, marginHorizontal: 2, borderBottomWidth: 1, borderColor: '#f8fafc', borderStyle: 'dashed' },
   tableHeaderTextCompact: { fontSize: 10.5, lineHeight: 12, includeFontPadding: false, textAlign: 'center' },
   headerCred: { backgroundColor: '#7f1d1d' },
   headerFact: { backgroundColor: '#581c87' },

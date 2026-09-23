@@ -12,34 +12,37 @@ function getUtilityKeyStyle(key) {
   return styles.utilityKeyGreen;
 }
 
-export default function UtilityButtons({ onSaveType, onList, onButtonPress }) {
+export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
-  const renderButton = (key, grouped = false) => (
+  const renderButton = (key, grouped = false) => {
+    const armenianInvoice = i18n.resolvedLanguage === 'hy' && ['Fact', 'Fcash'].includes(key);
+    return (
     <Pressable
       key={key}
       onPressIn={onButtonPress}
       onPress={() => key === 'List' ? onList() : onSaveType(key)}
-      style={({ pressed }) => [styles.utilityKey, grouped && styles.utilityPrimaryKey, getUtilityKeyStyle(key), pressed && styles.pressed]}
+      onLongPress={key === 'Cred' ? onDebts : undefined}
+      delayLongPress={600}
+      accessibilityRole="button"
+      accessibilityHint={key === 'Cred' ? t('Hold to open debts') : undefined}
+      style={({ pressed }) => [styles.utilityKey, grouped && styles.utilityPrimaryKey, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, pressed && styles.pressed]}
     >
       <ButtonLabel
         accessibilityLabel={t(key)}
+        naturalWrap={armenianInvoice}
         style={[
           styles.utilityKeyText,
-          i18n.resolvedLanguage === 'hy' && ['Fact', 'Fcash'].includes(key) && styles.utilityThreeLineText,
-          i18n.resolvedLanguage === 'hy' && key === 'Fcash' && styles.utilityFourLineText,
+          armenianInvoice && { fontSize: 18, lineHeight: 23 },
         ]}
       >
         {key === 'Fcash' && i18n.resolvedLanguage === 'ja'
           ? t(key).replace('現金払い', '現金払い\n')
-          : key === 'Fcash' && i18n.resolvedLanguage === 'hy'
-            ? t(key).replace('Կանխիկ ', 'Կանխիկ\n').replace('հաշիվ-', 'հաշիվ-\n').replace('ապրանքա ', 'ապրանքա\n')
-          : key === 'Fact' && i18n.resolvedLanguage === 'hy'
-            ? t(key).replace('Հաշիվ-', 'Հաշիվ-\n').replace('ապրանքա-', 'ապրանքա-\n')
           : t(key)}
       </ButtonLabel>
     </Pressable>
   );
+  };
   return (
     <View style={styles.utilityColumn}>
       <View style={styles.utilityPrimaryGroup}>
