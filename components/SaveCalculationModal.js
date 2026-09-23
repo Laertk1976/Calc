@@ -1,7 +1,7 @@
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
-import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { InteractionManager, Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { getSavedCalculations } from '../calculationStorage';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -10,14 +10,37 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const titleInputRef = useRef(null);
+  const focusTimers = useRef([]);
   const [savedTitles, setSavedTitles] = useState([]);
   const [localTitle, setLocalTitle] = useState(title);
+  const focusTitleInput = useCallback(() => {
+    if (!titleInputRef.current) return;
+    titleInputRef.current.focus();
+    if (Platform.OS !== 'web') {
+      requestAnimationFrame(() => titleInputRef.current?.focus());
+      focusTimers.current.forEach(clearTimeout);
+      focusTimers.current = [50, 150].map((delay) => setTimeout(() => titleInputRef.current?.focus(), delay));
+    }
+  }, []);
+  const selectSuggestion = useCallback((suggestion) => {
+    setLocalTitle(suggestion);
+    onTitleChange(suggestion);
+    // Keep the text field active: otherwise Android consumes the first
+    // suggestion tap to dismiss the keyboard.
+    requestAnimationFrame(focusTitleInput);
+  }, [focusTitleInput, onTitleChange]);
 
   useEffect(() => {
     if (!visible) return;
     setLocalTitle(title);
     getSavedCalculations(userId).then((items) => setSavedTitles(items.filter((item) => !item.deletedAt).map((item) => item.title)));
-  }, [visible, title, userId]);
+    const task = InteractionManager.runAfterInteractions(focusTitleInput);
+    return () => {
+      task.cancel();
+      focusTimers.current.forEach(clearTimeout);
+      focusTimers.current = [];
+    };
+  }, [visible, title, userId, focusTitleInput]);
 
   const suggestions = savedTitles
     .filter((item) => typeof item === 'string' && item.trim())
@@ -27,15 +50,15 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
 
   return (
     <Modal
-      animationType="fade"
+      animationType="none"
       transparent
       visible={visible}
       onRequestClose={onClose}
-      onShow={() => titleInputRef.current?.focus()}
+      onShow={focusTitleInput}
     >
       <KeyboardModalFrame style={styles.modalBackdrop}>
           <View style={[styles.savePanel, { maxHeight: '100%', flexShrink: 1 }]}>
-            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
+            <ScrollView keyboardShouldPersistTaps="always" keyboardDismissMode="none" style={{ flexShrink: 1 }}>
             <Text style={styles.listTitle}>{t("Save as")}</Text>
             <TextInput
               ref={titleInputRef}
@@ -46,8 +69,9 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
               }}
               placeholder={t("Type a name or choose one below")}
               placeholderTextColor="#94a3b8"
-              autoFocus={Platform.OS === 'web'}
+              autoFocus
               showSoftInputOnFocus
+              onLayout={focusTitleInput}
               returnKeyType="done"
               onSubmitEditing={() => onConfirm(localTitle)}
               style={styles.saveInput}
@@ -57,10 +81,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
                 {suggestions.map((suggestion) => (
                   <Pressable
                     key={suggestion}
-                    onPress={() => {
-                      setLocalTitle(suggestion);
-                      onTitleChange(suggestion);
-                    }}
+                    onTouchStart={() => selectSuggestion(suggestion)}
                     style={({ pressed }) => [styles.suggestionItem, pressed && styles.pressed]}
                   >
                     <Text style={styles.suggestionText}>{suggestion}</Text>

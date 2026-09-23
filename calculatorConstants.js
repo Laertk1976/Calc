@@ -7,4 +7,4 @@ export const keys = [
 ];
 
 export const operators = ['÷', '×', '−', '+'];
-export const utilityKeys = ['Add', 'List', 'Cred', 'Fact', 'Fcash'];
+export const utilityKeys = ['Add', 'Cred', 'List', 'Fact', 'Fcash'];

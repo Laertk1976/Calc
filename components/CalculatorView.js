@@ -4,6 +4,7 @@ import SyncStatus from './SyncStatus';
 import LanguageSelector from './LanguageSelector';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { useAudioPlayer } from 'expo-audio';
 import { Animated, BackHandler, Easing, PanResponder, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
@@ -41,12 +42,23 @@ export default function CalculatorView({
 }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
+  const keypadClick = useAudioPlayer(require('../assets/keypad-click.wav'), { keepAudioSessionActive: true });
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const expressionInput = useRef(null);
   const beginEditing = () => {
     setDraft((expression || display).split('=')[0].trim());
     setEditing(true);
+  };
+  const playKeyClick = () => {
+    const playClick = () => keypadClick.play();
+    void keypadClick.seekTo(0).then(
+      playClick,
+      playClick,
+    );
+  };
+  const pressKey = (key) => {
+    onKeyPress(key);
   };
   const finishEditing = () => {
     if (!editing) return;
@@ -172,7 +184,7 @@ export default function CalculatorView({
                   const isOperator = operators.includes(key) || key === '=';
                   const isFunction = ['AC', 'C', '±', '%'].includes(key);
                   return (
-                    <Pressable key={key} onPress={() => onKeyPress(key)} style={({ pressed }) => [styles.key, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}>
+                    <Pressable key={key} onPressIn={playKeyClick} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}>
                       <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
                     </Pressable>
                   );
@@ -180,7 +192,7 @@ export default function CalculatorView({
               </View>
             ))}
           </View>
-          <UtilityButtons onSaveType={onSaveType} onList={onList} />
+          <UtilityButtons onSaveType={onSaveType} onList={onList} onButtonPress={playKeyClick} />
         </View>}
         <CalculationTableModal
           visible={tableVisible}

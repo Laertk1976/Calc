@@ -455,6 +455,15 @@ export default function CalculationTableModal({
   const tableHeaderScrollRef = useRef(null);
   const tableBodyScrollRef = useRef(null);
   const commentInputRef = useRef(null);
+  const focusCommentInput = () => {
+    if (!commentInputRef.current) return;
+    commentInputRef.current.focus();
+    // Focus calls made during the modal animation are frequently dropped on
+    // Android and iOS, so retry once the transition has settled.
+    if (Platform.OS !== 'web') {
+      setTimeout(() => commentInputRef.current?.focus(), 300);
+    }
+  };
 
   const syncTableHorizontalScroll = (event, targetRef) => {
     targetRef.current?.scrollTo({
@@ -1149,7 +1158,7 @@ export default function CalculationTableModal({
         transparent
         visible={commentModal.visible}
         onRequestClose={handleCancelComment}
-        onShow={() => commentInputRef.current?.focus()}
+        onShow={focusCommentInput}
       >
         <KeyboardModalFrame style={styles.commentModalBackdrop}>
           <View style={[styles.commentModalPanel, { flexShrink: 1 }]}>
@@ -1163,7 +1172,7 @@ export default function CalculationTableModal({
               placeholder={t("Enter your comment here...")}
               placeholderTextColor="#64748b"
               multiline
-              autoFocus={Platform.OS === 'web'}
+              autoFocus
               showSoftInputOnFocus
             />
             </ScrollView>

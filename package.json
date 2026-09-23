@@ -1,6 +1,6 @@
 {
   "name": "calc",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -13,6 +13,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "expo": "~57.0.23",
+    "expo-audio": "~57.0.5",
     "expo-auth-session": "~57.0.12",
     "expo-dev-client": "^57.0.19",
     "expo-print": "~57.0.2",
