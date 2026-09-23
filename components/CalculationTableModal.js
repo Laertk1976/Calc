@@ -430,6 +430,7 @@ export default function CalculationTableModal({
   useEffect(() => { setActionsVisible(false); }, [visible, keyboardVisible]);
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
+  const [sentRowIds, setSentRowIds] = useState(() => new Set());
   const [saving, setSaving] = useState(false);
   const undoable = latestUndoableChange(calculations || []);
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
@@ -930,7 +931,7 @@ export default function CalculationTableModal({
                       <View style={[styles.tableCell, styles.nameColumn]}>
                         <View style={styles.shareCellRow}>
                           <TextInput
-                            style={[styles.cellInput, styles.nameInput]}
+                            style={[styles.cellInput, styles.nameInput, sentRowIds.has(calc.id) && styles.sentRowTitle]}
                             value={calc.title}
                             onFocus={() => initialNamesRef.current.set(calc.id, calc.title || '')}
                             onChangeText={(text) => handleCellChange(index, 'title', text)}
@@ -948,7 +949,10 @@ export default function CalculationTableModal({
                             placeholderTextColor="#64748b"
                           />
                           <Pressable
-                            onPress={() => shareRowSummary(calc)}
+                            onPress={() => {
+                              setSentRowIds((previous) => new Set(previous).add(calc.id));
+                              void shareRowSummary(calc);
+                            }}
                             style={({ pressed }) => [styles.shareRowButton, pressed && styles.pressed]}
                             hitSlop={{ top: 8, bottom: 8, left: 0, right: 4 }}
                             accessibilityLabel="Share this row"

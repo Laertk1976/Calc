@@ -106,6 +106,7 @@ export const styles = StyleSheet.create({
   tableCell: { padding: 4, borderRightWidth: 1, borderRightColor: '#475569', backgroundColor: 'rgba(15, 23, 42, 0.75)', justifyContent: 'center', minHeight: 54 },
   tableCellText: { color: '#e2e8f0', textAlign: 'center', flexShrink: 1 },
   cellInput: { color: '#f8fafc', fontSize: 13, paddingHorizontal: 8, paddingVertical: 6, minHeight: 34, height: 34, backgroundColor: 'rgba(30, 41, 59, 0.8)', borderRadius: 4, borderWidth: 1, borderColor: '#334155', includeFontPadding: false },
+  sentRowTitle: { color: '#f87171' },
   cellInputNumber: { textAlign: 'right', fontWeight: '600', paddingRight: 10 },
   cellDateText: { color: '#94a3b8', fontSize: 9, paddingHorizontal: 4, marginTop: 2 },
   cellInfoTotal: { color: '#86efac', fontSize: 11, fontWeight: '700', marginTop: 6, paddingHorizontal: 8, lineHeight: 14 },
