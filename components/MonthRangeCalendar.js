@@ -18,7 +18,7 @@ export default function MonthRangeCalendar({ from, to, onChange }) {
   return <View style={s.calendar}>
     <View style={s.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('Previous year')} onPress={() => setYear(value => value - 1)} style={s.arrow}><Text style={s.text}>‹</Text></Pressable>
-      <Text style={s.year}>{year}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={s.year}>{year}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={t('Next year')} onPress={() => setYear(value => value + 1)} style={s.arrow}><Text style={s.text}>›</Text></Pressable>
     </View>
     <Text style={s.hint}>{t(anchor ? 'Select the last month, or the same month for one month.' : 'Select a month to start a range.')}</Text>
@@ -30,7 +30,7 @@ export default function MonthRangeCalendar({ from, to, onChange }) {
         const endpoint = key === from || key === to;
         return <View key={key} style={s.cell}>
           <Pressable accessibilityRole="button" accessibilityLabel={date.toLocaleDateString(i18n.resolvedLanguage, { month: 'long', year: 'numeric' })} accessibilityState={{ selected }} onPress={() => choose(key)} style={[s.month, selected && s.selected, endpoint && s.endpoint]}>
-            <Text style={s.text}>{date.toLocaleDateString(i18n.resolvedLanguage, { month: 'short' })}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.text}>{date.toLocaleDateString(i18n.resolvedLanguage, { month: 'short' })}</Text>
           </Pressable>
         </View>;
       })}
@@ -39,15 +39,15 @@ export default function MonthRangeCalendar({ from, to, onChange }) {
 }
 
 const s = StyleSheet.create({
-  calendar: { backgroundColor: '#1e293b', borderRadius: 12, padding: 10, marginBottom: 12 },
+  calendar: { backgroundColor: '#1e293b', borderRadius: 12, padding: 5.6, marginBottom: 6.72 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  arrow: { padding: 12, minWidth: 44, alignItems: 'center' },
-  year: { color: '#f8fafc', fontSize: 20, fontWeight: '700' },
-  text: { color: '#f8fafc', fontSize: 16, textAlign: 'center' },
-  hint: { color: '#cbd5e1', fontSize: 14, marginVertical: 8 },
+  arrow: { padding: 6.72, minWidth: 24.64, alignItems: 'center' },
+  year: { color: '#f8fafc', fontSize: 11.2, fontWeight: '700' },
+  text: { color: '#f8fafc', fontSize: 8.96, textAlign: 'center' },
+  hint: { color: '#cbd5e1', fontSize: 7.84, marginVertical: 4.48 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: '33.333333%', padding: 3 },
-  month: { minHeight: 48, justifyContent: 'center', borderRadius: 8, backgroundColor: '#334155', padding: 6 },
+  cell: { width: '33.333333%', padding: 1.68 },
+  month: { minHeight: 26.88, justifyContent: 'center', borderRadius: 8, backgroundColor: '#334155', padding: 3.36 },
   selected: { backgroundColor: '#1e40af' },
   endpoint: { backgroundColor: '#2563eb' },
 });

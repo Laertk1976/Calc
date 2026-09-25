@@ -14,18 +14,18 @@ export function monthDistance(value, now = new Date()) {
 
 export const debtNameKey = name => String(name || '').trim().normalize('NFC').toLowerCase();
 
-export function debtNames(calculations, query = '') {
+export function debtNames(calculations, query = '', amountField = 'cred') {
   const names = new Map();
-  for (const row of debtRows(calculations)) {
+  for (const row of debtRows(calculations, '', '', null, amountField)) {
     const key = debtNameKey(row.title);
     if (key && key.includes(debtNameKey(query)) && !names.has(key)) names.set(key, row.title.trim());
   }
   return [...names.values()].sort((a, b) => a.localeCompare(b));
 }
 
-export function debtRows(calculations, from = '', to = '', name = null) {
+export function debtRows(calculations, from = '', to = '', name = null, amountField = 'cred') {
   return calculations.filter(row => !row.deletedAt).map(normalizeCalculation)
-    .filter(row => row.cred !== '' && row.cred !== null && row.cred !== undefined)
+    .filter(row => row[amountField] !== '' && row[amountField] !== null && row[amountField] !== undefined)
     .filter(row => name === null || debtNameKey(row.title) === debtNameKey(name))
     .filter(row => {
       const month = monthKey(row.savedAt || row.createdAt);

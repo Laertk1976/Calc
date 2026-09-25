@@ -17,6 +17,11 @@ import useDriveAuthorization from '../useDriveAuthorization';
 import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
 import CalculationHistoryModal from './CalculationHistoryModal';
 import { buildDriveExportFileName } from '../driveExportNames';
+import { getPaidOffEntries, getPaidOffTotal } from '../paidOff';
+
+function paidOffText(row, t) {
+  return getPaidOffEntries(row).map(entry => `${t(entry.category)}: ${formatNumberDisplay(entry.amount)}`).join('\n');
+}
 
 function getDateKey(value) {
   if (!value) return 'No Date';
@@ -99,7 +104,7 @@ function escapeCsv(value) {
 
 function buildTableCsv(calculations) {
   const t = translations.t.bind(translations);
-  const header = ['Name', 'Date', 'Info', 'Comments', 'Cred', 'Fact', 'Fcash'].map(key => t(key));
+  const header = ['Name', 'Date', 'Info', 'Comments', 'Cred', 'Fact', 'Fcash', 'Paid off'].map(key => t(key));
   const rows = calculations.map((calculation) => {
     const norm = normalizeCalculation(calculation);
     return [
@@ -110,6 +115,7 @@ function buildTableCsv(calculations) {
       formatNumberDisplay(norm.cred),
       formatNumberDisplay(norm.fact),
       formatNumberDisplay(norm.fcash),
+      paidOffText(norm, t),
     ];
   });
 
@@ -131,7 +137,8 @@ function downloadCsv(csv, fileName) {
 function buildTableHtml(calculations, filterSummary = '') {
   const t = translations.t.bind(translations);
   const totals = { Cred: 0, Fact: 0, Fcash: 0 };
-  let hasTotals = false;
+  const paidTotal = getPaidOffTotal(calculations);
+  let hasTotals = paidTotal !== 0;
 
   const rows = calculations.map((calculation) => {
     const norm = normalizeCalculation(calculation);
@@ -173,6 +180,7 @@ function buildTableHtml(calculations, filterSummary = '') {
         <td class="cell-num ${credVal ? 'cell-cred' : ''}">${credVal}</td>
         <td class="cell-num ${factVal ? 'cell-fact' : ''}">${factVal}</td>
         <td class="cell-num ${fcashVal ? 'cell-fcash' : ''}">${fcashVal}</td>
+        <td class="cell-num" style="white-space: pre-line; color: #166534">${escapeHtml(paidOffText(norm, t))}</td>
       </tr>
     `;
   }).join('');
@@ -186,6 +194,7 @@ function buildTableHtml(calculations, filterSummary = '') {
         <td class="cell-num total-cell">${formatTotal(totals.Cred)}</td>
         <td class="cell-num total-cell">${formatTotal(totals.Fact)}</td>
         <td class="cell-num total-cell">${formatTotal(totals.Fcash)}</td>
+        <td class="cell-num total-cell">${formatTotal(paidTotal)}</td>
       </tr>
     </tfoot>
   ` : '';
@@ -261,15 +270,10 @@ function buildTableHtml(calculations, filterSummary = '') {
       text-align: center;
       padding: 6px 4px;
     }
-    th::after {
-      content: '';
-      display: block;
-      margin-top: 4px;
-      border-bottom: 1px dashed currentColor;
-    }
     th.col-name     { width: 18%; text-align: left; padding-left: 8px; }
-    th.col-info     { width: 28%; text-align: left; padding-left: 8px; }
-    th.col-comments { width: 24%; text-align: left; padding-left: 8px; background-color: #334155; }
+    th.col-info     { width: 22%; text-align: left; padding-left: 8px; }
+    th.col-comments { width: 18%; text-align: left; padding-left: 8px; background-color: #334155; }
+    th.col-paid    { width: 12%; background-color: #166534; }
     th.col-cred     { width: 10%; background-color: #dc2626; }
     th.col-fact     { width: 10%; background-color: #9333ea; }
     th.col-fcash    { width: 10%; background-color: #2563eb; }
@@ -369,10 +373,11 @@ function buildTableHtml(calculations, filterSummary = '') {
         <th class="col-cred">${escapeHtml(t('Cred'))}</th>
         <th class="col-fact">${escapeHtml(t('Fact'))}</th>
         <th class="col-fcash">${escapeHtml(t('Fcash'))}</th>
+        <th class="col-paid">${escapeHtml(t('Paid off'))}</th>
       </tr>
     </thead>
     <tbody>
-      ${rows || `<tr class="empty-row"><td colspan="6">${escapeHtml(t('No saved calculations yet.'))}</td></tr>`}
+      ${rows || `<tr class="empty-row"><td colspan="7">${escapeHtml(t('No saved calculations yet.'))}</td></tr>`}
     </tbody>
     ${footerRow}
   </table>
@@ -430,13 +435,13 @@ export default function CalculationTableModal({
   useEffect(() => { setActionsVisible(false); }, [visible, keyboardVisible]);
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
-  const [sentRowIds, setSentRowIds] = useState(() => new Set());
   const [saving, setSaving] = useState(false);
   const undoable = latestUndoableChange(calculations || []);
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
   const initialNamesRef = useRef(new Map());
+  const [editingNameId, setEditingNameId] = useState(null);
   const [warningModal, setWarningModal] = useState({
     visible: false,
     type: null,
@@ -486,6 +491,8 @@ export default function CalculationTableModal({
   }, [visible, calculations]);
 
   useEffect(() => {
+    setEditingNameId(null);
+    initialNamesRef.current.clear();
     if (visible) {
       const today = getDateKey(new Date());
       setFromDate(today);
@@ -498,7 +505,7 @@ export default function CalculationTableModal({
   const searchValue = searchText.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
     if (searchValue) {
-      return String(r.title || '').toLowerCase().includes(searchValue);
+      return r.id === editingNameId || String(r.title || '').toLowerCase().includes(searchValue);
     }
 
     const dateKey = getDateKey(r.savedAt || r.createdAt);
@@ -694,7 +701,8 @@ export default function CalculationTableModal({
     });
     return totals;
   }, { cred: 0, fact: 0, fcash: 0 });
-  const hasAnyTotals = infoGrandTotal.hasValue || sectionTotals.cred || sectionTotals.fact || sectionTotals.fcash;
+  const paidOffTotal = getPaidOffTotal(filteredRows);
+  const hasAnyTotals = infoGrandTotal.hasValue || sectionTotals.cred || sectionTotals.fact || sectionTotals.fcash || paidOffTotal;
   const totalLabel = infoGrandTotal.hasValue ? `${t('TOTAL')}: ${pretty(String(Math.round(infoGrandTotal.total * 10000) / 10000))}` : t("TOTAL");
 
   const handleSaveCsv = async () => {
@@ -863,31 +871,27 @@ export default function CalculationTableModal({
             <View style={styles.tableHeaderRow}>
                   <View style={[styles.tableHeaderCell, styles.rowNumberColumn]}>
                     <Text style={styles.tableHeaderText}>#</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.nameColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Name")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.infoColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Info")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.commentsColumn]}>
                     <Text style={styles.tableHeaderText}>{t("Comments")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.credColumn, styles.headerCred]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Debt")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.factColumn, styles.headerFact]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Invoice")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
                   </View>
                   <View style={[styles.tableHeaderCell, styles.fcashColumn, styles.headerFcash]}>
                     <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Cash Invoice")}</Text>
-                    <View style={styles.tableHeaderUnderline} />
+                  </View>
+                  <View style={[styles.tableHeaderCell, styles.paidOffColumn, styles.headerPaidOff]}>
+                    <Text style={styles.tableHeaderText}>{t('Paid off')}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.actionColumn]}>
                     <Text style={styles.tableHeaderText}></Text>
@@ -931,13 +935,17 @@ export default function CalculationTableModal({
                       <View style={[styles.tableCell, styles.nameColumn]}>
                         <View style={styles.shareCellRow}>
                           <TextInput
-                            style={[styles.cellInput, styles.nameInput, sentRowIds.has(calc.id) && styles.sentRowTitle]}
+                            style={[styles.cellInput, styles.nameInput, calc.sharedAt && styles.sentRowTitle]}
                             value={calc.title}
-                            onFocus={() => initialNamesRef.current.set(calc.id, calc.title || '')}
+                            onFocus={() => {
+                              initialNamesRef.current.set(calc.id, calc.title || '');
+                              setEditingNameId(calc.id);
+                            }}
                             onChangeText={(text) => handleCellChange(index, 'title', text)}
                             onBlur={() => {
                               const initialName = initialNamesRef.current.get(calc.id);
                               initialNamesRef.current.delete(calc.id);
+                              setEditingNameId((current) => current === calc.id ? null : current);
                               if (initialName !== undefined && initialName !== (calc.title || '')) {
                                 void commitChange({ type: 'edit', id: calc.id, changes: { title: calc.title } });
                               }
@@ -950,7 +958,7 @@ export default function CalculationTableModal({
                           />
                           <Pressable
                             onPress={() => {
-                              setSentRowIds((previous) => new Set(previous).add(calc.id));
+                              void commitChange({ type: 'markShared', id: calc.id });
                               void shareRowSummary(calc);
                             }}
                             style={({ pressed }) => [styles.shareRowButton, pressed && styles.pressed]}
@@ -1038,6 +1046,9 @@ export default function CalculationTableModal({
                       </View>
 
                       {/* Delete action */}
+                      <View style={[styles.tableCell, styles.paidOffColumn]}>
+                        <Text style={styles.paidOffText}>{paidOffText(calc, t)}</Text>
+                      </View>
                       <View style={[styles.tableCell, styles.actionColumn]}>
                         <Pressable onPress={() => promptDeleteRow(index)} style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]} hitSlop={8}>
                           <Text style={styles.deleteButtonText}>✕</Text>
@@ -1072,6 +1083,9 @@ export default function CalculationTableModal({
                     </View>
                     <View style={[styles.tableCell, styles.fcashColumn, styles.totalSummaryCell]}>
                       <Text style={styles.totalSummaryValue}>{sectionTotals.fcash ? pretty(String(Math.round(sectionTotals.fcash * 10000) / 10000)) : '-'}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.paidOffColumn, styles.totalSummaryCell]}>
+                      <Text style={[styles.totalSummaryValue, styles.paidOffText]}>{paidOffTotal ? formatNumberDisplay(String(Math.round(paidOffTotal * 10000) / 10000)) : '-'}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.actionColumn, styles.totalSummaryCell]} />
                   </View>

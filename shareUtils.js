@@ -1,6 +1,7 @@
 import { Share } from 'react-native';
 import { formatSavedDate } from './calculatorUtils';
 import i18n from './i18n';
+import { getPaidOffEntries } from './paidOff';
 
 export async function shareRowSummary(row) {
   if (!row) return;
@@ -13,6 +14,7 @@ export async function shareRowSummary(row) {
     row.cred ? `${t('Cred')}: ${row.cred}` : '',
     row.fact ? `${t('Fact')}: ${row.fact}` : '',
     row.fcash ? `${t('Fcash')}: ${row.fcash}` : '',
+    ...getPaidOffEntries(row).map(entry => `${t('Paid off')} (${t(entry.category)}): ${entry.amount}`),
   ].filter(Boolean);
 
   if (!lines.length) return;

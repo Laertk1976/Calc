@@ -172,5 +172,11 @@
   "Paid off": "Погашено",
   "Undo payoff": "Отменить погашение",
   "Delete": "Удалить",
-  "All names": "Все имена"
+  "All names": "Все имена",
+  "Hold to open invoices": "Удерживайте, чтобы открыть счета",
+  "Invoices": "Счета",
+  "Enter a name and a valid invoice amount.": "Введите имя и корректную сумму счёта.",
+  "Enter a positive invoice amount to pay off.": "Введите положительную сумму счёта для погашения.",
+  "No invoices in these months.": "Нет счетов за эти месяцы.",
+  "Sound": "Звук"
 }

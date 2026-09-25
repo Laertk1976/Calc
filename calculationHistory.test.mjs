@@ -10,6 +10,18 @@ const original = { createdAt: '2026-09-16T12:00:00.000Z', title: 'Customer', exp
 const id = original.createdAt;
 const time = '2026-09-16T13:00:00.000Z';
 
+test('shared marker survives reload, edits and undo without adding history', () => {
+  let rows = apply([original], { type: 'markShared', id }, time);
+  rows = JSON.parse(JSON.stringify(rows)).map(normalizeCalculation);
+  assert.equal(rows[0].sharedAt, time);
+  assert.equal(rows[0].history.length, 0);
+  rows = apply(rows, { type: 'edit', id, changes: { title: 'Renamed' } });
+  rows = apply(rows, { type: 'undo', id, eventId: rows[0].history.at(-1).id });
+  assert.equal(rows[0].sharedAt, time);
+  assert.equal(rows[0].title, original.title);
+  assert.deepEqual(apply(rows, { type: 'markShared', id }), rows);
+});
+
 test('list results follow table amount edits, zero, clearing, and undo', () => {
   for (const type of ['Cred', 'Fact', 'Fcash']) {
     const field = type.toLowerCase();

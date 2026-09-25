@@ -6,7 +6,7 @@
   "Language": "Լեզու",
   "Sign out": "Դուրս գալ",
   "Sign in": "Մուտք գործել",
-  "Add": "Ավելաց- նել",
+  "Add": "Ավելացնել",
   "List": "Ցանկ",
   "Debt": "Պարտք",
   "Invoice": "Հաշիվ-ապրանքագիր",
@@ -172,5 +172,11 @@
   "Paid off": "Մարված է",
   "Undo payoff": "Չեղարկել մարումը",
   "Delete": "Ջնջել",
-  "All names": "Բոլոր անունները"
+  "All names": "Բոլոր անունները",
+  "Hold to open invoices": "Սեղմած պահեք՝ հաշիվները բացելու համար",
+  "Invoices": "Հաշիվներ",
+  "Enter a name and a valid invoice amount.": "Մուտքագրեք անուն և հաշվի վավեր գումար։",
+  "Enter a positive invoice amount to pay off.": "Մուտքագրեք հաշվի դրական գումար՝ մարելու համար։",
+  "No invoices in these months.": "Այս ամիսներին հաշիվներ չկան։",
+  "Sound": "Ձայն"
 }

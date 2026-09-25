@@ -172,5 +172,11 @@
   "Paid off": "完済済み",
   "Undo payoff": "完済を取り消す",
   "Delete": "削除",
-  "All names": "すべての名前"
+  "All names": "すべての名前",
+  "Hold to open invoices": "長押しで請求書を開く",
+  "Invoices": "請求書",
+  "Enter a name and a valid invoice amount.": "名前と有効な請求額を入力してください。",
+  "Enter a positive invoice amount to pay off.": "支払い済みにするには正の請求額を入力してください。",
+  "No invoices in these months.": "この期間の請求書はありません。",
+  "Sound": "サウンド"
 }

@@ -12,7 +12,7 @@ function getUtilityKeyStyle(key) {
   return styles.utilityKeyGreen;
 }
 
-export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts }) {
+export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts, onInvoices }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const renderButton = (key, grouped = false) => {
@@ -20,12 +20,13 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
     return (
     <Pressable
       key={key}
+      android_disableSound
       onPressIn={onButtonPress}
       onPress={() => key === 'List' ? onList() : onSaveType(key)}
-      onLongPress={key === 'Cred' ? onDebts : undefined}
+      onLongPress={key === 'Cred' ? onDebts : key === 'Fact' ? onInvoices : undefined}
       delayLongPress={600}
       accessibilityRole="button"
-      accessibilityHint={key === 'Cred' ? t('Hold to open debts') : undefined}
+      accessibilityHint={key === 'Cred' ? t('Hold to open debts') : key === 'Fact' ? t('Hold to open invoices') : undefined}
       style={({ pressed }) => [styles.utilityKey, grouped && styles.utilityPrimaryKey, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, pressed && styles.pressed]}
     >
       <ButtonLabel

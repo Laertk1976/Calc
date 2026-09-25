@@ -26,7 +26,7 @@ function dateLabel(value) {
   return value.split('-').reverse().join('/');
 }
 
-export default function CalculationListModal({ visible, calculations, onClose, inline = false, swipeHandlers }) {
+export default function CalculationListModal({ visible, calculations, onClose, inline = false }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [searchVisible, setSearchVisible] = useState(false);
@@ -61,8 +61,7 @@ export default function CalculationListModal({ visible, calculations, onClose, i
   };
   const panel = (
         <View style={[styles.listPanel, inline && { height: '100%', maxHeight: '100%', maxWidth: undefined, flex: 1, padding: 12 }]}>
-          <View {...swipeHandlers} style={inline && { touchAction: 'none' }}>
-            {inline && <View style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b', marginBottom: 12 }} />}
+          <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
                 {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${dayCalculations.length}` : dayCalculations.length}

@@ -13,6 +13,21 @@ const rows = [
   { id: 'd', cred: '40', createdAt: '2026-02-01T12:00:00', deletedAt: '2026-03-01' },
   { id: 'e', fact: '50', createdAt: '2026-02-01T12:00:00' },
 ];
+test('invoice list and payoff keep debt amounts and payoff records separate', () => {
+  const entries = [{ id: 'invoice', title: 'Client', fact: '80', cred: '20', createdAt: '2026-01-01' }, ...rows];
+  assert.deepEqual(debtNames(entries, '', 'fact'), ['Client']);
+  assert.deepEqual(debtRows(entries, '2026-01', '2026-01', null, 'fact').map(row => row.id), ['invoice']);
+  const at = '2026-03-01T12:00:00Z';
+  const paid = applyCalculationChange(entries, { type: 'edit', id: 'invoice', amountField: 'fact', payOff: true, changes: {} }, at);
+  assert.equal(paid[0].fact, '0');
+  assert.equal(paid[0].cred, '20');
+  assert.equal(paid[0].invoicePaidOffAmount, '80');
+  assert.equal(paid[0].paidOffAt, undefined);
+  const restored = applyCalculationChange(paid, { type: 'edit', id: 'invoice', amountField: 'fact', undoPayOff: true, paidOffAt: at, changes: {} });
+  assert.equal(restored[0].fact, '80');
+  assert.equal(restored[0].cred, '20');
+  assert.equal(restored[0].invoicePaidOffAt, '');
+});
 test('name selection includes unpaid and paid debts across months but excludes partial matches', () => {
   const entries = [
     { id: 'a', title: 'Anna', cred: '20', createdAt: '2026-01-01T12:00:00' },

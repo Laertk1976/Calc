@@ -172,5 +172,11 @@
   "Paid off": "Paid off",
   "Undo payoff": "Undo payoff",
   "Delete": "Delete",
-  "All names": "All names"
+  "All names": "All names",
+  "Hold to open invoices": "Hold to open invoices",
+  "Invoices": "Invoices",
+  "Enter a name and a valid invoice amount.": "Enter a name and a valid invoice amount.",
+  "Enter a positive invoice amount to pay off.": "Enter a positive invoice amount to pay off.",
+  "No invoices in these months.": "No invoices in these months.",
+  "Sound": "Sound"
 }

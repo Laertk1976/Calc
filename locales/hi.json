@@ -172,5 +172,11 @@
   "Paid off": "चुकाया गया",
   "Undo payoff": "भुगतान पूर्ववत करें",
   "Delete": "हटाएँ",
-  "All names": "सभी नाम"
+  "All names": "सभी नाम",
+  "Hold to open invoices": "चालान खोलने के लिए दबाकर रखें",
+  "Invoices": "चालान",
+  "Enter a name and a valid invoice amount.": "नाम और मान्य चालान राशि दर्ज करें।",
+  "Enter a positive invoice amount to pay off.": "भुगतान करने के लिए धनात्मक चालान राशि दर्ज करें।",
+  "No invoices in these months.": "इन महीनों में कोई चालान नहीं है।",
+  "Sound": "ध्वनि"
 }

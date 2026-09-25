@@ -2,6 +2,7 @@ import { evaluateExpression, pretty } from './calculatorUtils';
 
 export const HISTORY_FIELDS = {
   title: 'Name', info: 'Info', comment: 'Comment', cred: 'Cred', fact: 'Fact', fcash: 'Fcash',
+  invoicePaidOffAt: 'Paid off at', invoicePaidOffAmount: 'Paid off amount',
   paidOffAt: 'Paid off at', paidOffAmount: 'Paid off amount',
 };
 const snapshotFields = [...Object.keys(HISTORY_FIELDS), 'expression', 'value', 'type'];
@@ -56,6 +57,10 @@ export function applyCalculationChange(calculations, change, at = new Date().toI
   if (change.type === 'add') return [normalizeCalculation(change.row), ...rows];
   const row = rows.find((item) => item.id === change.id);
   if (!row) throw new Error('This calculation no longer exists. Reopen the table and try again.');
+  if (change.type === 'markShared') {
+    if (row.sharedAt || row.deletedAt) return rows;
+    return rows.map(item => item.id === row.id ? { ...item, sharedAt: at } : item);
+  }
   let next = { ...row };
   if (change.type === 'edit') {
     if (row.deletedAt) throw new Error('Restore this calculation before editing it.');
@@ -64,22 +69,27 @@ export function applyCalculationChange(calculations, change, at = new Date().toI
       next[field] = value;
       if (field === 'info') next.expression = value;
     }
-    if (change.undoPayOff) {
-      if (!row.paidOffAt || row.paidOffAt !== change.paidOffAt || Number(row.cred) !== 0) {
-        throw new Error('This payoff has changed. Reopen the debt list and try again.');
+    for (const amountField of ['cred', 'fact']) {
+      const paidAt = amountField === 'fact' ? 'invoicePaidOffAt' : 'paidOffAt';
+      const paidAmount = amountField === 'fact' ? 'invoicePaidOffAmount' : 'paidOffAmount';
+      const payoffTarget = (change.amountField || 'cred') === amountField;
+      if (change.undoPayOff && payoffTarget) {
+        if (!row[paidAt] || row[paidAt] !== change.paidOffAt || Number(row[amountField]) !== 0) {
+          throw new Error('This payoff has changed. Reopen the debt list and try again.');
+        }
+        next[amountField] = row[paidAmount];
+        next[paidAt] = '';
+        next[paidAmount] = '';
+      } else if (change.payOff && payoffTarget) {
+        const amount = Number(String(next[amountField]).replace(/,/g, ''));
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter a positive debt amount to pay off.');
+        next[paidAt] = at;
+        next[paidAmount] = String(amount);
+        next[amountField] = '0';
+      } else if (amountField in change.changes && Number(String(next[amountField]).replace(/,/g, '')) !== 0) {
+        next[paidAt] = '';
+        next[paidAmount] = '';
       }
-      next.cred = row.paidOffAmount;
-      next.paidOffAt = '';
-      next.paidOffAmount = '';
-    } else if (change.payOff) {
-      const amount = Number(String(next.cred).replace(/,/g, ''));
-      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter a positive debt amount to pay off.');
-      next.paidOffAt = at;
-      next.paidOffAmount = String(amount);
-      next.cred = '0';
-    } else if ('cred' in change.changes && Number(String(next.cred).replace(/,/g, '')) !== 0) {
-      next.paidOffAt = '';
-      next.paidOffAmount = '';
     }
     if (JSON.stringify(snapshot(row)) === JSON.stringify(snapshot(next))) return rows;
   } else if (change.type === 'delete') {
