@@ -1,14 +1,15 @@
+import PanelModal from './PanelModal';
 import { useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import SyncStatus from './SyncStatus';
 import { debtNames, debtRows, monthDistance } from '../debtList';
 import { pretty } from '../calculatorUtils';
 import { formatSavedDate } from '../calculatorUtils';
-import MonthRangeCalendar from './MonthRangeCalendar';
+import DateRangeCalendar from './DateRangeCalendar';
 
-export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred' }) {
+export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
   const { t, i18n } = useTranslation();
   const invoice = amountField === 'fact';
   const paidAt = invoice ? 'invoicePaidOffAt' : 'paidOffAt';
@@ -22,14 +23,14 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [searchVisible, setSearchVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedName, setSelectedName] = useState(null);
-  const rows = debtRows(calculations, from, to, selectedName, amountField);
+  const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField);
   const names = debtNames(calculations, search, amountField);
   const chooseName = name => {
     setSelectedName(name); setFrom(''); setTo(''); setPicker(false);
     setSearchVisible(false); setSearch(''); Keyboard.dismiss();
   };
   const total = rows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0);
-  const monthLabel = key => key ? new Date(Number(key.slice(0, 4)), Number(key.slice(5)) - 1, 1).toLocaleDateString(i18n.resolvedLanguage, { month: 'long', year: 'numeric' }) : t('All months');
+  const rangeLabel = !from && !to ? t('All dates') : from === to ? from : `${from} - ${to}`;
   const button = (label, action, disabled = false, inRow = false) => <Pressable accessibilityRole="button" disabled={disabled} onPress={action} style={[s.button, inRow && s.rowButton, disabled && { opacity: 0.5 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.buttonText}>{label}</Text></Pressable>;
   const payoffDetails = row => row[paidAt] ? <Text style={s.paid}>{t('Paid off amount')}: {pretty(String(row[paidAmount]))}{'\n'}{t('Paid off at')}: {new Date(row[paidAt]).toLocaleString(i18n.resolvedLanguage)}</Text> : null;
   const deleteDebt = async row => {
@@ -64,9 +65,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
   };
-  return <Modal transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose(); } }}>
-    <KeyboardModalFrame style={s.backdrop}>
-      <View style={s.panel}>
+  return <PanelModal inline={inline} transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose(); } }}>
+    <KeyboardModalFrame style={[s.backdrop, inline && { padding: 0, backgroundColor: 'transparent' }]}>
+      <View style={[s.panel, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={s.heading}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
           {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(current => !current); setSearch(''); }} style={[s.button, { width: 44 }]}>
@@ -74,7 +75,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             <View style={{ position: 'absolute', width: 8, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 8, bottom: 10 }} />
           </Pressable>}
         </View>
-        <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />
+        {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
         {draft ? <ScrollView keyboardShouldPersistTaps="handled">
           {payoffDetails(draft)}
           {['title', amountField, 'comment'].map(field => <View key={field}>
@@ -100,15 +101,17 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             {button(t('All names'), () => chooseName(null), false, true)}
           </View>}
           <View style={s.controls}>
-            {button(t('Month calendar'), () => setPicker(current => !current), false, true)}
-            {button(t('All months'), () => { setFrom(''); setTo(''); setPicker(false); }, false, true)}
+            {button(t('Choose date range'), () => setPicker(current => !current), false, true)}
+            {button(t('All dates'), () => { setFrom(''); setTo(''); setPicker(false); }, false, true)}
           </View>
-          <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{!from ? t('All months') : from === to ? monthLabel(from) : `${monthLabel(from)} – ${monthLabel(to)}`}</Text>
+          <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{rangeLabel}</Text>
           <Text style={[s.heading, s.detailHeading]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
           <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            {picker && <MonthRangeCalendar from={from} to={to} onChange={(start, end) => { setFrom(start); setTo(end); }} />}
-            {!rows.length && <Text style={s.text}>{t(invoice ? 'No invoices in these months.' : 'No debts in these months.')}</Text>}
+            {picker && <View>
+              <DateRangeCalendar fromDate={from} toDate={to} onChange={(start, end) => { setFrom(start); setTo(end); }} onApply={() => setPicker(false)} />
+            </View>}
+            {!rows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : 'No debts in this date range.')}</Text>}
             {rows.map(row => {
               const distance = monthDistance(row.savedAt || row.createdAt);
               return <View key={row.id} style={s.row}>
@@ -131,11 +134,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               </View>;
             })}
           </ScrollView>
-          {button(t('Close'), onClose, saving)}
+          {!inline && button(t('Close'), onClose, saving)}
         </>}
       </View>
     </KeyboardModalFrame>
-  </Modal>;
+  </PanelModal>;
 }
 
 const s = StyleSheet.create({

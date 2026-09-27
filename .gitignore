@@ -6,3 +6,5 @@ npm-debug.*
 .history-browser-test/
 .history-ui-check.png
 .responsive-browser-test/
+
+.desktop-browser-test/

@@ -100,3 +100,20 @@ test('direct payoff undo retains later edits and rejects stale requests', () => 
   assert.equal(debtRows(restored).length, 3);
   assert.throws(() => applyCalculationChange(restored, request));
 });
+
+test('day ranges include full boundary days for debts and invoices across years', () => {
+  const entries = [
+    { id: 'before', title: 'Client', cred: '1', fact: '2', savedAt: '2025-12-30T23:59:59' },
+    { id: 'start', title: 'Client', cred: '3', fact: '4', savedAt: '2025-12-31T00:00:00' },
+    { id: 'end', title: 'Client', cred: '5', fact: '6', createdAt: '2026-01-01T23:59:59' },
+    { id: 'after', title: 'Client', cred: '7', fact: '8', savedAt: '2026-01-02T00:00:00' },
+    { id: 'invalid', title: 'Client', cred: '9', fact: '10', savedAt: 'invalid' },
+  ];
+  for (const field of ['cred', 'fact']) {
+    const ids = (from, to) => debtRows(entries, from, to, 'Client', field).map(row => row.id).sort();
+    assert.deepEqual(ids('2025-12-31', '2026-01-01'), ['end', 'start']);
+    assert.deepEqual(ids('2026-01-01', '2026-01-01'), ['end']);
+    assert.equal(ids('', '').length, 5);
+    assert.deepEqual(ids('2026-01-03', '2026-01-04'), []);
+  }
+});

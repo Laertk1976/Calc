@@ -1,4 +1,5 @@
 import ButtonLabel from './ButtonLabel';
+import DateRangeCalendar from './DateRangeCalendar';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -26,32 +27,34 @@ function dateLabel(value) {
   return value.split('-').reverse().join('/');
 }
 
-export default function CalculationListModal({ visible, calculations, onClose, inline = false }) {
-  const { t, i18n } = useTranslation();
+export default function CalculationListModal({ visible, calculations, onClose, inline = false, showClose = true }) {
+  const { t } = useTranslation();
   const styles = useCalculatorStyles();
   const [searchVisible, setSearchVisible] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
+  const [fromDate, setFromDate] = useState(() => dateLabel(dateKey(new Date())));
+  const [toDate, setToDate] = useState(() => dateLabel(dateKey(new Date())));
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   useEffect(() => {
     setDatePickerVisible(false);
-    if (visible) setSelectedDate(dateKey(new Date()));
+    if (visible) {
+      const today = dateLabel(dateKey(new Date()));
+      setFromDate(today);
+      setToDate(today);
+    }
     if (!visible) {
       setSearch('');
       setSearchVisible(false);
     }
   }, [visible]);
-  const year = calendarMonth.getFullYear();
-  const month = calendarMonth.getMonth();
-  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const calendarDays = Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => {
-    const day = index - firstWeekday + 1;
-    return day > 0 && day <= daysInMonth ? day : null;
+  const rangeLabel = fromDate === toDate ? fromDate : `${fromDate} - ${toDate}`;
+  const firstDateKey = fromDate.split('/').reverse().join('-');
+  const lastDateKey = toDate.split('/').reverse().join('-');
+  const rangeCalculations = calculations.filter((item) => {
+    const key = dateKey(item.savedAt || item.createdAt);
+    return key && key >= firstDateKey && key <= lastDateKey;
   });
-  const dayCalculations = calculations.filter((item) => dateKey(item.savedAt || item.createdAt) === selectedDate);
-  const filteredCalculations = dayCalculations.filter((item) =>
+  const filteredCalculations = rangeCalculations.filter((item) =>
     [item.title, item.expression, item.info, item.comment].some((value) =>
       String(value || '').toLowerCase().includes(search.trim().toLowerCase())));
   const closeList = () => {
@@ -60,48 +63,31 @@ export default function CalculationListModal({ visible, calculations, onClose, i
     onClose();
   };
   const panel = (
-        <View style={[styles.listPanel, inline && { height: '100%', maxHeight: '100%', maxWidth: undefined, flex: 1, padding: 12 }]}>
+        <View style={[styles.listPanel, inline && { height: '100%', maxHeight: '100%', maxWidth: showClose ? undefined : '100%', flex: 1, padding: 12 }]}>
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
-                {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${dayCalculations.length}` : dayCalculations.length}
+                {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${rangeCalculations.length}` : rangeCalculations.length}
               </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date')}, ${dateLabel(selectedDate)}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => {
-            const [selectedYear, selectedMonth] = selectedDate.split('-').map(Number);
-            setCalendarMonth(new Date(selectedYear, selectedMonth - 1, 1));
-            setDatePickerVisible(true);
-          }} hitSlop={4} style={styles.searchIconButton}>
-            <Text numberOfLines={1} style={[styles.quickActionText, { fontSize: 14, lineHeight: 18, includeFontPadding: false }]}>{Number(selectedDate.slice(-2))}</Text>
-          </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
                 <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
                 <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
               </Pressable>
             </View>
           </View>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => setDatePickerVisible(true)} style={[styles.rangePill, { marginBottom: 8 }]}>
+            <Text style={styles.rangePillText}>{rangeLabel}</Text>
+          </Pressable>
           <Modal transparent animationType="fade" visible={visible && datePickerVisible} onRequestClose={() => setDatePickerVisible(false)}>
             <KeyboardModalFrame style={styles.modalBackdrop}>
               <Pressable accessibilityLabel="Dismiss calendar" accessibilityRole="button" onPress={() => setDatePickerVisible(false)} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} />
-              <View style={[styles.dropdownPanel, { width: '100%', maxWidth: 320 }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel={t("Previous month")} onPress={() => setCalendarMonth(new Date(year, month - 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>‹</Text></Pressable>
-                  <Text style={styles.quickActionText}>{calendarMonth.toLocaleDateString(i18n.resolvedLanguage, { month: 'long', year: 'numeric' })}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={t("Next month")} onPress={() => setCalendarMonth(new Date(year, month + 1, 1))} style={{ padding: 12 }}><Text style={styles.quickActionText}>›</Text></Pressable>
-                </View>
-                <View style={{ flexDirection: 'row' }}>
-                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((day) => <Text key={day} style={[styles.quickActionText, { width: '14.285714%', textAlign: 'center', fontSize: 11, marginBottom: 8 }]}>{typeof day === 'string' ? t(day) : day}</Text>)}
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                  {calendarDays.map((day, index) => {
-                    const date = day ? dateKey(new Date(year, month, day)) : '';
-                    return day ? (
-                      <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${t('Date')}: ${dateLabel(date)}`} accessibilityState={{ selected: selectedDate === date }} onPress={() => { setSelectedDate(date); setDatePickerVisible(false); }} style={[{ width: '14.285714%', height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 }, selectedDate === date && { backgroundColor: '#2563eb' }]}>
-                        <Text style={styles.quickActionText}>{typeof day === 'string' ? t(day) : day}</Text>
-                      </Pressable>
-                    ) : <View key={index} style={{ width: '14.285714%', height: 40 }} />;
-                  })}
-                </View>
-                <Pressable accessibilityRole="button" onPress={() => { setSelectedDate(dateKey(new Date())); setDatePickerVisible(false); }} style={[styles.quickActionButton, { marginTop: 12 }]}><Text style={styles.quickActionText}>{t("Today")}</Text></Pressable>
+              <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
+                  <Text style={styles.dropdownTitle}>{t("Choose date range")}</Text>
+                  {datePickerVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => setDatePickerVisible(false)} />}
+                  <Text style={styles.listSubtitle}>{rangeLabel}</Text>
+                  <Text style={styles.listSubtitle}>{t('Rows in range')}: {filteredCalculations.length}</Text>
+                </ScrollView>
               </View>
             </KeyboardModalFrame>
           </Modal>
@@ -123,11 +109,11 @@ export default function CalculationListModal({ visible, calculations, onClose, i
                   <Text style={styles.savedType}>{t(calculation.type || 'Add')}</Text>
                 </View>
               </View>
-            )) : <Text style={styles.emptyList}>{search.trim() ? t("No matching calculations for this date.") : t("No saved calculations for this date.")}</Text>}
+            )) : <Text style={styles.emptyList}>{search.trim() ? t("No matching calculations.") : t("No saved calculations in this date range.")}</Text>}
           </ScrollView>
-          <Pressable onPress={closeList} hitSlop={{ top: 4, bottom: 4 }} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, { minHeight: 36, paddingVertical: 6 }, pressed && styles.pressed]}>
+          {showClose && <Pressable onPress={closeList} hitSlop={{ top: 4, bottom: 4 }} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, { minHeight: 36, paddingVertical: 6 }, pressed && styles.pressed]}>
             <ButtonLabel numberOfLines={1} style={[styles.closeButtonText, { flexShrink: 0 }]}>{t("Close")}</ButtonLabel>
-          </Pressable>
+          </Pressable>}
         </View>
   );
   if (inline) return panel;

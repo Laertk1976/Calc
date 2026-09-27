@@ -1,4 +1,12 @@
 {
+  "Table": "Таблица",
+  "Calculator": "Калькулятор",
+  "Expand table": "Развернуть таблицу",
+  "Restore split view": "Вернуть два столбца",
+  "All dates": "Все даты",
+  "No debts in this date range.": "Нет долгов в этом диапазоне дат.",
+  "No invoices in this date range.": "Нет счетов в этом диапазоне дат.",
+  "No matching calculations.": "Нет подходящих расчётов.",
   "Edit": "Редактировать",
   "Table actions": "Действия с таблицей",
   "Close menu": "Закрыть меню",

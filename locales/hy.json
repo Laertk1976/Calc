@@ -1,4 +1,12 @@
 {
+  "Table": "Աղյուսակ",
+  "Calculator": "Հաշվիչ",
+  "Expand table": "Ընդլայնել աղյուսակը",
+  "Restore split view": "Վերականգնել բաժանված տեսքը",
+  "All dates": "Բոլոր ամսաթվերը",
+  "No debts in this date range.": "Այս ժամանակահատվածում պարտքեր չկան։",
+  "No invoices in this date range.": "Այս ժամանակահատվածում հաշիվներ չկան։",
+  "No matching calculations.": "Համապատասխան հաշվարկներ չկան։",
   "Edit": "Խմբագրել",
   "Table actions": "Աղյուսակի գործողություններ",
   "Close menu": "Փակել ընտրացանկը",

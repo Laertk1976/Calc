@@ -1,3 +1,4 @@
+import PanelModal from './PanelModal';
 import ButtonLabel from './ButtonLabel';
 import TableActionsMenu from './TableActionsMenu';
 import translations from '../i18n';
@@ -427,6 +428,7 @@ export default function CalculationTableModal({
   calculations,
   onClose,
   onUpdateCalculations,
+  inline = false,
 }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
@@ -504,8 +506,8 @@ export default function CalculationTableModal({
 
   const searchValue = searchText.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
-    if (searchValue) {
-      return r.id === editingNameId || String(r.title || '').toLowerCase().includes(searchValue);
+    if (searchValue && r.id !== editingNameId && !String(r.title || '').toLowerCase().includes(searchValue)) {
+      return false;
     }
 
     const dateKey = getDateKey(r.savedAt || r.createdAt);
@@ -806,9 +808,9 @@ export default function CalculationTableModal({
   };
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
-      <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop]} onKeyboardVisibilityChange={setKeyboardVisible}>
-        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }]}>
+    <PanelModal inline={inline} animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
+      <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
+        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
               <ButtonLabel style={styles.authButtonText}>{t('History')}</ButtonLabel>
@@ -820,7 +822,7 @@ export default function CalculationTableModal({
             ) : null}
             {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           </View>
-          <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />
+          {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>
@@ -1102,9 +1104,9 @@ export default function CalculationTableModal({
               { id: 'drivePdf', label: driveUploadBusy ? t('Connecting...') : t('Drive PDF'), onPress: () => handleDriveUpload('pdf'), disabled: driveUploadBusy },
               { id: 'driveCsv', label: driveUploadBusy ? t('Connecting...') : t('Drive CSV'), onPress: () => handleDriveUpload('csv'), disabled: driveUploadBusy },
             ]} />
-            <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>
+            {!inline && <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, styles.listCloseButton, styles.tableCloseButton, pressed && styles.pressed]}>
               <ButtonLabel style={styles.closeButtonText}>{t("Close")}</ButtonLabel>
-            </Pressable>
+            </Pressable>}
           </View>
         </View>
       </KeyboardModalFrame>
@@ -1242,15 +1244,9 @@ export default function CalculationTableModal({
           <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
               <Text style={styles.dropdownTitle}>{t("Choose date range")}</Text>
-              {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} />}
+              {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => setDateDropdownVisible(false)} />}
               <Text style={styles.listSubtitle}>{getFilterLabel()}</Text>
               <Text style={styles.listSubtitle}>{t('Rows in range')}: {filteredRows.length}</Text>
-              <Pressable
-                onPress={() => setDateDropdownVisible(false)}
-                style={({ pressed }) => [styles.dropdownCloseButton, pressed && styles.pressed]}
-              >
-                <ButtonLabel style={styles.dropdownCloseButtonText}>{t("Apply dates")}</ButtonLabel>
-              </Pressable>
             </ScrollView>
           </View>
         </KeyboardModalFrame>
@@ -1262,6 +1258,6 @@ export default function CalculationTableModal({
         onChange={commitChange}
         onClose={() => setHistoryVisible(false)}
       />
-    </Modal>
+    </PanelModal>
   );
 }

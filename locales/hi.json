@@ -1,4 +1,12 @@
 {
+  "Table": "तालिका",
+  "Calculator": "कैलकुलेटर",
+  "Expand table": "तालिका फैलाएँ",
+  "Restore split view": "विभाजित दृश्य बहाल करें",
+  "All dates": "सभी तारीखें",
+  "No debts in this date range.": "इस तारीख सीमा में कोई कर्ज़ नहीं है।",
+  "No invoices in this date range.": "इस तारीख सीमा में कोई चालान नहीं है।",
+  "No matching calculations.": "कोई मेल खाने वाली गणना नहीं है।",
   "Edit": "संपादित करें",
   "Table actions": "तालिका की कार्रवाइयाँ",
   "Close menu": "मेन्यू बंद करें",

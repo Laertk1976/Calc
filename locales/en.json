@@ -1,4 +1,12 @@
 {
+  "Table": "Table",
+  "Calculator": "Calculator",
+  "Expand table": "Expand table",
+  "Restore split view": "Restore split view",
+  "All dates": "All dates",
+  "No debts in this date range.": "No debts in this date range.",
+  "No invoices in this date range.": "No invoices in this date range.",
+  "No matching calculations.": "No matching calculations.",
   "Edit": "Edit",
   "Table actions": "Table actions",
   "Close menu": "Close menu",

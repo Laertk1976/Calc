@@ -1,3 +1,4 @@
+import TapSoundProvider from './components/TapSoundProvider';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -288,6 +289,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <TapSoundProvider>
         <CalculatorView
           display={visibleDisplay}
           expression={expression}
@@ -314,6 +316,7 @@ export default function App() {
           onSignOut={() => auth && signOut(auth)}
         />
         <AuthModal visible={authVisible} user={user} onClose={() => setAuthVisible(false)} />
+      </TapSoundProvider>
     </SafeAreaProvider>
   );
 }

@@ -29,6 +29,8 @@ export function debtRows(calculations, from = '', to = '', name = null, amountFi
     .filter(row => name === null || debtNameKey(row.title) === debtNameKey(name))
     .filter(row => {
       const month = monthKey(row.savedAt || row.createdAt);
-      return (!from && !to) || (month && (!from || month >= from) && (!to || month <= to));
+      const date = new Date(row.savedAt || row.createdAt);
+      const day = month ? `${month}-${String(date.getDate()).padStart(2, '0')}` : '';
+      return (!from && !to) || (day && (!from || day.slice(0, from.length) >= from) && (!to || day.slice(0, to.length) <= to));
     }).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
 }

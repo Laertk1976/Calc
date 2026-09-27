@@ -1,9 +1,11 @@
+import { useTapSound } from './TapSoundProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 
 // Measure the modal window itself: Android may already resize it for the keyboard.
 // Only remove the remaining overlap, so the keyboard space is never counted twice.
 export default function KeyboardModalFrame({ children, style, onKeyboardVisibilityChange }) {
+  const { captureTap } = useTapSound();
   const frame = useRef(null);
   const keyboardTop = useRef(Keyboard.metrics?.()?.screenY ?? null);
   const [overlap, setOverlap] = useState(0);
@@ -58,7 +60,7 @@ export default function KeyboardModalFrame({ children, style, onKeyboardVisibili
 
   const backgroundColor = StyleSheet.flatten(style)?.backgroundColor;
   return (
-    <View ref={frame} collapsable={false} onLayout={measure} style={{ flex: 1, backgroundColor }}>
+    <View onStartShouldSetResponderCapture={captureTap} ref={frame} collapsable={false} onLayout={measure} style={{ flex: 1, backgroundColor }}>
       <View style={[style, { flex: 1, minHeight: 0, backgroundColor: undefined, marginBottom: overlap },
         keyboardVisible && { justifyContent: 'flex-end', paddingBottom: 0 }]}>
         {children}

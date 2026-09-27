@@ -1,0 +1,89 @@
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
+import SyncStatus from './SyncStatus';
+import ButtonLabel from './ButtonLabel';
+import { useTapSound } from './TapSoundProvider';
+import CalculationListModal from './CalculationListModal';
+import CalculationTableModal from './CalculationTableModal';
+import DebtListModal from './DebtListModal';
+
+const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
+
+export default function DesktopWorkspace({ tab, onTabChange, calculator, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+  const { t } = useTranslation();
+  const { soundEnabled, toggleSound } = useTapSound();
+  const [expanded, setExpanded] = useState(false);
+  const [visited, setVisited] = useState({ list: true });
+  useEffect(() => { setVisited(current => current[tab] ? current : { ...current, [tab]: true }); }, [tab]);
+  const selectTab = next => {
+    setVisited(current => ({ ...current, [next]: true }));
+    onTabChange(next);
+  };
+  const fullWidth = expanded && tab === 'table';
+  return <View testID="desktop-workspace" style={s.screen}>
+    <View style={s.toolbar}>
+      <Text style={s.brand}>CALC</Text>
+      <View style={s.toolbarSpacer} />
+      <SyncStatus compact syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      <View style={s.sound}>
+        <Text style={s.toolbarText}>{t('Sound')}</Text>
+        <Switch accessibilityLabel={t('Sound')} value={soundEnabled} onValueChange={toggleSound} trackColor={{ false: '#475569', true: '#15803d' }} thumbColor={soundEnabled ? '#86efac' : '#cbd5e1'} />
+      </View>
+      <LanguageSelector />
+      <Pressable accessibilityRole="button" onPress={user ? onSignOut : onOpenAuth} style={s.account}>
+        <ButtonLabel numberOfLines={1} style={s.toolbarText}>{t(user ? 'Sign out' : 'Sign in')}</ButtonLabel>
+      </Pressable>
+    </View>
+    <View style={s.workspace}>
+      <View testID="desktop-records" style={s.records}>
+        <View style={s.navigation}>
+          <View accessibilityRole="tablist" style={s.tabs}>
+            {tabs.map(([id, label]) => <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} onPress={() => selectTab(id)} style={({ pressed }) => [s.tab, tab === id && s.activeTab, pressed && { opacity: 0.8 }]}>
+              <Text style={[s.tabText, tab === id && s.activeTabText]}>{t(label)}</Text>
+            </Pressable>)}
+          </View>
+          {tab === 'table' && <Pressable accessibilityRole="button" accessibilityLabel={t(fullWidth ? 'Restore split view' : 'Expand table')} onPress={() => setExpanded(value => !value)} style={s.expand}>
+            <Text style={s.toolbarText}>{t(fullWidth ? 'Restore split view' : 'Expand table')}</Text>
+          </Pressable>}
+        </View>
+        {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
+          {id === 'list' && <CalculationListModal inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
+          {id === 'table' && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
+          {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} />}
+          {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} />}
+        </View>)}
+      </View>
+      <View testID="desktop-calculator" style={[s.calculator, fullWidth && { display: 'none' }]}>
+        <ScrollView contentContainerStyle={s.calculatorContent} keyboardShouldPersistTaps="handled">
+          <Text style={s.sectionLabel}>{t('Calculator')}</Text>
+          {calculator}
+        </ScrollView>
+      </View>
+    </View>
+  </View>;
+}
+
+const s = StyleSheet.create({
+  screen: { flex: 1, minHeight: 0, backgroundColor: '#0b1220' },
+  toolbar: { minHeight: 76, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, gap: 20, borderBottomWidth: 1, borderColor: '#263449', backgroundColor: '#111827' },
+  brand: { color: '#f8fafc', fontSize: 20, fontWeight: '800', letterSpacing: 4 },
+  toolbarSpacer: { flex: 1 },
+  toolbarText: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
+  sound: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  account: { width: 108, minHeight: 44, borderRadius: 6, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  workspace: { flex: 1, minHeight: 0, flexDirection: 'row', gap: 20, padding: 24 },
+  calculator: { width: 380, minHeight: 0, backgroundColor: '#111827', borderWidth: 1, borderColor: '#263449', borderRadius: 14, overflow: 'hidden' },
+  calculatorContent: { padding: 20 },
+  sectionLabel: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
+  records: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderRadius: 14, overflow: 'hidden' },
+  navigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: 12, borderBottomWidth: 1, borderColor: '#334155' },
+  tabs: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+  tab: { minHeight: 40, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 8 },
+  activeTab: { backgroundColor: '#2563eb' },
+  tabText: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  activeTabText: { color: '#ffffff' },
+  expand: { minHeight: 36, paddingHorizontal: 10, justifyContent: 'center', borderWidth: 1, borderColor: '#475569', borderRadius: 6 },
+  panel: { flex: 1, minWidth: 0, minHeight: 0 },
+});

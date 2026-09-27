@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import useCalculatorStyles from '../useCalculatorStyles';
 
 function toDate(value) {
@@ -12,7 +12,7 @@ function toKey(date) {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange }) {
+export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange, onApply }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const [active, setActive] = useState('from');
@@ -60,7 +60,20 @@ export default function DateRangeCalendar({ fromDate, toDate: endDate, onChange 
           return <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${active === 'from' ? t("From") : t("To")} ${key}`} accessibilityState={{ selected: endpoint }} onPress={() => choose(date)} style={[cell, inRange && { backgroundColor: '#1e3a5f' }, endpoint && { backgroundColor: '#2563eb' }]}><Text style={styles.quickActionText}>{typeof day === 'string' ? t(day) : day}</Text></Pressable>;
         })}
       </View>
-      <Pressable accessibilityRole="button" onPress={() => { const today = new Date(); const key = toKey(today); onChange(key, key); setMonth(today); setActive('from'); }} style={[styles.quickActionButton, { flex: 0, marginBottom: 12 }]}><Text style={styles.quickActionText}>{t("Today")}</Text></Pressable>
+      <View style={actionStyles.row}>
+        <Pressable accessibilityRole="button" onPress={() => { const today = new Date(); const key = toKey(today); onChange(key, key); setMonth(today); setActive('from'); }} style={({ pressed }) => [actionStyles.button, pressed && styles.pressed]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={actionStyles.label}>{t("Today")}</Text>
+        </Pressable>
+        {onApply && <Pressable accessibilityRole="button" onPress={onApply} style={({ pressed }) => [actionStyles.button, pressed && styles.pressed]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={actionStyles.label}>{t("Apply dates")}</Text>
+        </Pressable>}
+      </View>
     </View>
   );
 }
+
+const actionStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 6, marginBottom: 6 },
+  button: { flex: 1, minWidth: 0, height: 26, borderRadius: 5, backgroundColor: '#334155', paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+  label: { color: '#f8fafc', fontSize: 10, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
+});

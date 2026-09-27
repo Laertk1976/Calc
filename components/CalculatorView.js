@@ -1,12 +1,12 @@
+import DesktopWorkspace from './DesktopWorkspace';
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import SyncStatus from './SyncStatus';
 import LanguageSelector from './LanguageSelector';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { useAudioPlayer } from 'expo-audio';
+import { useTapSound } from './TapSoundProvider';
 import { Animated, BackHandler, Easing, Platform, Pressable, ScrollView, Switch, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -49,34 +49,7 @@ export default function CalculatorView({
 }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
-  const keypadClick = useAudioPlayer(require('../assets/button-tap.mp3'), { keepAudioSessionActive: true });
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const soundEnabledRef = useRef(true);
-  const soundRequestRef = useRef(0);
-  const soundChangedRef = useRef(false);
-  const soundSaveRef = useRef(Promise.resolve());
-  useEffect(() => {
-    let active = true;
-    AsyncStorage.getItem('calculator.soundEnabled').then(value => {
-      if (active && !soundChangedRef.current) {
-        soundEnabledRef.current = value !== 'false';
-        setSoundEnabled(value !== 'false');
-      }
-    }).catch(() => {});
-    return () => { active = false; };
-  }, []);
-  const toggleSound = enabled => {
-    soundChangedRef.current = true;
-    soundEnabledRef.current = enabled;
-    setSoundEnabled(enabled);
-    if (!enabled) {
-      soundRequestRef.current += 1;
-      keypadClick.pause();
-    }
-    soundSaveRef.current = soundSaveRef.current
-      .then(() => AsyncStorage.setItem('calculator.soundEnabled', String(enabled)))
-      .catch(() => {});
-  };
+  const { soundEnabled, toggleSound } = useTapSound();
   const [editing, setEditing] = useState(false);
   const [debtsVisible, setDebtsVisible] = useState(false);
   const [invoicesVisible, setInvoicesVisible] = useState(false);
@@ -88,12 +61,6 @@ export default function CalculatorView({
   };
   const playKeyFeedback = () => {
     if (Platform.OS === 'android') Vibration.vibrate(8);
-    if (!soundEnabledRef.current) return;
-    const request = ++soundRequestRef.current;
-    keypadClick.pause();
-    void keypadClick.seekTo(0).then(() => {
-      if (soundEnabledRef.current && request === soundRequestRef.current) keypadClick.play();
-    }).catch(() => {});
   };
   const pressKey = (key) => {
     onKeyPress(key);
@@ -104,6 +71,8 @@ export default function CalculatorView({
     setEditing(false);
   };
   const { width, height, fontScale } = useWindowDimensions();
+  const desktop = Platform.OS === 'web' && width > 1100;
+  const [desktopTab, setDesktopTab] = useState('list');
   const [resultWidth, setResultWidth] = useState(0);
   const resultText = display === 'Error' ? t('Error') : pretty(display);
   // Size the formatted text, including separators, before native auto-fitting.
@@ -151,6 +120,57 @@ export default function CalculatorView({
     return () => subscription.remove();
   }, [listVisible, onCloseList]);
 
+  const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : listVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }]}>
+          <View style={{ width: '100%', minWidth: 0 }} onLayout={({ nativeEvent }) => setResultWidth(nativeEvent.layout.width)}>
+            {expression ? <Text style={[styles.expression, { textAlign: 'right' }]}>{colorCalculationSymbols(expression)}</Text> : null}
+            <TextInput
+              ref={expressionInput}
+              accessibilityLabel={t("Edit calculation")}
+              style={[styles.displayText, { width: '100%', textAlign: 'right', fontSize: resultFontSize, padding: 0, color: '#f8fafc', includeFontPadding: false }]}
+              value={editing ? draft : resultText}
+              onFocus={beginEditing}
+              onChangeText={setDraft}
+              onBlur={finishEditing}
+              onSubmitEditing={() => expressionInput.current?.blur()}
+              cursorColor="#22c55e"
+              selectionColor="#22c55e66"
+              underlineColorAndroid="transparent"
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType="default"
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+            />
+          </View>
+          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? t("Close saved calculations") : t("Open saved calculations")} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
+          </Pressable>}
+        </View>);
+  const keypadPanel = (<View style={[styles.keypadLayout, desktop && { gap: 8 }]}>
+          <View style={[styles.keypad, desktop && { gap: 8 }]}>
+            {keys.map((row) => (
+              <View key={row.join('')} style={[styles.keyRow, desktop && { gap: 8 }]}>
+                {row.map((key) => {
+                  const isOperator = operators.includes(key) || key === '=';
+                  const isFunction = ['AC', 'C', '±', '%'].includes(key);
+                  return (
+                    <Pressable key={key} android_disableSound onPressIn={playKeyFeedback} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, desktop && { height: 54 }, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}>
+                      <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+          <UtilityButtons desktop={desktop} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
+        </View>);
+  if (desktop) return <>
+    <DesktopWorkspace tab={desktopTab} onTabChange={setDesktopTab} calculator={<>{displayPanel}{keypadPanel}</>}
+      calculations={savedCalculations} onUpdateCalculations={onUpdateCalculations}
+      user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+    <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
+  </>;
+
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
@@ -175,55 +195,13 @@ export default function CalculatorView({
           </View>
         </View>
         </View>
-        <View onLayout={measure('display')} style={[styles.display, { marginTop: listVisible ? 0 : 'auto' }]}>
-          <View style={{ width: '100%', minWidth: 0 }} onLayout={({ nativeEvent }) => setResultWidth(nativeEvent.layout.width)}>
-            {expression ? <Text style={[styles.expression, { textAlign: 'right' }]}>{colorCalculationSymbols(expression)}</Text> : null}
-            <TextInput
-              ref={expressionInput}
-              accessibilityLabel={t("Edit calculation")}
-              style={[styles.displayText, { width: '100%', textAlign: 'right', fontSize: resultFontSize, padding: 0, color: '#f8fafc', includeFontPadding: false }]}
-              value={editing ? draft : resultText}
-              onFocus={beginEditing}
-              onChangeText={setDraft}
-              onBlur={finishEditing}
-              onSubmitEditing={() => expressionInput.current?.blur()}
-              cursorColor="#22c55e"
-              selectionColor="#22c55e66"
-              underlineColorAndroid="transparent"
-              autoCorrect={false}
-              autoCapitalize="none"
-              keyboardType="default"
-              returnKeyType="done"
-              submitBehavior="blurAndSubmit"
-            />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? t("Close saved calculations") : t("Open saved calculations")} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
-          </Pressable>
-        </View>
+        {displayPanel}
         <Animated.View style={{ height: reveal, overflow: 'hidden' }} pointerEvents={listVisible ? 'auto' : 'none'} accessibilityElementsHidden={!listVisible} importantForAccessibility={listVisible ? 'auto' : 'no-hide-descendants'}>
           <View style={{ height: panelHeight }}>
           <CalculationListModal inline visible={listVisible} calculations={savedCalculations.filter((item) => !item.deletedAt)} onClose={onCloseList} />
           </View>
         </Animated.View>
-        {!listVisible && <View style={styles.keypadLayout}>
-          <View style={styles.keypad}>
-            {keys.map((row) => (
-              <View key={row.join('')} style={styles.keyRow}>
-                {row.map((key) => {
-                  const isOperator = operators.includes(key) || key === '=';
-                  const isFunction = ['AC', 'C', '±', '%'].includes(key);
-                  return (
-                    <Pressable key={key} android_disableSound onPressIn={playKeyFeedback} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}>
-                      <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ))}
-          </View>
-          <UtilityButtons onSaveType={onSaveType} onList={onList} onButtonPress={playKeyFeedback} onDebts={() => setDebtsVisible(true)} onInvoices={() => setInvoicesVisible(true)} />
-        </View>}
+        {!listVisible && keypadPanel}
         <CalculationTableModal
           visible={tableVisible}
           calculations={savedCalculations}

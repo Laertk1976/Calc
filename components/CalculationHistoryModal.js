@@ -68,7 +68,7 @@ const s = StyleSheet.create({
   description: { color: '#cbd5e1', fontSize: 14, lineHeight: 21 },
   input: { color: '#f8fafc', backgroundColor: '#0f172a', padding: 12, borderRadius: 8 },
   actions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  button: { ...raisedButton, minHeight: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: '#334155', padding: 12, borderRadius: 8 },
+  button: { ...raisedButton, minHeight: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#334155', padding: 8, borderRadius: 4 },
   selected: { backgroundColor: '#2563eb' },
   disabled: { opacity: 0.5 },
   scroll: { flexShrink: 1 },

@@ -1,4 +1,12 @@
 {
+  "Table": "表",
+  "Calculator": "電卓",
+  "Expand table": "表を拡大",
+  "Restore split view": "分割表示に戻す",
+  "All dates": "すべての日付",
+  "No debts in this date range.": "この期間に債務はありません。",
+  "No invoices in this date range.": "この期間に請求書はありません。",
+  "No matching calculations.": "一致する計算はありません。",
   "Edit": "編集",
   "Table actions": "表の操作",
   "Close menu": "メニューを閉じる",
