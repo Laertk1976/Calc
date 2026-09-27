@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { styles as baseStyles } from './calculatorStyles';
 
-export default function useCalculatorStyles() {
+export default function useCalculatorStyles(maxKeypadHeight) {
   const { width, height } = useWindowDimensions();
   return useMemo(() => {
     const compact = width < 380;
@@ -10,7 +10,11 @@ export default function useCalculatorStyles() {
     const gap = compact ? 8 : 12;
     const contentWidth = Math.min(width, 720) - padding * 2;
     const keyWidth = (contentWidth - gap * 4) / 5;
-    const keyHeight = Math.max(44, Math.min(keyWidth, 88, (height - 280 - gap * 4) / 5));
+    const naturalKeyHeight = Math.max(44, Math.min(keyWidth, 88, (height - 280 - gap * 4) / 5));
+    // The utility column adds 24px of group borders/padding, offset by
+    // four buttons that are 3px shorter and one that is 3px taller.
+    const keyHeight = maxKeypadHeight == null ? naturalKeyHeight
+      : Math.max(0, Math.min(naturalKeyHeight, (maxKeypadHeight - gap * 4 - 15) / 5));
     const overrides = {
       calculator: { paddingHorizontal: padding },
       display: { minHeight: compact || height < 700 ? 112 : 150, paddingBottom: 16 },
@@ -24,7 +28,7 @@ export default function useCalculatorStyles() {
       keyText: { fontSize: compact ? 24 : 28 },
       utilityColumn: { width: keyWidth + 3, gap },
       utilityPrimaryGroup: { gap },
-      utilityPrimaryKey: { height: Math.max(38, keyHeight - 3) },
+      utilityPrimaryKey: { height: maxKeypadHeight == null ? Math.max(38, keyHeight - 3) : Math.max(0, keyHeight - 3) },
       utilityKey: { aspectRatio: undefined, height: keyHeight + 3 },
       utilityKeyText: { fontSize: compact ? 13 : 16, maxWidth: '100%' },
       utilityThreeLineText: { fontSize: compact ? 13 : 15, lineHeight: compact ? 13 : 15 },
@@ -67,5 +71,5 @@ export default function useCalculatorStyles() {
     return Object.fromEntries(Object.entries(baseStyles).map(([name, style]) => [
       name, overrides[name] ? [style, overrides[name]] : style,
     ]));
-  }, [width, height]);
+  }, [width, height, maxKeypadHeight]);
 }

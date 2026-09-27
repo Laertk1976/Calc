@@ -1,5 +1,6 @@
+import Pressable from './SoundPressable';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 export default function MonthRangeCalendar({ from, to, onChange }) {

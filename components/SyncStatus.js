@@ -1,6 +1,7 @@
+import Pressable from './SoundPressable';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 export default function SyncStatus({ syncStatus, onRetrySync, compact = false }) {
   const { t, i18n } = useTranslation();

@@ -1,10 +1,11 @@
-import { useTapSound } from './TapSoundProvider';
+import Pressable from './SoundPressable';
+
 import { useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 export default function TableActionsMenu({ open, onToggle, onDismiss, actions }) {
-  const { captureTap } = useTapSound();
+
   const { t } = useTranslation();
   const { height, width } = useWindowDimensions();
   const trigger = useRef(null);
@@ -12,8 +13,8 @@ export default function TableActionsMenu({ open, onToggle, onDismiss, actions })
   return (
     <View style={s.anchor}>
       <Modal transparent statusBarTranslucent visible={open} animationType="fade" onRequestClose={onDismiss}>
-        <View onStartShouldSetResponderCapture={captureTap} style={{ flex: 1 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('Close menu')} onPress={onDismiss}
+        <View style={{ flex: 1 }}>
+          <Pressable silent accessibilityRole="button" accessibilityLabel={t('Close menu')} onPress={onDismiss}
             style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.15)' }} />
         <View style={[s.menu, { bottom: position.bottom, right: position.right, width: Math.min(250, width - 24), maxHeight: Math.max(80, Math.min(position.availableHeight, height * 0.65)) }]}>
           <ScrollView keyboardShouldPersistTaps="handled">

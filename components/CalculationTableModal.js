@@ -1,3 +1,4 @@
+import Pressable from './SoundPressable';
 import PanelModal from './PanelModal';
 import ButtonLabel from './ButtonLabel';
 import TableActionsMenu from './TableActionsMenu';
@@ -8,7 +9,7 @@ import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
@@ -1236,6 +1237,7 @@ export default function CalculationTableModal({
       >
         <KeyboardModalFrame style={styles.dropdownBackdrop}>
           <Pressable
+            silent
             accessibilityRole="button"
             accessibilityLabel="Dismiss date picker"
             style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}

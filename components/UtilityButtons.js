@@ -1,5 +1,6 @@
+import Pressable from './SoundPressable';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { utilityKeys } from '../calculatorConstants';
 import { styles } from '../calculatorStyles';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -12,9 +13,9 @@ function getUtilityKeyStyle(key) {
   return styles.utilityKeyGreen;
 }
 
-export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts, onInvoices, desktop = false }) {
+export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts, onInvoices, desktop = false, maxKeypadHeight }) {
   const { t, i18n } = useTranslation();
-  const styles = useCalculatorStyles();
+  const styles = useCalculatorStyles(maxKeypadHeight);
   const renderButton = (key, grouped = false) => {
     const armenianInvoice = i18n.resolvedLanguage === 'hy' && ['Fact', 'Fcash'].includes(key);
     return (
@@ -27,7 +28,7 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
       delayLongPress={600}
       accessibilityRole="button"
       accessibilityHint={key === 'Cred' ? t('Hold to open debts') : key === 'Fact' ? t('Hold to open invoices') : undefined}
-      style={({ pressed }) => [styles.utilityKey, grouped && styles.utilityPrimaryKey, desktop && { height: 50, aspectRatio: undefined, position: 'relative', overflow: 'hidden' }, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.utilityKey, grouped && styles.utilityPrimaryKey, desktop && { height: 58, aspectRatio: undefined, position: 'relative', overflow: 'hidden' }, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, pressed && styles.pressed]}
     >
       <ButtonLabel
         accessibilityLabel={t(key)}

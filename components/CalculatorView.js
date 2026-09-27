@@ -1,3 +1,4 @@
+import Pressable from './SoundPressable';
 import DesktopWorkspace from './DesktopWorkspace';
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import LanguageSelector from './LanguageSelector';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useTapSound } from './TapSoundProvider';
-import { Animated, BackHandler, Easing, Platform, Pressable, ScrollView, Switch, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Easing, Platform, ScrollView, Switch, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -48,7 +49,6 @@ export default function CalculatorView({
   onSignOut,
 }) {
   const { t, i18n } = useTranslation();
-  const styles = useCalculatorStyles();
   const { soundEnabled, toggleSound } = useTapSound();
   const [editing, setEditing] = useState(false);
   const [debtsVisible, setDebtsVisible] = useState(false);
@@ -89,6 +89,9 @@ export default function CalculatorView({
     setSizes((previous) => previous[part] === measured ? previous : { ...previous, [part]: measured });
   };
   const panelHeight = Math.max(0, (sizes.viewport || height) - sizes.header - sizes.display);
+  const maxKeypadHeight = !desktop && sizes.viewport && sizes.header && sizes.display
+    ? Math.max(0, panelHeight - 20) : undefined;
+  const styles = useCalculatorStyles(maxKeypadHeight);
   const settle = (open) => {
     const target = open ? panelHeight : 0;
     const remaining = Math.abs(target - currentReveal.current);
@@ -162,10 +165,10 @@ export default function CalculatorView({
               </View>
             ))}
           </View>
-          <UtilityButtons desktop={desktop} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
+          <UtilityButtons desktop={desktop} maxKeypadHeight={maxKeypadHeight} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
         </View>);
   if (desktop) return <>
-    <DesktopWorkspace tab={desktopTab} onTabChange={setDesktopTab} calculator={<>{displayPanel}{keypadPanel}</>}
+    <DesktopWorkspace tab={desktopTab} onTabChange={setDesktopTab} display={displayPanel} keypad={keypadPanel}
       calculations={savedCalculations} onUpdateCalculations={onUpdateCalculations}
       user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />

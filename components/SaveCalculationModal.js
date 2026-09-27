@@ -1,7 +1,8 @@
+import Pressable from './SoundPressable';
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { getSavedCalculations } from '../calculationStorage';
 import useCalculatorStyles from '../useCalculatorStyles';

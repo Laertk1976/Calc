@@ -1,5 +1,6 @@
+import Pressable from './SoundPressable';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 import SyncStatus from './SyncStatus';
@@ -11,7 +12,7 @@ import DebtListModal from './DebtListModal';
 
 const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
 
-export default function DesktopWorkspace({ tab, onTabChange, calculator, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+export default function DesktopWorkspace({ tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
   const { t } = useTranslation();
   const { soundEnabled, toggleSound } = useTapSound();
   const [expanded, setExpanded] = useState(false);
@@ -49,17 +50,18 @@ export default function DesktopWorkspace({ tab, onTabChange, calculator, calcula
           </Pressable>}
         </View>
         {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
-          {id === 'list' && <CalculationListModal inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
+          {id === 'list' && <CalculationListModal desktop inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
           {id === 'table' && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
           {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} />}
           {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} />}
         </View>)}
       </View>
       <View testID="desktop-calculator" style={[s.calculator, fullWidth && { display: 'none' }]}>
-        <ScrollView contentContainerStyle={s.calculatorContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={s.calculatorDisplay} contentContainerStyle={s.calculatorContent} keyboardShouldPersistTaps="handled">
           <Text style={s.sectionLabel}>{t('Calculator')}</Text>
-          {calculator}
+          {display}
         </ScrollView>
+        <View style={s.calculatorKeypad}>{keypad}</View>
       </View>
     </View>
   </View>;
@@ -75,7 +77,9 @@ const s = StyleSheet.create({
   account: { width: 108, minHeight: 44, borderRadius: 6, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   workspace: { flex: 1, minHeight: 0, flexDirection: 'row', gap: 20, padding: 24 },
   calculator: { width: 380, minHeight: 0, backgroundColor: '#111827', borderWidth: 1, borderColor: '#263449', borderRadius: 14, overflow: 'hidden' },
-  calculatorContent: { padding: 20 },
+  calculatorDisplay: { flex: 1, minHeight: 0 },
+  calculatorContent: { flexGrow: 1, justifyContent: 'flex-end', padding: 20, paddingBottom: 0 },
+  calculatorKeypad: { flexShrink: 0, padding: 20, paddingTop: 0 },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
   records: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderRadius: 14, overflow: 'hidden' },
   navigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: 12, borderBottomWidth: 1, borderColor: '#334155' },

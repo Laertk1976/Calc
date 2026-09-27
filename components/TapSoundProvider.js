@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TapSoundContext = createContext({ captureTap: () => false });
+const TapSoundContext = createContext({ playTapSound: () => false });
 export const useTapSound = () => useContext(TapSoundContext);
 
 export default function TapSoundProvider({ children }) {
@@ -36,8 +36,8 @@ export default function TapSoundProvider({ children }) {
       .catch(() => {});
   };
   const lastTap = useRef(-Infinity);
-  const captureTap = () => {
-    // Nested modal roots can receive the same touch. Play only once.
+  const playTapSound = () => {
+    // Avoid overlapping sounds from rapid button actions.
     const now = Date.now();
     if (now - lastTap.current < 30) return false;
     lastTap.current = now;
@@ -47,10 +47,10 @@ export default function TapSoundProvider({ children }) {
     void keypadClick.seekTo(0).then(() => {
       if (soundEnabledRef.current && request === soundRequestRef.current) keypadClick.play();
     }).catch(() => {});
-    // Observe the touch without taking it away from buttons or scrolling.
+    // Playback never blocks the button action.
     return false;
   };
-  return <TapSoundContext.Provider value={{ soundEnabled, toggleSound, captureTap }}>
-    <View style={{ flex: 1 }} onStartShouldSetResponderCapture={captureTap}>{children}</View>
+  return <TapSoundContext.Provider value={{ soundEnabled, toggleSound, playTapSound }}>
+    <View style={{ flex: 1 }}>{children}</View>
   </TapSoundContext.Provider>;
 }

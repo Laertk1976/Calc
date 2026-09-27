@@ -1,8 +1,9 @@
+import Pressable from './SoundPressable';
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { auth, isFirebaseConfigured } from '../authClient';
 import useCalculatorStyles from '../useCalculatorStyles';
