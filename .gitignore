@@ -8,3 +8,18 @@ npm-debug.*
 .responsive-browser-test/
 
 .desktop-browser-test/
+
+# Private Android signing material and generated store bundles
+*.jks
+*.p12
+*.keystore
+!android/app/debug.keystore
+*.aab
+keystore.properties
+.firebase/
+firebase-debug*.log
+firestore-debug.log
+ui-debug.log
+.account-web-check/
+.account-android-check/
+release/deployed-firestore-backup.rules

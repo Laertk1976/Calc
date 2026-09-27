@@ -10,6 +10,7 @@ import { calculationStore, syncCalculations, getSavedCalculations, saveCalculati
 import { operators } from './calculatorConstants';
 import { applyPercentage, evaluateExpression, pretty } from './calculatorUtils';
 import AuthModal from './components/AuthModal';
+import AccountModal from './components/AccountModal';
 import CalculatorView from './components/CalculatorView';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [syncStatus, setSyncStatus] = useState({ phase: 'local', pending: 0 });
   const [authVisible, setAuthVisible] = useState(false);
+  const [accountVisible, setAccountVisible] = useState(false);
 
   const expressionTokens = expression.trim() ? expression.trim().split(/\s+/) : [];
   const lastExpressionToken = expressionTokens[expressionTokens.length - 1];
@@ -47,11 +49,12 @@ export default function App() {
     const unsubscribe = calculationStore.subscribe(userId, ({ rows, status }) => {
       if (active) { setSavedCalculations(rows); setSyncStatus(status); }
     });
-    const retry = () => { void syncCalculations(userId); };
+    const retry = () => { if (active) void syncCalculations(userId, { automatic: true }); };
     calculationStore.getSnapshot(userId).then(() => { if (active) retry(); }).catch(() => {
       if (active) setSyncStatus({ phase: 'error', error: 'Saved device data could not be read.', pending: 0 });
     });
-    const timer = userId ? setInterval(retry, 30000) : null;
+    // This checks the persisted schedule locally; cloud access is limited to every 8 hours.
+    const timer = userId ? setInterval(retry, 60000) : null;
     const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') retry(); });
     globalThis.addEventListener?.('online', retry);
     return () => {
@@ -64,6 +67,7 @@ export default function App() {
   }, [user?.uid]);
 
   const handleUpdateCalculations = async (change) => {
+    if (syncStatus.deletionPending) { setAccountVisible(true); throw new Error(t('Account deletion is pending. Open Account to finish deletion.')); }
     const calculations = await updateSavedCalculations(change, user?.uid);
     setSavedCalculations(calculations);
     return calculations;
@@ -103,6 +107,7 @@ export default function App() {
   };
 
   const confirmSave = async (titleOverride = saveTitle) => {
+    if (syncStatus.deletionPending) { setSaveDialogVisible(false); setAccountVisible(true); return; }
     const trimmedTitle = titleOverride.trim();
     if (!trimmedTitle) {
       Alert.alert(t("Name required"), t("Enter a name before saving."));
@@ -312,10 +317,13 @@ export default function App() {
           onConfirmSave={confirmSave}
           onOpenTable={showCalculatorTable}
           onUpdateCalculations={handleUpdateCalculations}
-          onOpenAuth={() => setAuthVisible(true)}
+          onOpenAuth={() => user ? setAccountVisible(true) : setAuthVisible(true)}
           onSignOut={() => auth && signOut(auth)}
         />
         <AuthModal visible={authVisible} user={user} onClose={() => setAuthVisible(false)} />
+        <AccountModal visible={accountVisible} user={user} deletionPending={syncStatus.deletionPending}
+          onClose={() => setAccountVisible(false)} onSignOut={() => auth && signOut(auth)}
+          onDeleted={() => { setAccountVisible(false); setAuthVisible(false); setSavedCalculations([]); setTableVisible(false); setListVisible(false); setSaveDialogVisible(false); setExpression(''); setDisplay('0'); setStoredValue(null); setOperator(null); setFreshInput(false); }} />
       </TapSoundProvider>
     </SafeAreaProvider>
   );

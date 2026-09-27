@@ -1,11 +1,11 @@
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, reauthenticateWithCredential, signInWithCredential } from 'firebase/auth';
 import { auth } from './authClient';
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 export const isGoogleSignInConfigured = Boolean(webClientId);
 
-export async function signInWithGoogle() {
+async function getGoogleCredential() {
   if (!webClientId) {
     throw new Error('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is not configured.');
   }
@@ -27,7 +27,19 @@ export async function signInWithGoogle() {
     throw new Error('Google did not return an ID token.');
   }
 
-  const credential = GoogleAuthProvider.credential(response.data.idToken);
+  return GoogleAuthProvider.credential(response.data.idToken);
+}
+
+export async function signInWithGoogle() {
+  const credential = await getGoogleCredential();
+  if (!credential) return false;
   await signInWithCredential(auth, credential);
+  return true;
+}
+
+export async function reauthenticateWithGoogle(user) {
+  const credential = await getGoogleCredential();
+  if (!credential) return false;
+  await reauthenticateWithCredential(user, credential);
   return true;
 }

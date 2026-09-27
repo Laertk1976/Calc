@@ -184,8 +184,8 @@ export default function CalculatorView({
             <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} compact />
           </View>
           <LanguageSelector />
-          <Pressable accessibilityRole="button" onPress={user ? onSignOut : onOpenAuth} style={[styles.authButton, styles.headerControl]}>
-            <ButtonLabel numberOfLines={1} style={styles.authButtonText}>{user ? t("Sign out") : t("Sign in")}</ButtonLabel>
+          <Pressable accessibilityRole="button" onPress={onOpenAuth} style={[styles.authButton, styles.headerControl]}>
+            <ButtonLabel numberOfLines={1} style={styles.authButtonText}>{user ? t("Account") : t("Sign in")}</ButtonLabel>
           </Pressable>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>

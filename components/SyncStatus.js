@@ -1,13 +1,30 @@
 import Pressable from './SoundPressable';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Text, View } from 'react-native';
 
 export default function SyncStatus({ syncStatus, onRetrySync, compact = false }) {
   const { t, i18n } = useTranslation();
+  const rotation = useRef(new Animated.Value(0)).current;
+  const turns = useRef(0);
+  const busy = syncStatus?.phase === 'syncing';
+  const disabled = !onRetrySync || busy || ['local', 'deleting'].includes(syncStatus?.phase);
+  useEffect(() => () => rotation.stopAnimation(), [rotation]);
+  const manualSync = () => {
+    if (disabled) return;
+    turns.current += 1;
+    Animated.timing(rotation, {
+      toValue: turns.current,
+      duration: 350,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+    onRetrySync();
+  };
   const synced = syncStatus?.phase === 'synced';
   const color = synced ? '#8cdbb0' : '#94a3b8';
-  const statusLabel = synced ? t("All changes synced")
+  const statusLabel = syncStatus?.deletionPending ? t('Account deletion is pending. Open Account to finish deletion.') : synced ? t("All changes synced")
     : syncStatus?.phase === 'syncing' ? t("Syncing changes")
     : syncStatus?.phase === 'checking' ? t("Checking sync")
     : syncStatus?.phase === 'error' ? t('Sync failed: {{error}}', { error: syncStatus.error || t('Changes saved on this device') })
@@ -20,14 +37,19 @@ export default function SyncStatus({ syncStatus, onRetrySync, compact = false })
 
   return (
     <View style={{ paddingHorizontal: compact ? 0 : 12, paddingBottom: compact ? 0 : 8 }}>
-      <View accessible accessibilityRole="text" accessibilityLiveRegion="polite"
-        accessibilityLabel={`${statusLabel}${syncedTime ? `, ${syncedTime}` : ''}`}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Ionicons name="sync" size={20} color={color} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${t('Retry sync')}. ${statusLabel}${syncedTime ? `, ${syncedTime}` : ''}`}
+          accessibilityState={{ disabled, busy }} accessibilityLiveRegion="polite"
+          disabled={disabled} onPress={manualSync} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <Animated.View style={{ transform: [{ rotate: rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
+            <Ionicons name="sync" size={20} color={color} />
+          </Animated.View>
+        </Pressable>
         {!!syncedTime && <Text style={{ color, fontSize: 12 }}>{syncedTime}</Text>}
       </View>
+      {syncStatus?.deletionPending && <Text accessibilityRole="alert" style={{ color: '#fbbf24', fontSize: 12, maxWidth: 240 }}>{t('Account deletion is pending. Open Account to finish deletion.')}</Text>}
       {['offline', 'error', 'pending'].includes(syncStatus?.phase) && (
-        <Pressable accessibilityRole="button" onPress={onRetrySync} style={{ paddingVertical: 8 }}>
+        <Pressable accessibilityRole="button" disabled={disabled} onPress={manualSync} style={{ paddingVertical: 8 }}>
           <Text style={{ color: '#a8caff', fontSize: 13 }}>{t("Retry sync")}</Text>
         </Pressable>
       )}

@@ -6,6 +6,13 @@ const babel = require('@babel/core');
 const i18next = require('i18next');
 const codes = ['hy', 'en', 'ru', 'ja', 'hi'];
 const resources = Object.fromEntries(codes.map(code => [code, { translation: require(`./locales/${code}.json`) }]));
+test('account deletion disclosures are available in every supported language', () => {
+  const messages = require('./locales/account.json');
+  for (const code of codes) {
+    assert.deepEqual(Object.keys(messages[code]).sort(), Object.keys(messages.en).sort());
+    for (const value of Object.values(messages[code])) assert.ok(value.trim());
+  }
+});
 
 test('all languages cover the same messages and interpolation variables', () => {
   const english = resources.en.translation;

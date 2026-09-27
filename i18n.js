@@ -6,6 +6,7 @@ import hy from './locales/hy.json';
 import ru from './locales/ru.json';
 import ja from './locales/ja.json';
 import hi from './locales/hi.json';
+import account from './locales/account.json';
 
 export const languages = [
   { code: 'hy', name: 'Հայերեն' },
@@ -18,7 +19,7 @@ const storageKey = 'calculator.language';
 let selectionChanged = false;
 let pendingSave = Promise.resolve();
 i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, hy: { translation: hy }, ru: { translation: ru }, ja: { translation: ja }, hi: { translation: hi } },
+  resources: Object.fromEntries(Object.entries({ en, hy, ru, ja, hi }).map(([code, messages]) => [code, { translation: { ...messages, ...account[code] } }])),
   lng: 'en', fallbackLng: 'en', supportedLngs: languages.map(({ code }) => code),
   keySeparator: false, nsSeparator: false,
   interpolation: { escapeValue: false },

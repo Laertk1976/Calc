@@ -28,12 +28,11 @@ export const calculationStore = createOfflineCalculationStore({
 });
 
 export const getSavedCalculations = (userId = null) => calculationStore.getRows(userId);
-export function syncCalculations(userId) {
-  return calculationStore.sync(userId).catch(() => {});
+export function syncCalculations(userId, options) {
+  return calculationStore.sync(userId, options).catch(() => {});
 }
 export async function updateSavedCalculations(change, userId = null) {
   const rows = await calculationStore.change(change, userId);
-  void syncCalculations(userId);
   return rows;
 }
 export async function saveCalculation(expression, display, type = 'Add', titleOverride = '', userId = null) {

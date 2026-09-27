@@ -1,6 +1,7 @@
 import { applyCalculationChange, normalizeCalculation } from './calculationHistory';
 
 const DEVICE_KEY = 'calculatorCalculations';
+export const AUTO_SYNC_INTERVAL_MS = 8 * 60 * 60 * 1000;
 const keyFor = (userId) => userId ? `${DEVICE_KEY}:user:${encodeURIComponent(userId)}` : DEVICE_KEY;
 const freshState = () => ({ version: 1, rows: [], queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null });
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -30,6 +31,12 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
   const syncs = new Map();
   const listeners = new Map();
   const statuses = new Map();
+  const deleting = new Set();
+  const assertWritable = (userId, state) => {
+    if (deleting.has(userId) || state.deletionPending) {
+      throw Object.assign(new Error('Account deletion is pending. Finish deleting the account before making changes.'), { code: 'account-deletion-pending' });
+    }
+  };
   const serialize = (task) => {
     const result = localWrites.catch(() => {}).then(task);
     localWrites = result;
@@ -51,7 +58,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
   function notify(userId, state, status = statuses.get(userId)) {
     const snapshot = {
       rows: state.rows,
-      status: { phase: userId ? (state.queue.length ? 'pending' : 'checking') : 'local', ...status, pending: state.queue.length, lastSyncedAt: state.lastSyncedAt },
+      status: { phase: userId ? (state.queue.length ? 'pending' : 'checking') : 'local', ...status, ...(state.deletionPending ? { phase: 'deleting' } : {}), deletionPending: Boolean(state.deletionPending), pending: state.queue.length, lastSyncedAt: state.lastSyncedAt },
     };
     for (const listener of listeners.get(userId) || []) listener(snapshot);
     return snapshot;
@@ -65,6 +72,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
   async function change(change, userId = null) {
     return serialize(async () => {
       const state = await read(userId);
+      assertWritable(userId, state);
       const rows = applyCalculationChange(state.rows, change, now());
       const id = change.type === 'add' ? change.row.id : change.id;
       const before = state.rows.find((row) => row.id === id) || null;
@@ -83,6 +91,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
     return serialize(async () => {
       const device = await read(null);
       const state = await read(userId);
+      assertWritable(userId, state);
       const imported = new Set(state.importedIds);
       for (const row of device.rows) {
         if (imported.has(row.id)) continue;
@@ -117,6 +126,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       const records = await withDeadline(remote.list(userId));
       state = await serialize(async () => {
         const latest = await read(userId);
+        assertWritable(userId, latest);
         const dirty = new Set(latest.queue.map((item) => item.rowId));
         const rows = new Map(records.map(({ row }) => [row.id, normalizeCalculation(row)]));
         for (const row of latest.rows) if (dirty.has(row.id)) rows.set(row.id, row);
@@ -127,9 +137,11 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       notify(userId, state);
       // Snapshot the queue. Edits made during upload remain durable for the next pass.
       for (const operation of state.queue) {
+        assertWritable(userId, await read(userId));
         const result = await remote.push(userId, operation, state.remoteIds[operation.rowId]);
         state = await serialize(async () => {
           const latest = await read(userId);
+          assertWritable(userId, latest);
           const queue = latest.queue.filter((item) => item.id !== operation.id);
           const stillDirty = queue.some((item) => item.rowId === operation.rowId);
           const rows = latest.rows.map((row) => row.id === operation.rowId && !stillDirty ? normalizeCalculation(result.row) : row);
@@ -139,6 +151,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       }
       state = await serialize(async () => {
         const latest = await read(userId);
+        assertWritable(userId, latest);
         return persist(userId, { ...latest, lastSyncedAt: latest.queue.length ? latest.lastSyncedAt : now() });
       });
       statuses.set(userId, { phase: state.queue.length ? 'pending' : 'synced' });
@@ -150,14 +163,52 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
     return notify(userId, state);
   }
 
-  function sync(userId) {
+  async function scheduledSync(userId, automatic) {
+    const allowed = await serialize(async () => {
+      const state = await read(userId);
+      if (deleting.has(userId) || state.deletionPending) return false;
+      const timestamp = now();
+      const previous = state.lastSyncAttemptAt || state.lastSyncedAt;
+      const elapsed = Date.parse(timestamp) - Date.parse(previous);
+      if (automatic && previous && elapsed >= 0 && elapsed < AUTO_SYNC_INTERVAL_MS) {
+        if (!statuses.has(userId)) statuses.set(userId, { phase: state.queue.length ? 'pending' : state.lastSyncedAt ? 'synced' : 'offline' });
+        return false;
+      }
+      // Persist the schedule so reopening the app does not cause extra cloud reads.
+      await persist(userId, { ...state, lastSyncAttemptAt: timestamp });
+      return true;
+    });
+    return allowed ? runSync(userId) : notify(userId, await read(userId));
+  }
+
+  function sync(userId, { automatic = false } = {}) {
     if (!userId || !remote) return Promise.resolve(null);
-    if (!syncs.has(userId)) syncs.set(userId, runSync(userId).finally(() => syncs.delete(userId)));
+    if (!syncs.has(userId)) syncs.set(userId, scheduledSync(userId, automatic).finally(() => syncs.delete(userId)));
     return syncs.get(userId);
   }
 
+  async function beginAccountDeletion(userId) {
+    if (!userId) throw new Error('Sign in before deleting your account.');
+    deleting.add(userId);
+    return serialize(async () => {
+      const state = await read(userId);
+      const next = await persist(userId, { ...state, deletionPending: true });
+      return notify(userId, next);
+    });
+  }
+
+  async function clearAccountForDeletion(userId) {
+    if (!userId) throw new Error('An account ID is required.');
+    deleting.add(userId);
+    return serialize(async () => {
+      // Keep only a local stop flag: stale async operations must not recreate data.
+      const next = await persist(userId, { ...freshState(), deletionPending: true });
+      return notify(userId, next);
+    });
+  }
+
   return {
-    change, sync, importDeviceCalculations,
+    change, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion,
     getRows: async (userId = null) => (await read(userId)).rows,
     getSnapshot: async (userId = null) => notify(userId, await read(userId)),
     getImportCount: async (userId) => {

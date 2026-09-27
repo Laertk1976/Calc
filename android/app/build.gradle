@@ -3,6 +3,20 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def uploadStorePath = System.getenv('CALC_UPLOAD_STORE_FILE')
+def uploadStorePassword = System.getenv('CALC_UPLOAD_STORE_PASSWORD')
+def uploadKeyAlias = System.getenv('CALC_UPLOAD_KEY_ALIAS')
+def uploadKeyPassword = System.getenv('CALC_UPLOAD_KEY_PASSWORD')
+def hasUploadSigning = [uploadStorePath, uploadStorePassword, uploadKeyAlias, uploadKeyPassword].every { it }
+def playStoreBuild = findProperty('playStoreRelease') == 'true' || gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('bundle') && it.toLowerCase().contains('release')
+}
+if (playStoreBuild && !hasUploadSigning) {
+    throw new GradleException('Play Store builds require CALC_UPLOAD_STORE_FILE, CALC_UPLOAD_STORE_PASSWORD, CALC_UPLOAD_KEY_ALIAS and CALC_UPLOAD_KEY_PASSWORD. See release/PLAY_STORE.md.')
+}
+if (hasUploadSigning && (!new File(uploadStorePath).isAbsolute() || !new File(uploadStorePath).isFile())) {
+    throw new GradleException('CALC_UPLOAD_STORE_FILE must point to an existing keystore using an absolute path.')
+}
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -92,12 +106,20 @@ android {
         applicationId 'com.example.calc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.0.12"
+        versionCode 16
+        versionName "1.0.13"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {
+        if (hasUploadSigning) {
+            upload {
+                storeFile file(uploadStorePath)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -110,9 +132,8 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Existing sideload APKs retain their development key unless upload signing is supplied.
+            signingConfig hasUploadSigning ? signingConfigs.upload : signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

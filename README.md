@@ -1,5 +1,9 @@
 # Calc
 
+## Google Play release preparation
+
+See [release/PLAY_STORE.md](release/PLAY_STORE.md) for signing, remaining release requirements, testing and owner details. Store listing, privacy and Data safety drafts are in `release/`. Build a signed upload bundle with `scripts/build-play-bundle.ps1` after configuring its private signing environment variables. See [account deletion](release/ACCOUNT_DELETION_PLAN.md) for the implemented flow, deployment and support procedures. Privacy policy publication and device acceptance remain required.
+
 ## Edit history and recovery
 
 Open the calculator table and press **History** to see saved edits, their times, and previous/new values. Name changes save when you leave the name field; comments save with the comment dialog; number/info changes retain their confirmation step. Canceled and unchanged edits do not create history entries.
@@ -53,21 +57,7 @@ Register this fingerprint for `com.example.calc` in Firebase project `calc-7271f
 
 For a cloud build, log in to EAS, link/configure the project, and run `eas build --profile development --platform android`; `eas.json` includes that profile. Configure the required `EXPO_PUBLIC_*` variables for the build environment. Verify the resulting APK's certificate because EAS signing can differ from local signing.
 
-Create a Firestore database and add these security rules:
-
-```text
-rules_version = '2';
-service cloud.firestore {
-	match /databases/{database}/documents {
-		match /calculations/{calculationId} {
-			allow read, write: if request.auth != null
-				&& request.auth.uid == resource.data.userId;
-			allow create: if request.auth != null
-				&& request.auth.uid == request.resource.data.userId;
-		}
-	}
-}
-```
+Use the tested [firestore.rules](firestore.rules) for database authorization. They restrict records to their owner, prevent ownership changes and block uploads for accounts undergoing deletion. See [account deletion deployment](release/ACCOUNT_DELETION_PLAN.md) before updating rules; do not replace them with Firebase's public test-mode rules.
 
 ## Google Drive setup
 

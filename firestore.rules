@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function activeAccount() {
+      return signedIn() && !exists(/databases/$(database)/documents/accountDeletions/$(request.auth.uid));
+    }
+    match /calculations/{calculationId} {
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if activeAccount() && request.resource.data.userId == request.auth.uid;
+      allow update: if activeAccount()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+    }
+    match /accountDeletions/{userId} {
+      allow get: if signedIn() && request.auth.uid == userId;
+      // A permanent, minimal stop flag prevents still-valid tokens on old devices
+      // from recreating deleted cloud records. It contains no email or records.
+      allow create: if signedIn() && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['requestedAt'])
+        && request.resource.data.requestedAt == request.time
+        && request.auth.token.auth_time >= request.time.toMillis() / 1000 - 300;
+      allow list, update, delete: if false;
+    }
+  }
+}

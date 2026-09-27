@@ -33,8 +33,8 @@ export default function DesktopWorkspace({ tab, onTabChange, display, keypad, ca
         <Switch accessibilityLabel={t('Sound')} value={soundEnabled} onValueChange={toggleSound} trackColor={{ false: '#475569', true: '#15803d' }} thumbColor={soundEnabled ? '#86efac' : '#cbd5e1'} />
       </View>
       <LanguageSelector />
-      <Pressable accessibilityRole="button" onPress={user ? onSignOut : onOpenAuth} style={s.account}>
-        <ButtonLabel numberOfLines={1} style={s.toolbarText}>{t(user ? 'Sign out' : 'Sign in')}</ButtonLabel>
+      <Pressable accessibilityRole="button" onPress={onOpenAuth} style={s.account}>
+        <ButtonLabel numberOfLines={1} style={s.toolbarText}>{t(user ? 'Account' : 'Sign in')}</ButtonLabel>
       </Pressable>
     </View>
     <View style={s.workspace}>

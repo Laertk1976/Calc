@@ -1,18 +1,23 @@
 {
   "expo": {
-    "name": "Calculator",
+    "name": "Calc",
     "slug": "calc",
     "icon": "./assets/icon.png",
      "android": {
       "package": "com.example.calc",
-      "versionCode": 15,
+      "versionCode": 16,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
        "googleServicesFile": "./google-services.json"
     },
     "scheme": [
       "com.example.calc",
       "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
     ],
-    "version": "1.0.12",
+    "version": "1.0.13",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "web": {
@@ -27,7 +32,12 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-audio"
+      ["expo-audio", {
+        "microphonePermission": false,
+        "recordAudioAndroid": false,
+        "enableBackgroundRecording": false,
+        "enableBackgroundPlayback": false
+      }]
     ]
   }
 }
