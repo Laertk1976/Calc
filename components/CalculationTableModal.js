@@ -457,9 +457,10 @@ export default function CalculationTableModal({
     newValue: '',
     rowTitle: '',
   });
-  const [commentModal, setCommentModal] = useState({
+  const [textModal, setTextModal] = useState({
     visible: false,
-    rowIndex: null,
+    rowId: null,
+    field: 'comment',
     text: '',
   });
   const [fromDate, setFromDate] = useState(() => getDateKey(new Date()));
@@ -655,15 +656,15 @@ export default function CalculationTableModal({
     setWarningModal({ visible: false, type: null });
   };
 
-  const handleSaveComment = () => {
-    if (commentModal.rowIndex !== null) {
-      commitChange({ type: 'edit', id: rows[commentModal.rowIndex].id, changes: { comment: commentModal.text } });
-    }
-    setCommentModal({ visible: false, rowIndex: null, text: '' });
+  const handleSaveText = async () => {
+    if (saving || textModal.rowId === null) return;
+    const saved = await commitChange({ type: 'edit', id: textModal.rowId, changes: { [textModal.field]: textModal.text } });
+    if (saved) setTextModal((prev) => ({ ...prev, visible: false, rowId: null, text: '' }));
   };
 
-  const handleCancelComment = () => {
-    setCommentModal({ visible: false, rowIndex: null, text: '' });
+  const handleCancelText = () => {
+    if (saving) return;
+    setTextModal((prev) => ({ ...prev, visible: false, rowId: null, text: '' }));
   };
 
   const handleAddRow = () => {
@@ -980,22 +981,23 @@ export default function CalculationTableModal({
 
                       {/* Info section */}
                       <View style={[styles.tableCell, styles.infoColumn]}>
-                        <TextInput
-                          style={styles.cellInput}
-                          value={calc.info}
-                          onChangeText={(text) => handleCellChange(index, 'info', text)}
-                          onFocus={() => handleNumberCellFocus(index, 'info')}
-                          onBlur={() => handleNumberCellBlur(index, 'info')}
-                          placeholder={t("Formula / Info")}
-                          placeholderTextColor="#64748b"
-                        />
+                        <Pressable
+                          style={({ pressed }) => [styles.cellPressable, pressed && styles.pressed]}
+                          accessibilityRole="button"
+                          accessibilityLabel={t("Formula / Info")}
+                          onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'info', text: calc.info || '' })}
+                        >
+                          <Text style={[styles.cellPressableText, !calc.info && { color: '#64748b' }]} numberOfLines={1}>
+                            {calc.info || t("Formula / Info")}
+                          </Text>
+                        </Pressable>
                       </View>
 
                       {/* Comments section (formerly Add) */}
                       <View style={[styles.tableCell, styles.commentsColumn]}>
                         <Pressable
                           style={({ pressed }) => [styles.cellPressable, pressed && styles.pressed]}
-                          onPress={() => setCommentModal({ visible: true, rowIndex: index, text: calc.comment || '' })}
+                          onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'comment', text: calc.comment || '' })}
                         >
                           <Text
                             style={[styles.cellPressableText, !calc.comment && { color: '#64748b' }]}
@@ -1186,24 +1188,25 @@ export default function CalculationTableModal({
         </KeyboardModalFrame>
       </Modal>
 
-      {/* Comments Editor Modal */}
+      {/* Info and Comments Editor Modal */}
       <Modal
         animationType="fade"
         transparent
-        visible={commentModal.visible}
-        onRequestClose={handleCancelComment}
+        visible={textModal.visible}
+        onRequestClose={handleCancelText}
         onShow={focusCommentInput}
       >
         <KeyboardModalFrame style={styles.commentModalBackdrop}>
           <View style={[styles.commentModalPanel, { flexShrink: 1 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            <Text style={styles.commentModalTitle}>{t("Edit Comment")}</Text>
+            <Text style={styles.commentModalTitle}>{t(textModal.field === 'info' ? "Formula / Info" : "Edit Comment")}</Text>
             <TextInput
               ref={commentInputRef}
               style={styles.commentModalInput}
-              value={commentModal.text}
-              onChangeText={(text) => setCommentModal((prev) => ({ ...prev, text }))}
-              placeholder={t("Enter your comment here...")}
+              value={textModal.text}
+              onChangeText={(text) => setTextModal((prev) => ({ ...prev, text }))}
+              placeholder={t(textModal.field === 'info' ? "Formula / Info" : "Enter your comment here...")}
+              editable={!saving}
               placeholderTextColor="#64748b"
               multiline
               autoFocus
@@ -1212,13 +1215,15 @@ export default function CalculationTableModal({
             </ScrollView>
             <View style={[styles.commentModalActions, { flexShrink: 0 }]}>
               <Pressable
-                onPress={handleCancelComment}
+                onPress={handleCancelText}
+                disabled={saving}
                 style={({ pressed }) => [styles.commentModalCancelButton, pressed && styles.pressed]}
               >
                 <ButtonLabel style={styles.commentModalButtonText}>{t("Cancel")}</ButtonLabel>
               </Pressable>
               <Pressable
-                onPress={handleSaveComment}
+                onPress={handleSaveText}
+                disabled={saving}
                 style={({ pressed }) => [styles.commentModalSaveButton, pressed && styles.pressed]}
               >
                 <ButtonLabel style={styles.commentModalButtonText}>{t("Save")}</ButtonLabel>

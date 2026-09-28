@@ -55,6 +55,8 @@ export default function CalculatorView({
   const [invoicesVisible, setInvoicesVisible] = useState(false);
   const [draft, setDraft] = useState('');
   const expressionInput = useRef(null);
+  const expressionScrollRef = useRef(null);
+  const scrollExpressionToEnd = () => expressionScrollRef.current?.scrollToEnd({ animated: false });
   const beginEditing = () => {
     setDraft((expression || display).split('=')[0].trim());
     setEditing(true);
@@ -125,25 +127,49 @@ export default function CalculatorView({
 
   const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : listVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }]}>
           <View style={{ width: '100%', minWidth: 0 }} onLayout={({ nativeEvent }) => setResultWidth(nativeEvent.layout.width)}>
-            {expression ? <Text style={[styles.expression, { textAlign: 'right' }]}>{colorCalculationSymbols(expression)}</Text> : null}
-            <TextInput
-              ref={expressionInput}
-              accessibilityLabel={t("Edit calculation")}
+            {editing ? (
+              <TextInput
+                ref={expressionInput}
+                accessibilityLabel={t("Edit calculation")}
+                style={[styles.expression, { width: '100%', textAlign: 'right', padding: 0, borderWidth: 0, includeFontPadding: false }, Platform.OS === 'web' && { outlineStyle: 'none' }]}
+                value={draft}
+                onChangeText={setDraft}
+                onBlur={finishEditing}
+                onSubmitEditing={() => expressionInput.current?.blur()}
+                autoFocus
+                multiline={false}
+                cursorColor="#22c55e"
+                selectionColor="#22c55e66"
+                underlineColorAndroid="transparent"
+                autoCorrect={false}
+                autoCapitalize="none"
+                keyboardType="default"
+                returnKeyType="done"
+                submitBehavior="blurAndSubmit"
+              />
+            ) : expression ? (
+              <ScrollView
+                ref={expressionScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0, flexShrink: 0, width: '100%' }}
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+                onContentSizeChange={scrollExpressionToEnd}
+                onLayout={scrollExpressionToEnd}
+              >
+                <Pressable onPress={beginEditing} accessibilityRole="button" accessibilityLabel={t("Edit calculation")}>
+                  <Text numberOfLines={1} style={[styles.expression, { textAlign: 'right', flexShrink: 0 }]}>
+                    {colorCalculationSymbols(expression)}
+                  </Text>
+                </Pressable>
+              </ScrollView>
+            ) : null}
+            <Text
+              numberOfLines={1}
               style={[styles.displayText, { width: '100%', textAlign: 'right', fontSize: resultFontSize, padding: 0, color: '#f8fafc', includeFontPadding: false }]}
-              value={editing ? draft : resultText}
-              onFocus={beginEditing}
-              onChangeText={setDraft}
-              onBlur={finishEditing}
-              onSubmitEditing={() => expressionInput.current?.blur()}
-              cursorColor="#22c55e"
-              selectionColor="#22c55e66"
-              underlineColorAndroid="transparent"
-              autoCorrect={false}
-              autoCapitalize="none"
-              keyboardType="default"
-              returnKeyType="done"
-              submitBehavior="blurAndSubmit"
-            />
+            >
+              {resultText}
+            </Text>
           </View>
           {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? t("Close saved calculations") : t("Open saved calculations")} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />

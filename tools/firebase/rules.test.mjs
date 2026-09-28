@@ -1,7 +1,7 @@
 import { after, before, beforeEach, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 let env;
 const recent = () => ({ auth_time: Math.floor(Date.now() / 1000) });
@@ -14,6 +14,17 @@ before(async () => {
 });
 beforeEach(() => env.clearFirestore());
 after(async () => { await env?.cleanup(); });
+
+test('sync transaction can read a missing record and create it for its owner', async () => {
+  const owner = userDb();
+  const ref = doc(owner, 'calculations', 'local-owner-new');
+  await assertSucceeds(runTransaction(owner, async transaction => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists()) transaction.set(ref, { userId: 'owner', payload: { title: 'New calculation' } });
+  }));
+  await assertFails(getDoc(doc(userDb('other'), 'calculations', ref.id)));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'calculations', 'missing')));
+});
 
 test('normal account can save, query and edit only its own records', async () => {
   const owner = userDb();

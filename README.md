@@ -6,7 +6,7 @@ See [release/PLAY_STORE.md](release/PLAY_STORE.md) for signing, remaining releas
 
 ## Edit history and recovery
 
-Open the calculator table and press **History** to see saved edits, their times, and previous/new values. Name changes save when you leave the name field; comments save with the comment dialog; number/info changes retain their confirmation step. Canceled and unchanged edits do not create history entries.
+Open the calculator table and press **History** to see saved edits, their times, and previous/new values. Name changes save when you leave the name field; comments and info save with their editing dialog; number changes retain their confirmation step. Canceled and unchanged edits do not create history entries.
 
 Use **Undo edit** or **Undo delete** in the table for the most recent eligible change, or **Undo this edit** on a row's latest edit in History. In **History → Deleted rows**, choose **Restore calculation** to recover a row. Deleted rows are excluded from the list, totals, suggestions, and exports. History is stored with each calculation and remains available after reopening; earlier edits and previously permanently deleted rows cannot be reconstructed.
 

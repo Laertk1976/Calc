@@ -6,7 +6,11 @@ service cloud.firestore {
       return signedIn() && !exists(/databases/$(database)/documents/accountDeletions/$(request.auth.uid));
     }
     match /calculations/{calculationId} {
-      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      // Sync transactions check for a record before creating it. Missing records
+      // contain no data; existing records still require ownership.
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/calculations/$(calculationId))
+        || resource.data.userId == request.auth.uid);
+      allow list, delete: if signedIn() && resource.data.userId == request.auth.uid;
       allow create: if activeAccount() && request.resource.data.userId == request.auth.uid;
       allow update: if activeAccount()
         && resource.data.userId == request.auth.uid
