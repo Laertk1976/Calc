@@ -203,7 +203,7 @@ export default function CalculatorView({
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView ref={scrollRef} scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
+      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>

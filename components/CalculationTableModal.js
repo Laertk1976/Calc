@@ -9,7 +9,7 @@ import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
@@ -432,7 +432,22 @@ export default function CalculationTableModal({
   inline = false,
 }) {
   const { t, i18n } = useTranslation();
-  const styles = useCalculatorStyles();
+  const baseStyles = useCalculatorStyles();
+  const [tableViewportWidth, setTableViewportWidth] = useState(0);
+  const columnNames = ['nameColumn', 'infoColumn', 'commentsColumn', 'credColumn', 'factColumn', 'fcashColumn', 'paidOffColumn'];
+  const columnWidth = name => StyleSheet.flatten(baseStyles[name]).width;
+  const contentWidth = columnNames.reduce((total, name) => total + columnWidth(name), 0);
+  const fixedWidth = columnWidth('rowNumberColumn') + columnWidth('actionColumn');
+  const columnScale = inline ? Math.max(1, (tableViewportWidth - fixedWidth) / contentWidth) : 1;
+  const styles = {
+    ...baseStyles,
+    ...(inline && {
+      tableCell: [baseStyles.tableCell, { minHeight: 76, paddingVertical: 10 }],
+      cellInput: [baseStyles.cellInput, { minHeight: 42, height: 42, paddingVertical: 10 }],
+      cellPressable: [baseStyles.cellPressable, { minHeight: 42, paddingVertical: 10 }],
+    }),
+    ...Object.fromEntries(columnNames.map(name => [name, [baseStyles[name], { width: columnWidth(name) * columnScale }]])),
+  };
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [actionsVisible, setActionsVisible] = useState(false);
   useEffect(() => { setActionsVisible(false); }, [visible, keyboardVisible]);
@@ -904,6 +919,7 @@ export default function CalculationTableModal({
           </ScrollView>
           <ScrollView
             style={styles.tableVerticalScroll}
+            onLayout={inline ? event => setTableViewportWidth(event.nativeEvent.layout.width) : undefined}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="none"
             removeClippedSubviews={false}
