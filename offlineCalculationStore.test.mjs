@@ -18,6 +18,20 @@ function fixture() {
 }
 const row = { id: 'one', title: 'Work', value: '5', createdAt: '2026-09-17T10:00:00Z' };
 
+test('renamed table rows appear in saved lists after restart and sync', async () => {
+  const f = fixture();
+  let store = createOfflineCalculationStore(f);
+  await store.change({ type: 'add', row }, 'account');
+  const updated = await store.change({ type: 'edit', id: row.id, changes: { title: 'New name' } }, 'account');
+  assert.equal(updated[0].title, 'New name');
+  store = createOfflineCalculationStore(f);
+  assert.equal((await store.getRows('account'))[0].title, 'New name');
+  f.connect();
+  await store.sync('account');
+  assert.equal((await store.getRows('account'))[0].title, 'New name');
+  assert.equal(f.cloud.get(row.id).row.title, 'New name');
+});
+
 test('account deletion blocks saves and sync across restart and clears only that account', async () => {
   const f = fixture(); f.connect();
   let reads = 0;

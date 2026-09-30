@@ -1,4 +1,5 @@
 import TapSoundProvider from './components/TapSoundProvider';
+import CustomLabelsProvider from './components/CustomLabelsProvider';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -295,6 +296,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <TapSoundProvider>
+      <CustomLabelsProvider>
         <CalculatorView
           display={visibleDisplay}
           expression={expression}
@@ -324,6 +326,7 @@ export default function App() {
         <AccountModal visible={accountVisible} user={user} deletionPending={syncStatus.deletionPending}
           onClose={() => setAccountVisible(false)} onSignOut={() => auth && signOut(auth)}
           onDeleted={() => { setAccountVisible(false); setAuthVisible(false); setSavedCalculations([]); setTableVisible(false); setListVisible(false); setSaveDialogVisible(false); setExpression(''); setDisplay('0'); setStoredValue(null); setOperator(null); setFreshInput(false); }} />
+      </CustomLabelsProvider>
       </TapSoundProvider>
     </SafeAreaProvider>
   );

@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-export default function TableActionsMenu({ open, onToggle, onDismiss, actions }) {
+export default function TableActionsMenu({ open, onToggle, onDismiss, actions, accessibilityLabel }) {
 
   const { t } = useTranslation();
   const { height, width } = useWindowDimensions();
@@ -30,7 +30,7 @@ export default function TableActionsMenu({ open, onToggle, onDismiss, actions })
         </View>
         </View>
       </Modal>
-      <Pressable ref={trigger} accessibilityRole="button" accessibilityLabel={t('Table actions')}
+      <Pressable ref={trigger} accessibilityRole="button" accessibilityLabel={accessibilityLabel || t('Table actions')}
         accessibilityState={{ expanded: open }} onPress={() => {
           trigger.current?.measureInWindow((x, y, buttonWidth) => {
             setPosition({ bottom: height - y + 10, right: Math.max(12, width - x - buttonWidth), availableHeight: y - 24 });
@@ -46,8 +46,8 @@ export default function TableActionsMenu({ open, onToggle, onDismiss, actions })
 
 const s = StyleSheet.create({
   anchor: { alignSelf: 'flex-end', marginBottom: 10, position: 'relative', zIndex: 2 },
-  trigger: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', elevation: 4 },
-  icon: { color: '#ffffff', fontSize: 30, lineHeight: 34 },
+  trigger: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  icon: { color: '#ffffff', fontSize: 15, lineHeight: 17 },
   menu: { position: 'absolute', bottom: 58, right: 0, width: 250, backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: '#475569', padding: 6, elevation: 8, overflow: 'hidden' },
   item: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', borderRadius: 6 },
   label: { color: '#f8fafc', fontSize: 14, fontWeight: '600', flexShrink: 1 },

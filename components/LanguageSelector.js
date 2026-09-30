@@ -6,10 +6,12 @@ import { Modal, ScrollView, Text, View, useWindowDimensions } from 'react-native
 import { useTranslation } from 'react-i18next';
 import { languages, selectLanguage } from '../i18n';
 import useCalculatorStyles from '../useCalculatorStyles';
+import { useCustomLabels } from './CustomLabelsProvider';
 
 export default function LanguageSelector() {
 
   const { t, i18n } = useTranslation();
+  const custom = useCustomLabels();
   const styles = useCalculatorStyles();
   const button = useRef(null);
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
@@ -32,11 +34,16 @@ export default function LanguageSelector() {
             <ScrollView>
               {languages.map(language => (
                 <Pressable key={language.code} accessibilityRole="radio" accessibilityState={{ checked: selected.code === language.code }}
-                  onPress={() => { selectLanguage(language.code); setOpen(false); }}
+                  onPress={() => { custom.chooseStandard(); selectLanguage(language.code); setOpen(false); }}
                   style={{ padding: 12, minHeight: 44, borderRadius: 4, backgroundColor: selected.code === language.code ? '#2563eb' : 'transparent' }}>
                   <Text style={{ color: '#ffffff', fontSize: 16 }}>{language.name}{selected.code === language.code ? ' ✓' : ''}</Text>
                 </Pressable>
               ))}
+              <Pressable accessibilityRole="button" accessibilityLabel="Custom"
+                onPress={() => { custom.chooseCustom(); setOpen(false); }}
+                style={{ padding: 12, minHeight: 44, borderTopWidth: 1, borderTopColor: '#64748b', borderRadius: 4, backgroundColor: custom.active ? '#2563eb' : 'transparent' }}>
+                <Text style={{ color: '#ffffff', fontSize: 16 }}>Custom</Text>
+              </Pressable>
             </ScrollView>
           </View>
         </View>

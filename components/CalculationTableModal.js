@@ -1,4 +1,5 @@
 import Pressable from './SoundPressable';
+import { useCustomLabels } from './CustomLabelsProvider';
 import PanelModal from './PanelModal';
 import ButtonLabel from './ButtonLabel';
 import TableActionsMenu from './TableActionsMenu';
@@ -8,8 +9,8 @@ import DateRangeCalendar from './DateRangeCalendar';
 import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
@@ -432,6 +433,8 @@ export default function CalculationTableModal({
   inline = false,
 }) {
   const { t, i18n } = useTranslation();
+  const custom = useCustomLabels();
+  const columnLabel = (key, fallback) => custom.active ? custom.labels[key] || '' : t(fallback);
   const baseStyles = useCalculatorStyles();
   const [tableViewportWidth, setTableViewportWidth] = useState(0);
   const columnNames = ['nameColumn', 'infoColumn', 'commentsColumn', 'credColumn', 'factColumn', 'fcashColumn', 'paidOffColumn'];
@@ -458,8 +461,6 @@ export default function CalculationTableModal({
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
-  const initialNamesRef = useRef(new Map());
-  const [editingNameId, setEditingNameId] = useState(null);
   const [warningModal, setWarningModal] = useState({
     visible: false,
     type: null,
@@ -510,8 +511,6 @@ export default function CalculationTableModal({
   }, [visible, calculations]);
 
   useEffect(() => {
-    setEditingNameId(null);
-    initialNamesRef.current.clear();
     if (visible) {
       const today = getDateKey(new Date());
       setFromDate(today);
@@ -522,8 +521,9 @@ export default function CalculationTableModal({
   }, [visible]);
 
   const searchValue = searchText.trim().toLowerCase();
-  const filteredRows = rows.filter((r) => {
-    if (searchValue && r.id !== editingNameId && !String(r.title || '').toLowerCase().includes(searchValue)) {
+  const rowIndexes = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
+  const filteredRows = useMemo(() => rows.filter((r) => {
+    if (searchValue && !String(r.title || '').toLowerCase().includes(searchValue)) {
       return false;
     }
 
@@ -542,7 +542,7 @@ export default function CalculationTableModal({
   }).sort((first, second) => (
     new Date(second.savedAt || second.createdAt).getTime()
     - new Date(first.savedAt || first.createdAt).getTime()
-  ));
+  )), [rows, searchValue, fromDate, toDate]);
 
   const getFilterLabel = () => {
     if (searchValue) return t('All Dates');
@@ -901,13 +901,13 @@ export default function CalculationTableModal({
                     <Text style={styles.tableHeaderText}>{t("Comments")}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.credColumn, styles.headerCred]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Debt")}</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{columnLabel('Cred', 'Debt')}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.factColumn, styles.headerFact]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Invoice")}</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{columnLabel('Fact', 'Invoice')}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.fcashColumn, styles.headerFcash]}>
-                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{t("Cash Invoice")}</Text>
+                    <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={[styles.tableHeaderText, styles.tableHeaderTextCompact]}>{columnLabel('Fcash', 'Cash Invoice')}</Text>
                   </View>
                   <View style={[styles.tableHeaderCell, styles.paidOffColumn, styles.headerPaidOff]}>
                     <Text style={styles.tableHeaderText}>{t('Paid off')}</Text>
@@ -917,34 +917,38 @@ export default function CalculationTableModal({
                   </View>
             </View>
           </ScrollView>
-          <ScrollView
+          <View
             style={styles.tableVerticalScroll}
             onLayout={inline ? event => setTableViewportWidth(event.nativeEvent.layout.width) : undefined}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="none"
-            removeClippedSubviews={false}
-            showsVerticalScrollIndicator
-            nestedScrollEnabled
           >
             <ScrollView
               ref={tableBodyScrollRef}
+              horizontal
+              style={{ flex: 1 }}
+              contentContainerStyle={{ height: '100%' }}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="none"
-              removeClippedSubviews={false}
-              horizontal
-              showsHorizontalScrollIndicator
-              style={styles.tableScroll}
               nestedScrollEnabled
               directionalLockEnabled
               alwaysBounceHorizontal={false}
               onScroll={(event) => syncTableHorizontalScroll(event, tableHeaderScrollRef)}
               scrollEventThrottle={16}
             >
-              <View>
-                {filteredRows.length ? (
-                  filteredRows.map((calc, idx) => {
-                    const realIndex = rows.findIndex((r) => r.id === calc.id);
-                    const index = realIndex !== -1 ? realIndex : idx;
+              {/* Keep the vertical viewport bounded so offscreen rows can unmount. */}
+              <FlatList
+                style={{ width: fixedWidth + contentWidth * columnScale, height: '100%' }}
+                data={filteredRows}
+                keyExtractor={(item) => String(item.id)}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="none"
+                nestedScrollEnabled
+                removeClippedSubviews={false}
+                initialNumToRender={12}
+                maxToRenderPerBatch={8}
+                windowSize={7}
+                renderItem={({ item: calc, index: idx }) => {
+                    const realIndex = rowIndexes.get(calc.id);
+                    const index = realIndex ?? idx;
 
                     return (
                       <View key={calc.id || `${calc.createdAt}-${index}`} style={styles.tableBodyRow}>
@@ -954,28 +958,16 @@ export default function CalculationTableModal({
                       {/* Name section */}
                       <View style={[styles.tableCell, styles.nameColumn]}>
                         <View style={styles.shareCellRow}>
-                          <TextInput
-                            style={[styles.cellInput, styles.nameInput, calc.sharedAt && styles.sentRowTitle]}
-                            value={calc.title}
-                            onFocus={() => {
-                              initialNamesRef.current.set(calc.id, calc.title || '');
-                              setEditingNameId(calc.id);
-                            }}
-                            onChangeText={(text) => handleCellChange(index, 'title', text)}
-                            onBlur={() => {
-                              const initialName = initialNamesRef.current.get(calc.id);
-                              initialNamesRef.current.delete(calc.id);
-                              setEditingNameId((current) => current === calc.id ? null : current);
-                              if (initialName !== undefined && initialName !== (calc.title || '')) {
-                                void commitChange({ type: 'edit', id: calc.id, changes: { title: calc.title } });
-                              }
-                            }}
-                            autoComplete="off"
-                            importantForAutofill="no"
-                            autoCorrect={false}
-                            placeholder={t("Name")}
-                            placeholderTextColor="#64748b"
-                          />
+                          <Pressable
+                            style={({ pressed }) => [styles.cellPressable, styles.nameInput, pressed && styles.pressed]}
+                            accessibilityRole="button"
+                            accessibilityLabel={t("Name") + ': ' + (calc.title || '')}
+                            onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'title', text: calc.title || '' })}
+                          >
+                            <Text style={[styles.cellPressableText, calc.sharedAt && styles.sentRowTitle, !calc.title && { color: '#64748b' }]} numberOfLines={1}>
+                              {calc.title || t("Name")}
+                            </Text>
+                          </Pressable>
                           <Pressable
                             onPress={() => {
                               void commitChange({ type: 'markShared', id: calc.id });
@@ -1077,8 +1069,8 @@ export default function CalculationTableModal({
                       </View>
                     </View>
                   );
-                })
-                ) : (
+                }}
+                ListEmptyComponent={
                   <Text style={styles.emptyList}>
                     {searchValue
                       ? t('No matching names.')
@@ -1086,9 +1078,9 @@ export default function CalculationTableModal({
                       ? t('No saved calculations in this date range.')
                       : t("No saved calculations yet.")}
                   </Text>
-                )}
-
-                {filteredRows.length && hasAnyTotals ? (
+                }
+                ListFooterComponent={
+                  filteredRows.length > 0 && hasAnyTotals ? (
                   <View style={styles.tableTotalRow}>
                     <View style={[styles.tableCell, styles.rowNumberColumn, styles.totalSummaryCell]} />
                     <View style={[styles.tableCell, styles.nameColumn, styles.totalSummaryCell]} />
@@ -1110,10 +1102,11 @@ export default function CalculationTableModal({
                     </View>
                     <View style={[styles.tableCell, styles.actionColumn, styles.totalSummaryCell]} />
                   </View>
-                ) : null}
-              </View>
+                ) : null
+                }
+              />
             </ScrollView>
-          </ScrollView>
+          </View>
           <View style={[styles.tableFooter, { zIndex: 11 }, keyboardVisible && { display: 'none' }]}>
             <TableActionsMenu open={actionsVisible} onToggle={() => setActionsVisible(value => !value)} onDismiss={() => setActionsVisible(false)} actions={[
               { id: 'add', label: t('+ Add Row'), onPress: handleAddRow },
@@ -1204,7 +1197,7 @@ export default function CalculationTableModal({
         </KeyboardModalFrame>
       </Modal>
 
-      {/* Info and Comments Editor Modal */}
+      {/* Name, Info and Comments Editor Modal */}
       <Modal
         animationType="fade"
         transparent
@@ -1215,16 +1208,18 @@ export default function CalculationTableModal({
         <KeyboardModalFrame style={styles.commentModalBackdrop}>
           <View style={[styles.commentModalPanel, { flexShrink: 1 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            <Text style={styles.commentModalTitle}>{t(textModal.field === 'info' ? "Formula / Info" : "Edit Comment")}</Text>
+            <Text style={styles.commentModalTitle}>{t(textModal.field === 'title' ? "Name" : textModal.field === 'info' ? "Formula / Info" : "Edit Comment")}</Text>
             <TextInput
               ref={commentInputRef}
               style={styles.commentModalInput}
               value={textModal.text}
               onChangeText={(text) => setTextModal((prev) => ({ ...prev, text }))}
-              placeholder={t(textModal.field === 'info' ? "Formula / Info" : "Enter your comment here...")}
+              placeholder={t(textModal.field === 'title' ? "Name" : textModal.field === 'info' ? "Formula / Info" : "Enter your comment here...")}
               editable={!saving}
               placeholderTextColor="#64748b"
-              multiline
+              multiline={textModal.field !== 'title'}
+              autoCorrect={textModal.field !== 'title'}
+              accessibilityLabel={t(textModal.field === 'title' ? "Name" : textModal.field === 'info' ? "Formula / Info" : "Edit Comment")}
               autoFocus
               showSoftInputOnFocus
             />

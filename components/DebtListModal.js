@@ -1,7 +1,8 @@
 import Pressable from './SoundPressable';
 import PanelModal from './PanelModal';
+import ListExportActions from './ListExportActions';
 import { useState } from 'react';
-import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import SyncStatus from './SyncStatus';
@@ -14,6 +15,8 @@ import useCalculatorStyles from '../useCalculatorStyles';
 export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
+  const { width } = useWindowDimensions();
+  const mobile = width < 600;
   const invoice = amountField === 'fact';
   const paidAt = invoice ? 'invoicePaidOffAt' : 'paidOffAt';
   const paidAmount = invoice ? 'invoicePaidOffAmount' : 'paidOffAmount';
@@ -107,9 +110,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             <Text style={[s.text, s.summaryText, { flexShrink: 1 }]}>{t('Name')}: {selectedName}</Text>
             {button(t('All names'), () => chooseName(null), false, true)}
           </View>}
-          <View style={s.controls}>
+          <View style={[s.controls, mobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
             <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => setPicker(true)} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 1, minWidth: 0 }, pressed && styles.pressed]}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1 }]}>📅 {calendarLabel}</Text>
+              <Text numberOfLines={mobile ? undefined : 1} adjustsFontSizeToFit={!mobile} minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1 }, mobile && { fontSize: 21 }]}>📅 {calendarLabel}</Text>
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => { setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
@@ -143,6 +146,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               </View>;
             })}
           </ScrollView>
+          <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : ''].filter(Boolean).join(' | ')} />
           {!inline && button(t('Close'), onClose, saving)}
         </>}
       </View>
