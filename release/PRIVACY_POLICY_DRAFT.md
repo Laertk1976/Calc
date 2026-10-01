@@ -20,6 +20,14 @@ Records are saved in app storage on your device. When you use an account, accoun
 
 Android system backup may also retain app data according to your device and Google backup settings. [VERIFY FINAL BACKUP CONFIGURATION AND DESCRIBE IT ACCURATELY.]
 
+## Data loss and responsibility
+
+To the fullest extent permitted by applicable law, the developer is not responsible or liable for any loss, deletion, corruption or unavailability of data under any circumstances, including device failure, app errors, synchronization failures, service interruptions, account deletion or user actions. This includes resulting losses or costs.
+
+Keep independent backup copies of important records and verify your exports. Saving and synchronization do not guarantee that data can always be recovered.
+
+This clause does not exclude any responsibility that the law requires the developer to retain, or limit your rights under applicable consumer protection or data protection laws.
+
 ## Providers and exports
 
 Calc uses Google Firebase Authentication and Cloud Firestore to provide account and synchronization features. These services process data to operate and secure the service. See [Firebase privacy information](https://firebase.google.com/support/privacy) and [Google's privacy policy](https://policies.google.com/privacy).

@@ -50,6 +50,24 @@ test('month filter includes whole boundary months, zero debts, and legacy debts'
   assert.equal(debtRows(rows, '', '2025-12').length, 1);
   assert.equal(debtRows(rows, '2026-02').length, 0);
 });
+test('unpaid filter combines with name and date filters and follows payoff and undo', () => {
+  const entries = [
+    { id: 'open', title: 'Anna', cred: '1,200', createdAt: '2026-01-10' },
+    { id: 'paid', title: 'Anna', cred: '0', paidOffAt: '2026-01-11', createdAt: '2026-01-10' },
+    { id: 'zero', title: 'Anna', cred: '0', createdAt: '2026-01-10' },
+    { id: 'credit', title: 'Anna', cred: '-10', createdAt: '2026-01-10' },
+    { id: 'other', title: 'Bob', cred: '20', createdAt: '2026-01-10' },
+    { id: 'later', title: 'Anna', cred: '30', createdAt: '2026-02-10' },
+  ];
+  const filtered = data => debtRows(data, '2026-01', '2026-01', 'Anna', 'cred', true);
+  assert.deepEqual(filtered(entries).map(row => row.id), ['open']);
+  assert.equal(debtRows(entries, '2026-01', '2026-01', 'Anna').length, 4);
+  const at = '2026-03-01T12:00:00Z';
+  const paid = applyCalculationChange(entries, { type: 'edit', id: 'open', payOff: true, changes: {} }, at);
+  assert.equal(filtered(paid).length, 0);
+  const restored = applyCalculationChange(paid, { type: 'edit', id: 'open', undoPayOff: true, paidOffAt: at, changes: {} });
+  assert.deepEqual(filtered(restored).map(row => row.id), ['open']);
+});
 test('distance counts calendar months across years rather than days', () => {
   assert.equal(monthDistance('2025-12-31T12:00:00', new Date(2026, 0, 1)), 1);
   assert.equal(monthDistance('2026-01-01T12:00:00', new Date(2026, 0, 31)), 0);

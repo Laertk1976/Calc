@@ -2,11 +2,13 @@ import Pressable from './SoundPressable';
 import PanelModal from './PanelModal';
 import ListExportActions from './ListExportActions';
 import { useState } from 'react';
-import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import SyncStatus from './SyncStatus';
 import { debtNames, debtRows, monthDistance } from '../debtList';
+import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
 import { pretty } from '../calculatorUtils';
 import { formatSavedDate } from '../calculatorUtils';
 import DateRangeCalendar from './DateRangeCalendar';
@@ -15,8 +17,6 @@ import useCalculatorStyles from '../useCalculatorStyles';
 export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
-  const { width } = useWindowDimensions();
-  const mobile = width < 600;
   const invoice = amountField === 'fact';
   const paidAt = invoice ? 'invoicePaidOffAt' : 'paidOffAt';
   const paidAmount = invoice ? 'invoicePaidOffAmount' : 'paidOffAmount';
@@ -29,7 +29,20 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [searchVisible, setSearchVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedName, setSelectedName] = useState(null);
-  const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField);
+  const [unpaidOnly, setUnpaidOnly] = useState(false);
+  const filterUnpaid = !invoice && unpaidOnly;
+  const undoable = latestUndoableChange(calculations.map(normalizeCalculation).filter(row =>
+    [row, row.history.at(-1)?.before].some(value => value?.[amountField] !== undefined && value[amountField] !== null && value[amountField] !== '')
+  ));
+  const undoLatest = async () => {
+    if (saving || !undoable) return;
+    setSaving(true); setError('');
+    try {
+      await onUpdate({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id });
+    } catch { setError(t('Save failed')); }
+    finally { setSaving(false); }
+  };
+  const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField, filterUnpaid);
   const names = debtNames(calculations, search, amountField);
   const chooseName = name => {
     setSelectedName(name); setFrom(''); setTo(''); setPicker(false);
@@ -80,12 +93,36 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
       <View style={[s.panel, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={s.heading}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
+          {!draft && <View style={s.controls}>
+            {!invoice && <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Unpaid only')}
+              accessibilityState={{ selected: unpaidOnly }}
+              onPress={() => setUnpaidOnly(current => !current)}
+              style={[s.button, s.unpaidButton, unpaidOnly && s.unpaidButtonActive]}
+            >
+              <Ionicons name={unpaidOnly ? 'filter' : 'filter-outline'} size={14.4} color="#e2e8f0" />
+              <Text style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
+              {unpaidOnly && <Ionicons name="checkmark" size={14.4} color="#e2e8f0" />}
+            </Pressable>}
           {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(current => !current); setSearch(''); }} style={[s.button, { width: 44 }]}>
             <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
             <View style={{ position: 'absolute', width: 8, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 8, bottom: 10 }} />
           </Pressable>}
+          </View>}
         </View>
-        {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+        {!draft && <View style={[s.controls, { justifyContent: 'space-between' }]}>
+          <SyncStatus compact syncStatus={syncStatus} onRetrySync={onRetrySync} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t(undoable?.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}
+            disabled={saving || !undoable}
+            onPress={undoLatest}
+            style={[s.button, s.undoButton, (saving || !undoable) && { opacity: 0.5 }]}
+          >
+            <Ionicons name="arrow-undo" size={22} color="#e2e8f0" />
+          </Pressable>
+        </View>}
         {draft ? <ScrollView keyboardShouldPersistTaps="handled">
           {payoffDetails(draft)}
           {['title', amountField, 'comment'].map(field => <View key={field}>
@@ -110,9 +147,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             <Text style={[s.text, s.summaryText, { flexShrink: 1 }]}>{t('Name')}: {selectedName}</Text>
             {button(t('All names'), () => chooseName(null), false, true)}
           </View>}
-          <View style={[s.controls, mobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => setPicker(true)} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 1, minWidth: 0 }, pressed && styles.pressed]}>
-              <Text numberOfLines={mobile ? undefined : 1} adjustsFontSizeToFit={!mobile} minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1 }, mobile && { fontSize: 21 }]}>📅 {calendarLabel}</Text>
+          <View style={s.controls}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => setPicker(true)} style={({ pressed }) => [styles.dateDropdownButton, { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4 }, pressed && styles.pressed]}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: 22 }]}>📅 {calendarLabel}</Text>
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => { setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
@@ -123,7 +160,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           <Text style={[s.heading, s.detailHeading]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
           <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            {!rows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : 'No debts in this date range.')}</Text>}
+            {!rows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
             {rows.map(row => {
               const distance = monthDistance(row.savedAt || row.createdAt);
               return <View key={row.id} style={s.row}>
@@ -146,7 +183,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               </View>;
             })}
           </ScrollView>
-          <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : ''].filter(Boolean).join(' | ')} />
+          <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : '', filterUnpaid ? t('Unpaid only') : ''].filter(Boolean).join(' | ')} />
           {!inline && button(t('Close'), onClose, saving)}
         </>}
       </View>
@@ -178,6 +215,10 @@ const s = StyleSheet.create({
   controls: { flexDirection: 'row', flexWrap: 'nowrap', gap: 6, alignItems: 'center' },
   button: { backgroundColor: '#334155', paddingHorizontal: 8, paddingVertical: 8.4, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 30.8 },
   rowButton: { flex: 1, minWidth: 0 },
+  undoButton: { width: 44, minHeight: 44 },
+  unpaidButton: { flexDirection: 'row', gap: 4.8, minHeight: 35.2, paddingHorizontal: 9.6, paddingVertical: 6.72, borderRadius: 8 },
+  unpaidButtonText: { fontSize: 8.96 },
+  unpaidButtonActive: { backgroundColor: '#1d4ed8' },
   buttonText: { color: '#e2e8f0', fontSize: 11.2, textAlign: 'center' },
   summaryText: { fontSize: 11.2 },
   detailHeading: { fontSize: 14 },

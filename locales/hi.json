@@ -1,4 +1,6 @@
 {
+  "Unpaid only": "केवल बकाया",
+  "No unpaid debts match these filters.": "इन फ़िल्टर से मेल खाने वाले बकाया ऋण नहीं हैं।",
   "Table": "तालिका",
   "Calculator": "कैलकुलेटर",
   "Expand table": "तालिका फैलाएँ",

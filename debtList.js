@@ -23,9 +23,10 @@ export function debtNames(calculations, query = '', amountField = 'cred') {
   return [...names.values()].sort((a, b) => a.localeCompare(b));
 }
 
-export function debtRows(calculations, from = '', to = '', name = null, amountField = 'cred') {
+export function debtRows(calculations, from = '', to = '', name = null, amountField = 'cred', unpaidOnly = false) {
   return calculations.filter(row => !row.deletedAt).map(normalizeCalculation)
     .filter(row => row[amountField] !== '' && row[amountField] !== null && row[amountField] !== undefined)
+    .filter(row => !unpaidOnly || (!row[amountField === 'fact' ? 'invoicePaidOffAt' : 'paidOffAt'] && Number(String(row[amountField]).replace(/,/g, '')) > 0))
     .filter(row => name === null || debtNameKey(row.title) === debtNameKey(name))
     .filter(row => {
       const month = monthKey(row.savedAt || row.createdAt);

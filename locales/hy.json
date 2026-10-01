@@ -1,4 +1,6 @@
 {
+  "Unpaid only": "Միայն չմարվածները",
+  "No unpaid debts match these filters.": "Այս զտիչներին համապատասխան չմարված պարտքեր չկան։",
   "Table": "Աղյուսակ",
   "Calculator": "Հաշվիչ",
   "Expand table": "Ընդլայնել աղյուսակը",

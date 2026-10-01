@@ -52,8 +52,8 @@ export default function DesktopWorkspace({ tab, onTabChange, display, keypad, ca
         {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
           {id === 'list' && <CalculationListModal desktop inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
           {id === 'table' && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
-          {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} />}
-          {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} />}
+          {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+          {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
         </View>)}
       </View>
       <View testID="desktop-calculator" style={[s.calculator, fullWidth && { display: 'none' }]}>

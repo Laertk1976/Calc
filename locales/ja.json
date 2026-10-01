@@ -1,4 +1,6 @@
 {
+  "Unpaid only": "未払いのみ",
+  "No unpaid debts match these filters.": "この条件に一致する未払いの債務はありません。",
   "Table": "表",
   "Calculator": "電卓",
   "Expand table": "表を拡大",
