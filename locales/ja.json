@@ -1,4 +1,9 @@
 {
+  "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "この履歴を完全に削除しますか？現在の計算は変更されません。この履歴は復元できません。",
+  "Deleted rows stay here until restored or permanently deleted.": "削除した行は、復元するか完全に削除するまでここに残ります。",
+  "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "「{{name}}」とその履歴を完全に削除しますか？この操作は取り消せず、復元もできません。",
+  "Delete permanently": "完全に削除",
+  "Back": "戻る",
   "Unpaid only": "未払いのみ",
   "No unpaid debts match these filters.": "この条件に一致する未払いの債務はありません。",
   "Table": "表",

@@ -1,4 +1,9 @@
 {
+  "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.",
+  "Deleted rows stay here until restored or permanently deleted.": "Deleted rows stay here until restored or permanently deleted.",
+  "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.",
+  "Delete permanently": "Delete permanently",
+  "Back": "Back",
   "Unpaid only": "Unpaid only",
   "No unpaid debts match these filters.": "No unpaid debts match these filters.",
   "Table": "Table",

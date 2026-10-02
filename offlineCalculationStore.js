@@ -5,10 +5,13 @@ export const AUTO_SYNC_INTERVAL_MS = 8 * 60 * 60 * 1000;
 const keyFor = (userId) => userId ? `${DEVICE_KEY}:user:${encodeURIComponent(userId)}` : DEVICE_KEY;
 const freshState = () => ({ version: 1, rows: [], queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null });
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const visibleRows = rows => rows.filter(row => !row.permanentlyDeletedAt);
 
 // Reapply only fields changed locally. Other fields changed on another device
 // survive, and both devices' history entries remain available.
 export function mergeRemoteCalculation(current, operation) {
+  if (current?.permanentlyDeletedAt) return normalizeCalculation(current);
+  if (operation.after?.permanentlyDeletedAt) return normalizeCalculation(operation.after);
   if (!current) return operation.after;
   if (!operation.before) return current; // Existing cloud row wins over a device import.
   const merged = { ...current };
@@ -21,7 +24,9 @@ export function mergeRemoteCalculation(current, operation) {
     }
   }
   const events = new Map((current.history || []).map((event) => [event.id, event]));
-  for (const event of operation.after.history || []) if (!events.has(event.id)) events.set(event.id, event);
+  for (const event of operation.after.history || []) {
+    if (!events.has(event.id) || event.type === 'purged') events.set(event.id, event);
+  }
   merged.history = [...events.values()];
   return merged;
 }
@@ -57,7 +62,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
 
   function notify(userId, state, status = statuses.get(userId)) {
     const snapshot = {
-      rows: state.rows,
+      rows: visibleRows(state.rows),
       status: { phase: userId ? (state.queue.length ? 'pending' : 'checking') : 'local', ...status, ...(state.deletionPending ? { phase: 'deleting' } : {}), deletionPending: Boolean(state.deletionPending), pending: state.queue.length, lastSyncedAt: state.lastSyncedAt },
     };
     for (const listener of listeners.get(userId) || []) listener(snapshot);
@@ -77,12 +82,18 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       const id = change.type === 'add' ? change.row.id : change.id;
       const before = state.rows.find((row) => row.id === id) || null;
       const after = rows.find((row) => row.id === id);
-      if (same(before, after)) return state.rows;
-      const queue = userId ? [...state.queue, { id: operationId(), rowId: id, before, after }] : [];
+      if (same(before, after)) return visibleRows(state.rows);
+      const permanent = change.type === 'permanentDelete';
+      const scrub = value => value?.history ? { ...value, history: value.history.map(event => event.id === change.eventId ? { id: event.id, at: event.at, type: 'purged' } : event) } : value;
+      const historyDeletion = change.type === 'deleteHistoryEvent';
+      const pending = permanent ? state.queue.filter(item => item.rowId !== id) : historyDeletion
+        ? state.queue.map(item => item.rowId === id ? { ...item, before: scrub(item.before), after: scrub(item.after) } : item)
+        : state.queue;
+      const queue = userId ? [...pending, { id: operationId(), rowId: id, before: permanent ? null : historyDeletion ? scrub(before) : before, after }] : [];
       const next = await persist(userId, { ...state, rows, queue });
       statuses.set(userId, { phase: userId ? 'pending' : 'local' });
       notify(userId, next);
-      return next.rows;
+      return visibleRows(next.rows);
     });
   }
 
@@ -94,6 +105,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       assertWritable(userId, state);
       const imported = new Set(state.importedIds);
       for (const row of device.rows) {
+        if (row.permanentlyDeletedAt) continue;
         if (imported.has(row.id)) continue;
         if (!state.rows.some((item) => item.id === row.id)) {
           state.rows.push(row);
@@ -105,7 +117,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       await persist(userId, state);
       statuses.set(userId, { phase: 'pending' });
       notify(userId, state);
-      return state.rows;
+      return visibleRows(state.rows);
     });
   }
 
@@ -209,12 +221,12 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
 
   return {
     change, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion,
-    getRows: async (userId = null) => (await read(userId)).rows,
+    getRows: async (userId = null) => visibleRows((await read(userId)).rows),
     getSnapshot: async (userId = null) => notify(userId, await read(userId)),
     getImportCount: async (userId) => {
       if (!userId) return 0;
       const state = await read(userId);
-      return (await read(null)).rows.filter((row) => !state.importedIds.includes(row.id)).length;
+      return visibleRows((await read(null)).rows).filter((row) => !state.importedIds.includes(row.id)).length;
     },
     subscribe(userId, listener) {
       if (!listeners.has(userId)) listeners.set(userId, new Set());

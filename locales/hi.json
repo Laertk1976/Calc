@@ -1,4 +1,9 @@
 {
+  "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "क्या इतिहास की यह प्रविष्टि स्थायी रूप से हटाएँ? वर्तमान गणना अपरिवर्तित रहेगी। यह प्रविष्टि बहाल नहीं की जा सकती।",
+  "Deleted rows stay here until restored or permanently deleted.": "हटाई गई पंक्तियाँ बहाल करने या स्थायी रूप से हटाने तक यहाँ रहती हैं।",
+  "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "क्या \"{{name}}\" और उसका इतिहास स्थायी रूप से हटाएँ? इसे पूर्ववत या बहाल नहीं किया जा सकता।",
+  "Delete permanently": "स्थायी रूप से हटाएँ",
+  "Back": "वापस",
   "Unpaid only": "केवल बकाया",
   "No unpaid debts match these filters.": "इन फ़िल्टर से मेल खाने वाले बकाया ऋण नहीं हैं।",
   "Table": "तालिका",

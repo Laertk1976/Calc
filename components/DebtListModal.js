@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import SyncStatus from './SyncStatus';
-import { debtNames, debtRows, monthDistance } from '../debtList';
+import { debtNames, debtRows, groupDebtRows, monthDistance } from '../debtList';
 import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
 import { pretty } from '../calculatorUtils';
 import { formatSavedDate } from '../calculatorUtils';
@@ -24,6 +24,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [to, setTo] = useState('');
   const [picker, setPicker] = useState(false);
   const [draft, setDraft] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -32,6 +33,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [unpaidOnly, setUnpaidOnly] = useState(false);
   const filterUnpaid = !invoice && unpaidOnly;
   const undoable = latestUndoableChange(calculations.map(normalizeCalculation).filter(row =>
+    selectedId?.includes(row.id) &&
     [row, row.history.at(-1)?.before].some(value => value?.[amountField] !== undefined && value[amountField] !== null && value[amountField] !== '')
   ));
   const undoLatest = async () => {
@@ -43,6 +45,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     finally { setSaving(false); }
   };
   const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField, filterUnpaid);
+  const selectedRows = selectedId === null ? [] : debtRows(calculations, '', '', null, amountField).filter(row => selectedId.includes(row.id));
+  const selectedRow = selectedRows[0];
+  const groups = groupDebtRows(rows, amountField);
+  const visibleRows = selectedRow ? selectedRows : groups.map(group => group.rows[0]);
+  const openRows = entries => { setSelectedId(entries.map(row => row.id)); setError(''); Keyboard.dismiss(); };
   const names = debtNames(calculations, search, amountField);
   const chooseName = name => {
     setSelectedName(name); setFrom(''); setTo(''); setPicker(false);
@@ -61,6 +68,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     setSaving(true); setError('');
     try {
       await onUpdate({ type: 'delete', id: row.id });
+      if (selectedId?.length === 1 && selectedId[0] === row.id) setSelectedId(null);
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
   };
@@ -88,12 +96,12 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
   };
-  return <PanelModal inline={inline} transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose(); } }}>
+  return <PanelModal inline={inline} transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (selectedRow) { setSelectedId(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose?.(); } }}>
     <KeyboardModalFrame style={[s.backdrop, inline && { padding: 0, backgroundColor: 'transparent' }]}>
-      <View style={[s.panel, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
+      <View style={[s.panel, selectedRow && { height: '95%' }, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={s.heading}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
-          {!draft && <View style={s.controls}>
+          {!draft && !selectedRow && <View style={s.controls}>
             {!invoice && <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Unpaid only')}
@@ -111,8 +119,10 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           </Pressable>}
           </View>}
         </View>
-        {!draft && <View style={[s.controls, { justifyContent: 'space-between' }]}>
+        {!draft && !selectedRow && <View style={[s.controls, { justifyContent: 'space-between' }]}>
           <SyncStatus compact syncStatus={syncStatus} onRetrySync={onRetrySync} />
+        </View>}
+        {!draft && !!selectedRow && <View style={[s.controls, { justifyContent: 'flex-end' }]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t(undoable?.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}
@@ -136,6 +146,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             {button(t('Cancel'), () => { setDraft(null); setError(''); }, saving, true)}
           </View>
         </ScrollView> : <>
+          {!selectedRow && <>
           {searchVisible && <View>
             <TextInput autoFocus value={search} onChangeText={setSearch} accessibilityLabel={t('Search names...')} placeholder={t('Search names...')} placeholderTextColor="#94a3b8" style={s.input} autoCorrect={false} />
             <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled style={{ maxHeight: 180 }}>
@@ -149,7 +160,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           </View>}
           <View style={s.controls}>
             <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => setPicker(true)} style={({ pressed }) => [styles.dateDropdownButton, { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4 }, pressed && styles.pressed]}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: 22 }]}>📅 {calendarLabel}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: 15 }]}>📅 {calendarLabel}</Text>
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => { setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
@@ -158,12 +169,20 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           </View>
           <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{rangeLabel}</Text>
           <Text style={[s.heading, s.detailHeading]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
+          </>}
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }}>
-            {!rows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
-            {rows.map(row => {
+          {selectedRows.length > 1 && <Text style={s.heading}>{selectedRow.title || t('Untitled')} · {t('TOTAL')}: {pretty(String(Number(selectedRows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0).toPrecision(15))))}</Text>}
+          <ScrollView key={selectedRow ? selectedRow.id : 'list'} keyboardShouldPersistTaps="handled" style={selectedRow ? { flex: 1 } : { flexShrink: 1 }} contentContainerStyle={selectedRow && { flexGrow: 1 }}>
+            {!visibleRows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
+            {visibleRows.map((row, index) => {
+              const group = !selectedRow ? groups[index] : null;
+              if (group?.rows.length > 1) return <Pressable key={group.key} accessibilityRole="button" accessibilityLabel={group.title || t('Untitled')} disabled={saving} onPress={() => openRows(group.rows)} style={s.row}>
+                <Text style={[s.heading, s.detailHeading]}>{group.title || t('Untitled')}</Text>
+                <Text style={s.amount}>{pretty(String(group.total))}</Text>
+              </Pressable>;
               const distance = monthDistance(row.savedAt || row.createdAt);
-              return <View key={row.id} style={s.row}>
+              return <View key={row.id} style={[s.row, selectedRows.length === 1 && { flex: 1, borderBottomWidth: 0 }]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={row.title || t('Untitled')} disabled={saving || !!selectedRow} onPress={() => openRows([row])} style={[{ gap: 6 }, selectedRows.length === 1 && { flex: 1 }]}>
                 <Text style={[s.heading, s.detailHeading]}>{row.title || t('Untitled')}</Text>
                 <Text style={[s.amount, row[paidAt] && { color: '#86efac' }]}>{pretty(String(row[paidAt] ? row[paidAmount] : row[amountField]))}</Text>
                 <View style={s.dateBlock}>
@@ -173,6 +192,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
                 {payoffDetails(row)}
                 <Text style={s.muted}>{distance === null ? t('No date') : distance < 0 ? t('In {{count}} months', { count: -distance }) : t('{{count}} months ago', { count: distance })}</Text>
                 {!!row.comment && <Text style={s.text}>{row.comment}</Text>}
+                </Pressable>
                 <View style={s.controls}>
                   {button(t('Edit'), () => { setError(''); setDraft({ ...row }); }, saving, true)}
                   <Pressable accessibilityRole="button" disabled={saving} onPress={() => deleteDebt(row)} style={[s.button, s.rowButton, { backgroundColor: '#7f1d1d' }, saving && { opacity: 0.5 }]}>
@@ -183,8 +203,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               </View>;
             })}
           </ScrollView>
-          <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : '', filterUnpaid ? t('Unpaid only') : ''].filter(Boolean).join(' | ')} />
-          {!inline && button(t('Close'), onClose, saving)}
+          {selectedRow && <ListExportActions rows={selectedRows} amountField={amountField} summary={selectedRow.title || t('Untitled')} accessibilityLabel={`${t('Share')}: ${selectedRow.title || t('Untitled')}`} />}
+          {!selectedRow && <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : '', filterUnpaid ? t('Unpaid only') : ''].filter(Boolean).join(' | ')} />}
+          {selectedRow ? button(t('Back'), () => { setSelectedId(null); setError(''); }, saving) : !inline && button(t('Close'), onClose, saving)}
         </>}
       </View>
     </KeyboardModalFrame>

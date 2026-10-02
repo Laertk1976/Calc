@@ -14,6 +14,18 @@ export function monthDistance(value, now = new Date()) {
 
 export const debtNameKey = name => String(name || '').trim().normalize('NFC').toLowerCase();
 
+export function groupDebtRows(rows, amountField = 'cred') {
+  const groups = new Map();
+  for (const row of rows) {
+    const key = debtNameKey(row.title) || `untitled:${row.id}`;
+    if (!groups.has(key)) groups.set(key, { key, title: row.title, rows: [], total: 0 });
+    const group = groups.get(key);
+    group.rows.push(row);
+    group.total += Number(String(row[amountField]).replace(/,/g, '')) || 0;
+  }
+  return [...groups.values()].map(group => ({ ...group, total: Number(group.total.toPrecision(15)) }));
+}
+
 export function debtNames(calculations, query = '', amountField = 'cred') {
   const names = new Map();
   for (const row of debtRows(calculations, '', '', null, amountField)) {

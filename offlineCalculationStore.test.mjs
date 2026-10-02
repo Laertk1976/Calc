@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const url = (s) => `data:text/javascript;base64,${Buffer.from(s).toString('base64')}`;
 const utils = url(await readFile('calculatorUtils.js', 'utf8'));
 const history = url((await readFile('calculationHistory.js', 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils)));
-const { createOfflineCalculationStore } = await import(url((await readFile('offlineCalculationStore.js', 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
+const { createOfflineCalculationStore, mergeRemoteCalculation } = await import(url((await readFile('offlineCalculationStore.js', 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
 function fixture() {
   const data = new Map();
   const cloud = new Map();
@@ -17,6 +17,61 @@ function fixture() {
   return { storage, remote, cloud, connect: () => { online = true; } };
 }
 const row = { id: 'one', title: 'Work', value: '5', createdAt: '2026-09-17T10:00:00Z' };
+
+test('removed history stays removed when merged with stale edits in either direction', () => {
+  const event = { id: 'event', at: '2026-10-03', type: 'edit', before: { title: 'Old' }, after: { title: 'New' } };
+  const before = { ...row, history: [event] };
+  const after = { ...row, history: [{ id: event.id, at: event.at, type: 'purged' }] };
+  assert.deepEqual(mergeRemoteCalculation(before, { before, after }).history, after.history);
+  assert.deepEqual(mergeRemoteCalculation(after, { before, after: before }).history, after.history);
+});
+
+test('history deletion scrubs queued snapshots and survives restart and sync', async () => {
+  const f = fixture();
+  let store = createOfflineCalculationStore(f);
+  await store.change({ type: 'add', row }, 'account');
+  const edited = await store.change({ type: 'edit', id: row.id, changes: { title: 'Updated' } }, 'account');
+  const eventId = edited[0].history[0].id;
+  await store.change({ type: 'deleteHistoryEvent', id: row.id, eventId }, 'account');
+  const state = JSON.parse(await f.storage.getItem('calculatorCalculations:user:account'));
+  for (const operation of state.queue) {
+    for (const value of [operation.before, operation.after]) {
+      const event = value?.history?.find(item => item.id === eventId);
+      if (event) assert.deepEqual(Object.keys(event).sort(), ['at', 'id', 'type']);
+    }
+  }
+  store = createOfflineCalculationStore(f);
+  f.connect();
+  await store.sync('account');
+  const [saved] = await store.getRows('account');
+  assert.equal(saved.title, 'Updated');
+  assert.equal(saved.history[0].type, 'purged');
+});
+
+test('permanent deletion wins over stale edits and imports on other devices', () => {
+  const marker = { id: row.id, permanentlyDeletedAt: '2026-10-03T10:00:00Z' };
+  assert.deepEqual(mergeRemoteCalculation(marker, { before: row, after: { ...row, title: 'Old device edit' } }), marker);
+  assert.deepEqual(mergeRemoteCalculation(marker, { before: null, after: row }), marker);
+  assert.deepEqual(mergeRemoteCalculation(row, { before: null, after: marker }), marker);
+});
+
+test('permanent deletion survives restart and sync and clears pending content', async () => {
+  const f = fixture();
+  let store = createOfflineCalculationStore(f);
+  await store.change({ type: 'add', row }, 'account');
+  await store.change({ type: 'delete', id: row.id }, 'account');
+  assert.deepEqual(await store.change({ type: 'permanentDelete', id: row.id }, 'account'), []);
+  const saved = JSON.parse(await f.storage.getItem('calculatorCalculations:user:account'));
+  assert.equal(saved.queue.length, 1);
+  assert.equal(saved.queue[0].before, null);
+  assert.equal(JSON.stringify(saved).includes('Work'), false);
+  store = createOfflineCalculationStore(f);
+  assert.deepEqual(await store.getRows('account'), []);
+  f.connect();
+  await store.sync('account');
+  assert.deepEqual(await store.getRows('account'), []);
+  assert.deepEqual(Object.keys(f.cloud.get(row.id).row).sort(), ['id', 'permanentlyDeletedAt']);
+});
 
 test('renamed table rows appear in saved lists after restart and sync', async () => {
   const f = fixture();

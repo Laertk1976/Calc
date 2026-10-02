@@ -1,4 +1,5 @@
 import Pressable from './SoundPressable';
+import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
@@ -40,17 +41,18 @@ export default function SyncStatus({ syncStatus, onRetrySync, compact = false })
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={`${t('Retry sync')}. ${statusLabel}${syncedTime ? `, ${syncedTime}` : ''}`}
           accessibilityState={{ disabled, busy }} accessibilityLiveRegion="polite"
-          disabled={disabled} onPress={manualSync} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+          disabled={disabled} onPress={manualSync} style={{ width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Animated.View style={{ transform: [{ rotate: rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
             <Ionicons name="sync" size={20} color={color} />
           </Animated.View>
         </Pressable>
-        {!!syncedTime && <Text style={{ color, fontSize: 12 }}>{syncedTime}</Text>}
+        {!!syncedTime && <Text numberOfLines={1} adjustsFontSizeToFit style={{ color, fontSize: 12, flexShrink: 1 }}>{syncedTime}</Text>}
       </View>
       {syncStatus?.deletionPending && <Text accessibilityRole="alert" style={{ color: '#fbbf24', fontSize: 12, maxWidth: 240 }}>{t('Account deletion is pending. Open Account to finish deletion.')}</Text>}
       {['offline', 'error', 'pending'].includes(syncStatus?.phase) && (
-        <Pressable accessibilityRole="button" disabled={disabled} onPress={manualSync} style={{ paddingVertical: 8 }}>
-          <Text style={{ color: '#a8caff', fontSize: 13 }}>{t("Retry sync")}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Retry sync')} disabled={disabled} onPress={manualSync} style={compact ? { height: 36, justifyContent: 'center', minWidth: 0 } : { paddingVertical: 8 }}>
+          {compact ? <ButtonLabel numberOfLines={1} style={{ color: '#a8caff', fontSize: 13 }}>{t('Retry sync')}</ButtonLabel>
+            : <Text style={{ color: '#a8caff', fontSize: 13 }}>{t('Retry sync')}</Text>}
         </Pressable>
       )}
     </View>

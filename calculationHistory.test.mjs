@@ -10,6 +10,32 @@ const original = { createdAt: '2026-09-16T12:00:00.000Z', title: 'Customer', exp
 const id = original.createdAt;
 const time = '2026-09-16T13:00:00.000Z';
 
+test('history deletion preserves current values and cannot expose stale undo', () => {
+  let rows = apply([original], { type: 'edit', id, changes: { title: 'First' } });
+  rows = apply(rows, { type: 'edit', id, changes: { title: 'Second' } });
+  const first = rows[0].history[0].id;
+  const last = rows[0].history.at(-1).id;
+  rows = apply(rows, { type: 'deleteHistoryEvent', id, eventId: last });
+  assert.equal(rows[0].title, 'Second');
+  assert.equal(latestUndoableChange(rows), null);
+  assert.deepEqual(Object.keys(rows[0].history.at(-1)).sort(), ['at', 'id', 'type']);
+  assert.throws(() => apply(rows, { type: 'undo', id, eventId: first }), /changed/);
+  rows = apply(rows, { type: 'deleteHistoryEvent', id, eventId: first });
+  assert.ok(rows[0].history.every(event => event.type === 'purged'));
+  rows = apply(rows, { type: 'edit', id, changes: { title: 'Third' } });
+  assert.ok(latestUndoableChange(rows));
+});
+
+test('permanent deletion clears all content and history and cannot be restored', () => {
+  assert.throws(() => apply([original], { type: 'permanentDelete', id }), /Only deleted/);
+  const deleted = apply([original], { type: 'delete', id });
+  const purged = apply(deleted, { type: 'permanentDelete', id }, time);
+  assert.deepEqual(purged, [{ id, permanentlyDeletedAt: time }]);
+  assert.deepEqual(normalizeCalculation(purged[0]), purged[0]);
+  assert.throws(() => apply(purged, { type: 'restore', id }), /permanently deleted/);
+  assert.equal(latestUndoableChange(purged), null);
+});
+
 test('shared marker survives reload, edits and undo without adding history', () => {
   let rows = apply([original], { type: 'markShared', id }, time);
   rows = JSON.parse(JSON.stringify(rows)).map(normalizeCalculation);

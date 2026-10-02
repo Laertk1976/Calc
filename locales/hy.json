@@ -1,4 +1,9 @@
 {
+  "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Ընդմիշտ ջնջե՞լ պատմության այս գրառումը։ Ընթացիկ հաշվարկը կմնա անփոփոխ։ Այս գրառումը հնարավոր չէ վերականգնել։",
+  "Deleted rows stay here until restored or permanently deleted.": "Ջնջված տողերը մնում են այստեղ մինչև վերականգնելը կամ ընդմիշտ ջնջելը։",
+  "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Ընդմիշտ ջնջե՞լ «{{name}}»-ը և դրա պատմությունը։ Սա հնարավոր չէ հետարկել կամ վերականգնել։",
+  "Delete permanently": "Ջնջել ընդմիշտ",
+  "Back": "Հետ",
   "Unpaid only": "Միայն չմարվածները",
   "No unpaid debts match these filters.": "Այս զտիչներին համապատասխան չմարված պարտքեր չկան։",
   "Table": "Աղյուսակ",

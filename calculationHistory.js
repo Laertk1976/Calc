@@ -8,6 +8,7 @@ export const HISTORY_FIELDS = {
 const snapshotFields = [...Object.keys(HISTORY_FIELDS), 'expression', 'value', 'type'];
 
 export function normalizeCalculation(calc) {
+  if (calc.permanentlyDeletedAt) return { id: calc.id, permanentlyDeletedAt: calc.permanentlyDeletedAt };
   const type = calc.type || 'Add';
   const rawVal = calc.value || '';
   const expression = calc.expression;
@@ -57,6 +58,21 @@ export function applyCalculationChange(calculations, change, at = new Date().toI
   if (change.type === 'add') return [normalizeCalculation(change.row), ...rows];
   const row = rows.find((item) => item.id === change.id);
   if (!row) throw new Error('This calculation no longer exists. Reopen the table and try again.');
+  if (row.permanentlyDeletedAt) throw new Error('This calculation was permanently deleted.');
+  if (change.type === 'deleteHistoryEvent') {
+    const event = row.history.find(item => item.id === change.eventId);
+    if (!event || event.type === 'purged') throw new Error('This history entry no longer exists.');
+    if (row.deletedAt && row.history.at(-1)?.id === event.id) throw new Error('Permanently delete the deleted calculation instead.');
+    // Keep only ordering and identity so stale sync cannot restore this entry
+    // or make an older edit eligible for undo.
+    return rows.map(item => item.id === row.id ? {
+      ...item, history: item.history.map(entry => entry.id === event.id ? { id: entry.id, at: entry.at, type: 'purged' } : entry),
+    } : item);
+  }
+  if (change.type === 'permanentDelete') {
+    if (!row.deletedAt) throw new Error('Only deleted calculations can be permanently deleted.');
+    return rows.map(item => item.id === row.id ? { id: row.id, permanentlyDeletedAt: at } : item);
+  }
   if (change.type === 'markShared') {
     if (row.sharedAt || row.deletedAt) return rows;
     return rows.map(item => item.id === row.id ? { ...item, sharedAt: at } : item);

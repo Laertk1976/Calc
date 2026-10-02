@@ -14,8 +14,10 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState('');
   const [deletedOnly, setDeletedOnly] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleteEvent, setDeleteEvent] = useState(null);
   const events = calculations.flatMap((row) => (row.history || []).map((event) => ({ row, event })))
-    .filter(({ row, event }) => (!deletedOnly || (row.deletedAt && event.type === 'delete' && row.history.at(-1)?.id === event.id))
+    .filter(({ row, event }) => event.type !== 'purged' && (!deletedOnly || (row.deletedAt && event.type === 'delete' && row.history.at(-1)?.id === event.id))
       && [row.title, event.before.title, event.after.title].some((title) => String(title || '').toLowerCase().includes(search.toLowerCase())))
     .sort((a, b) => b.event.at.localeCompare(a.event.at));
 
@@ -25,7 +27,7 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
         <View style={s.panel}>
           <ScrollView keyboardShouldPersistTaps="handled" style={s.scroll} contentContainerStyle={{ paddingBottom: 12, gap: 12 }}>
           <Text style={s.heading}>{t("Calculation history")}</Text>
-          <Text style={s.description}>{t("Changes are recorded from now on. Deleted rows stay here until restored.")}</Text>
+          <Text style={s.description}>{t("Deleted rows stay here until restored or permanently deleted.")}</Text>
           <TextInput value={search} onChangeText={setSearch} placeholder={t("Search names...")} placeholderTextColor="#94a3b8" style={s.input} accessibilityLabel={t("Search calculation history")} />
           <View style={s.actions}>
             <Pressable onPress={() => setDeletedOnly(false)} accessibilityRole="button" accessibilityState={{ selected: !deletedOnly }} style={[s.button, !deletedOnly && s.selected]}><ButtonLabel style={s.text}>{t("All changes")}</ButtonLabel></Pressable>
@@ -47,10 +49,40 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
                     </View>
                   ))}
                   {row.deletedAt && latest ? (
+                    <View style={{ gap: 10 }}>
+                    <View style={s.actions}>
                     <Pressable disabled={saving} style={[s.button, s.selected, saving && s.disabled]} onPress={() => onChange({ type: 'restore', id: row.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Restore calculation")}</ButtonLabel></Pressable>
-                  ) : latest && event.type === 'edit' && !row.deletedAt ? (
+                    <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={() => setDeleteId(row.id)} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete')}</ButtonLabel></Pressable>
+                    </View>
+                    {deleteId === row.id && <View style={s.confirmation}>
+                      <Text accessibilityRole="alert" style={s.text}>{t('Permanently delete "{{name}}" and its history? This cannot be undone or restored.', { name: row.title || t('Untitled calculation') })}</Text>
+                      <View style={s.actions}>
+                        <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={async () => {
+                          const saved = await onChange({ type: 'permanentDelete', id: row.id });
+                          if (saved !== false) setDeleteId(null);
+                        }} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete permanently')}</ButtonLabel></Pressable>
+                        <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => setDeleteId(null)} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Cancel')}</ButtonLabel></Pressable>
+                      </View>
+                    </View>}
+                    </View>
+                  ) : <View style={{ gap: 10 }}>
+                    <View style={s.actions}>
+                    {latest && event.type === 'edit' && !row.deletedAt && (
                     <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => onChange({ type: 'undo', id: row.id, eventId: event.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Undo this edit")}</ButtonLabel></Pressable>
-                  ) : null}
+                    )}
+                    <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={() => { setDeleteId(null); setDeleteEvent({ rowId: row.id, eventId: event.id }); }} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete')}</ButtonLabel></Pressable>
+                    </View>
+                    {deleteEvent?.rowId === row.id && deleteEvent?.eventId === event.id && <View style={s.confirmation}>
+                      <Text accessibilityRole="alert" style={s.text}>{t('Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.')}</Text>
+                      <View style={s.actions}>
+                        <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={async () => {
+                          const saved = await onChange({ type: 'deleteHistoryEvent', id: row.id, eventId: event.id });
+                          if (saved !== false) setDeleteEvent(null);
+                        }} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete permanently')}</ButtonLabel></Pressable>
+                        <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => setDeleteEvent(null)} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Cancel')}</ButtonLabel></Pressable>
+                      </View>
+                    </View>}
+                  </View>}
                 </View>
               );
             }) : <Text style={s.description}>{deletedOnly ? t("No deleted calculations found.") : t("No changes recorded yet. Saved edits and deletions will appear here.")}</Text>}
@@ -71,6 +103,8 @@ const s = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   button: { ...raisedButton, minHeight: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#334155', padding: 8, borderRadius: 4 },
   selected: { backgroundColor: '#2563eb' },
+  danger: { backgroundColor: '#991b1b' },
+  confirmation: { gap: 10, padding: 12, borderWidth: 1, borderColor: '#ef4444', borderRadius: 8 },
   disabled: { opacity: 0.5 },
   scroll: { flexShrink: 1 },
   card: { backgroundColor: '#0f172a', padding: 14, borderRadius: 10, marginBottom: 12, gap: 10 },

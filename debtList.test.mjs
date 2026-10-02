@@ -5,7 +5,29 @@ const url = text => `data:text/javascript;base64,${Buffer.from(text).toString('b
 const utils = url(await readFile(new URL('./calculatorUtils.js', import.meta.url), 'utf8'));
 const history = url((await readFile(new URL('./calculationHistory.js', import.meta.url), 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils)));
 const { applyCalculationChange, getCalculationListResults } = await import(history);
-const { debtNames, debtRows, monthDistance } = await import(url((await readFile(new URL('./debtList.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
+const { debtNames, debtRows, groupDebtRows, monthDistance } = await import(url((await readFile(new URL('./debtList.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
+
+test('name groups sum filtered amounts and preserve separate dated records', () => {
+  const entries = [
+    { id: 'one', title: ' Alice ', cred: '1,000.10', fact: '20', savedAt: '2026-01-01' },
+    { id: 'two', title: 'alice', cred: '0.20', fact: '30', savedAt: '2026-02-01' },
+    { id: 'paid', title: 'Alice', cred: '0', paidOffAt: '2026-02-02', paidOffAmount: '50', savedAt: '2026-02-02' },
+    { id: 'other', title: 'Bob', cred: '7', savedAt: '2026-02-03' },
+    { id: 'deleted', title: 'Alice', cred: '500', deletedAt: '2026-03-01' },
+  ];
+  const groups = groupDebtRows(debtRows(entries));
+  assert.equal(groups.length, 2);
+  const alice = groups.find(group => group.key === 'alice');
+  assert.equal(alice.total, 1000.3);
+  assert.deepEqual(alice.rows.map(row => row.id), ['paid', 'two', 'one']);
+  assert.equal(groupDebtRows(debtRows(entries, '2026-02', '2026-02', 'Alice'))[0].total, 0.2);
+  assert.equal(groupDebtRows(debtRows(entries, '', '', 'Alice', 'fact'), 'fact')[0].total, 50);
+  assert.deepEqual(groupDebtRows(debtRows(entries, '', '', 'Alice', 'cred', true))[0].rows.map(row => row.id), ['two', 'one']);
+});
+
+test('unnamed records remain separate cards', () => {
+  assert.equal(groupDebtRows([{ id: 'a', cred: '1' }, { id: 'b', cred: '2' }]).length, 2);
+});
 const rows = [
   { id: 'a', type: 'Cred', value: '20', createdAt: '2025-12-31T12:00:00', title: 'A' },
   { id: 'b', cred: '0', createdAt: '2026-01-01T12:00:00' },

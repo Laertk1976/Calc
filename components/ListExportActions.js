@@ -10,7 +10,7 @@ import { uploadFileToGoogleDrive } from '../googleDrive';
 import { buildListExport } from '../listExport';
 import { formatSavedDate } from '../calculatorUtils';
 
-export default function ListExportActions({ rows, amountField, summary }) {
+export default function ListExportActions({ rows, amountField, summary, accessibilityLabel }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -77,7 +77,7 @@ export default function ListExportActions({ rows, amountField, summary }) {
       setBusy(false);
     }
   };
-  return <TableActionsMenu accessibilityLabel={title} open={open} onToggle={() => setOpen(value => !value)} onDismiss={() => setOpen(false)} actions={[
+  return <TableActionsMenu accessibilityLabel={accessibilityLabel || title} open={open} onToggle={() => setOpen(value => !value)} onDismiss={() => setOpen(false)} actions={[
     { id: 'pdf', label: t('Save PDF'), onPress: () => run('pdf') },
     { id: 'csv', label: t('Save CSV'), onPress: () => run('csv') },
     { id: 'share', label: t('Share'), onPress: () => run('pdf') },

@@ -1,4 +1,9 @@
 {
+  "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Навсегда удалить эту запись истории? Текущий расчёт останется без изменений. Запись нельзя будет восстановить.",
+  "Deleted rows stay here until restored or permanently deleted.": "Удалённые строки остаются здесь до восстановления или окончательного удаления.",
+  "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Удалить «{{name}}» и всю историю навсегда? Это действие нельзя отменить, а данные — восстановить.",
+  "Delete permanently": "Удалить навсегда",
+  "Back": "Назад",
   "Unpaid only": "Только неоплаченные",
   "No unpaid debts match these filters.": "Нет неоплаченных долгов, соответствующих этим фильтрам.",
   "Table": "Таблица",
