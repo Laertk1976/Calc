@@ -828,17 +828,17 @@ export default function CalculationTableModal({
     <PanelModal inline={inline} animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={styles.authButton} accessibilityRole="button">
+          <View style={{ flexDirection: 'row', flexWrap: 'nowrap', gap: 8, marginBottom: 8, alignItems: 'stretch' }}>
+            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { flex: 1, minWidth: 0 }]} accessibilityRole="button">
               <ButtonLabel style={styles.authButtonText}>{t('History')}</ButtonLabel>
             </Pressable>
             {undoable ? (
-              <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={styles.authButton} accessibilityRole="button">
+              <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={[styles.authButton, { flex: 1, minWidth: 0 }]} accessibilityRole="button">
                 <ButtonLabel style={styles.authButtonText}>{t(undoable.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}</ButtonLabel>
               </Pressable>
             ) : null}
-            {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           </View>
+          {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>

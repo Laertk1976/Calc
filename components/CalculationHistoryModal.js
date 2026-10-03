@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { raisedButton } from '../buttonAppearance';
 import { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { HISTORY_FIELDS } from '../calculationHistory';
+import { HISTORY_FIELDS, canUndoHistoryEvent, getCalculationHistoryEvents } from '../calculationHistory';
 import { formatSavedDate } from '../calculatorUtils';
 import KeyboardModalFrame from './KeyboardModalFrame';
 
@@ -16,10 +16,8 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
   const [deletedOnly, setDeletedOnly] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleteEvent, setDeleteEvent] = useState(null);
-  const events = calculations.flatMap((row) => (row.history || []).map((event) => ({ row, event })))
-    .filter(({ row, event }) => event.type !== 'purged' && (!deletedOnly || (row.deletedAt && event.type === 'delete' && row.history.at(-1)?.id === event.id))
-      && [row.title, event.before.title, event.after.title].some((title) => String(title || '').toLowerCase().includes(search.toLowerCase())))
-    .sort((a, b) => b.event.at.localeCompare(a.event.at));
+  if (!visible) return null;
+  const events = getCalculationHistoryEvents(calculations, search, deletedOnly);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -35,10 +33,12 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
           </View>
             {events.length ? events.map(({ row, event }) => {
               const latest = row.history.at(-1)?.id === event.id;
-              const changes = Object.entries(HISTORY_FIELDS).filter(([field]) => String(event.before[field] ?? '') !== String(event.after[field] ?? ''));
+              const originalEvent = row.history.find((entry) => entry?.id === event.id);
+              const changes = originalEvent?.before && originalEvent?.after
+                ? Object.entries(HISTORY_FIELDS).filter(([field]) => String(event.before[field] ?? '') !== String(event.after[field] ?? '')) : [];
               return (
                 <View key={`${row.id}-${event.id}`} style={s.card}>
-                  <Text style={s.title}>{event.after.title || event.before.title || t("Untitled calculation")}</Text>
+                  <Text style={s.title}>{event.after.title || event.before.title || row.title || t("Untitled calculation")}</Text>
                   <Text style={s.description}>{t(labels[event.type])} · {formatSavedDate(event.at)}</Text>
                   {event.type === 'delete' ? <Text style={s.text}>{event.before.info || event.before.expression || t("Empty calculation")}</Text> : null}
                   {changes.map(([field, label]) => (
@@ -50,9 +50,9 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
                   ))}
                   {row.deletedAt && latest ? (
                     <View style={{ gap: 10 }}>
-                    <View style={s.actions}>
-                    <Pressable disabled={saving} style={[s.button, s.selected, saving && s.disabled]} onPress={() => onChange({ type: 'restore', id: row.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Restore calculation")}</ButtonLabel></Pressable>
-                    <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={() => setDeleteId(row.id)} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete')}</ButtonLabel></Pressable>
+                    <View style={s.pairedActions}>
+                    <Pressable disabled={saving} style={[s.button, s.pairedButton, s.selected, saving && s.disabled]} onPress={() => onChange({ type: 'restore', id: row.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Restore calculation")}</ButtonLabel></Pressable>
+                    <Pressable disabled={saving} style={[s.button, s.pairedButton, s.danger, saving && s.disabled]} onPress={() => setDeleteId(row.id)} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete')}</ButtonLabel></Pressable>
                     </View>
                     {deleteId === row.id && <View style={s.confirmation}>
                       <Text accessibilityRole="alert" style={s.text}>{t('Permanently delete "{{name}}" and its history? This cannot be undone or restored.', { name: row.title || t('Untitled calculation') })}</Text>
@@ -67,7 +67,7 @@ export default function CalculationHistoryModal({ visible, calculations, saving,
                     </View>
                   ) : <View style={{ gap: 10 }}>
                     <View style={s.actions}>
-                    {latest && event.type === 'edit' && !row.deletedAt && (
+                    {latest && event.type === 'edit' && !row.deletedAt && canUndoHistoryEvent(originalEvent) && (
                     <Pressable disabled={saving} style={[s.button, saving && s.disabled]} onPress={() => onChange({ type: 'undo', id: row.id, eventId: event.id })} accessibilityRole="button"><ButtonLabel style={s.text}>{t("Undo this edit")}</ButtonLabel></Pressable>
                     )}
                     <Pressable disabled={saving} style={[s.button, s.danger, saving && s.disabled]} onPress={() => { setDeleteId(null); setDeleteEvent({ rowId: row.id, eventId: event.id }); }} accessibilityRole="button"><ButtonLabel style={s.text}>{t('Delete')}</ButtonLabel></Pressable>
@@ -100,6 +100,8 @@ const s = StyleSheet.create({
   heading: { color: '#f8fafc', fontSize: 23, fontWeight: '700' },
   description: { color: '#cbd5e1', fontSize: 14, lineHeight: 21 },
   input: { color: '#f8fafc', backgroundColor: '#0f172a', padding: 12, borderRadius: 8 },
+  pairedActions: { flexDirection: 'row', gap: 10, alignItems: 'stretch' },
+  pairedButton: { flex: 1, minWidth: 0 },
   actions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   button: { ...raisedButton, minHeight: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#334155', padding: 8, borderRadius: 4 },
   selected: { backgroundColor: '#2563eb' },

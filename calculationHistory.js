@@ -45,11 +45,27 @@ function snapshot(row) {
   return Object.fromEntries(snapshotFields.map((field) => [field, row[field] ?? '']));
 }
 
+export function canUndoHistoryEvent(event) {
+  return Boolean(event && ['edit', 'delete'].includes(event.type)
+    && event.before && typeof event.before === 'object' && !Array.isArray(event.before));
+}
+
+// Old/synced entries may lack snapshots. Build display copies without changing saved data.
+export function getCalculationHistoryEvents(rows, search = '', deletedOnly = false) {
+  const query = search.toLowerCase();
+  return rows.flatMap((row) => (Array.isArray(row.history) ? row.history : [])
+    .filter((event) => event && event.type !== 'purged')
+    .map((event) => ({ row, event: { ...event, before: event.before || {}, after: event.after || {} } })))
+    .filter(({ row, event }) => (!deletedOnly || (row.deletedAt && event.type === 'delete' && row.history.at(-1)?.id === event.id))
+      && [row.title, event.before.title, event.after.title].some((title) => String(title || '').toLowerCase().includes(query)))
+    .sort((a, b) => String(b.event.at || '').localeCompare(String(a.event.at || '')));
+}
+
 export function latestUndoableChange(rows) {
   return rows.flatMap((row) => {
-    const event = row.history?.at(-1);
-    return event && ['edit', 'delete'].includes(event.type) ? [{ row, event }] : [];
-  }).sort((a, b) => b.event.at.localeCompare(a.event.at))[0] || null;
+    const event = Array.isArray(row.history) ? row.history.at(-1) : null;
+    return canUndoHistoryEvent(event) ? [{ row, event }] : [];
+  }).sort((a, b) => String(b.event.at || '').localeCompare(String(a.event.at || '')))[0] || null;
 }
 
 // Only the requested row/fields change; deleted rows remain in storage for recovery.
@@ -116,7 +132,7 @@ export function applyCalculationChange(calculations, change, at = new Date().toI
     delete next.deletedAt;
   } else if (change.type === 'undo') {
     const event = row.history.at(-1);
-    if (!event || event.id !== change.eventId || !['edit', 'delete'].includes(event.type)) {
+    if (!canUndoHistoryEvent(event) || event.id !== change.eventId) {
       throw new Error('This calculation has changed since then. Open History to see its latest version.');
     }
     next = { ...next, ...event.before };

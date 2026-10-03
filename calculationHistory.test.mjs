@@ -5,10 +5,34 @@ import { readFile } from 'node:fs/promises';
 const moduleUrl = (text) => `data:text/javascript;base64,${Buffer.from(text).toString('base64')}`;
 const utils = moduleUrl(await readFile(new URL('./calculatorUtils.js', import.meta.url), 'utf8'));
 const source = (await readFile(new URL('./calculationHistory.js', import.meta.url), 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils));
-const { normalizeCalculation, applyCalculationChange: apply, latestUndoableChange, getCalculationListResults } = await import(moduleUrl(source));
+const { normalizeCalculation, applyCalculationChange: apply, latestUndoableChange, getCalculationListResults, getCalculationHistoryEvents } = await import(moduleUrl(source));
 const original = { createdAt: '2026-09-16T12:00:00.000Z', title: 'Customer', expression: '2 + 3', value: '5', type: 'Add' };
 const id = original.createdAt;
 const time = '2026-09-16T13:00:00.000Z';
+
+test('history with missing snapshots can be searched and displayed without modifying saved data', () => {
+  const rows = [{ ...original, id, history: [
+    { id: 'old', type: 'edit', at: time },
+    { id: 'partial', type: 'delete', before: { title: 'Previous name' }, after: null },
+    { id: 'removed', type: 'purged', at: time }, null,
+  ] }];
+  const before = JSON.stringify(rows);
+  const events = getCalculationHistoryEvents(rows);
+  assert.equal(events.length, 2);
+  for (const { event } of events) {
+    assert.doesNotThrow(() => [event.before.title, event.after.title]);
+  }
+  assert.equal(getCalculationHistoryEvents(rows, 'previous').length, 1);
+  assert.equal(getCalculationHistoryEvents(rows, 'customer').length, 2);
+  assert.equal(JSON.stringify(rows), before);
+});
+
+test('incomplete latest history cannot undo or expose an older edit for undo', () => {
+  const rows = apply([original], { type: 'edit', id, changes: { title: 'New name' } }, time);
+  rows[0].history.push({ id: 'incomplete', type: 'edit', at: time });
+  assert.equal(latestUndoableChange(rows), null);
+  assert.throws(() => apply(rows, { type: 'undo', id, eventId: 'incomplete' }));
+});
 
 test('history deletion preserves current values and cannot expose stale undo', () => {
   let rows = apply([original], { type: 'edit', id, changes: { title: 'First' } });
