@@ -1,6 +1,6 @@
 {
   "name": "calc",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -34,6 +34,8 @@
   },
   "private": true,
   "devDependencies": {
-    "@expo/cli": "^54.0.27"
+    "@expo/cli": "^54.0.27",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0"
   }
 }

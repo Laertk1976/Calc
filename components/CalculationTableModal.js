@@ -11,6 +11,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
 import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils';
@@ -436,6 +437,7 @@ export default function CalculationTableModal({
   const custom = useCustomLabels();
   const columnLabel = (key, fallback) => custom.active ? custom.labels[key] || '' : t(fallback);
   const baseStyles = useCalculatorStyles();
+  const insets = useSafeAreaInsets();
   const [tableViewportWidth, setTableViewportWidth] = useState(0);
   const columnNames = ['nameColumn', 'infoColumn', 'commentsColumn', 'credColumn', 'factColumn', 'fcashColumn', 'paidOffColumn'];
   const columnWidth = name => StyleSheet.flatten(baseStyles[name]).width;
@@ -827,7 +829,7 @@ export default function CalculationTableModal({
   return (
     <PanelModal inline={inline} animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
-        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
+        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, !inline && Platform.OS !== 'web' && { paddingTop: Math.max(StyleSheet.flatten(styles.tablePanel).padding || 0, insets.top + 4) }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'nowrap', gap: 8, marginBottom: 8, alignItems: 'stretch' }}>
             <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { flex: 1, minWidth: 0 }]} accessibilityRole="button">
               <ButtonLabel style={styles.authButtonText}>{t('History')}</ButtonLabel>

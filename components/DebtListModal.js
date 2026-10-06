@@ -99,9 +99,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   return <PanelModal inline={inline} transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (selectedRow) { setSelectedId(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose?.(); } }}>
     <KeyboardModalFrame style={[s.backdrop, inline && { padding: 0, backgroundColor: 'transparent' }]}>
       <View style={[s.panel, selectedRow && { height: '95%' }, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={s.heading}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
-          {!draft && !selectedRow && <View style={s.controls}>
+        <View style={s.header}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.heading, s.headerTitle]}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
+          {!draft && !selectedRow && <View style={[s.controls, s.headerControls]}>
             {!invoice && <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Unpaid only')}
@@ -110,10 +110,10 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               style={[s.button, s.unpaidButton, unpaidOnly && s.unpaidButtonActive]}
             >
               <Ionicons name={unpaidOnly ? 'filter' : 'filter-outline'} size={14.4} color="#e2e8f0" />
-              <Text style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
               {unpaidOnly && <Ionicons name="checkmark" size={14.4} color="#e2e8f0" />}
             </Pressable>}
-          {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(current => !current); setSearch(''); }} style={[s.button, { width: 44 }]}>
+          {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton]}>
             <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
             <View style={{ position: 'absolute', width: 8, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 8, bottom: 10 }} />
           </Pressable>}
@@ -227,6 +227,10 @@ const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#0009', justifyContent: 'center', padding: 16 },
   panel: { backgroundColor: '#0f172a', borderRadius: 20, padding: 18, maxHeight: '95%', width: '100%', maxWidth: 640, alignSelf: 'center', flexShrink: 1, gap: 8 },
   heading: { color: '#f8fafc', fontSize: 20, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
+  headerTitle: { flex: 1, minWidth: 0, fontSize: 16 },
+  headerControls: { flexShrink: 1, minWidth: 0, maxWidth: '70%' },
+  searchButton: { width: 44, flexShrink: 0 },
   text: { color: '#e2e8f0', fontSize: 16 },
   muted: { color: '#94a3b8', fontSize: 14 },
   amount: { color: '#fca5a5', fontSize: 16.8, fontWeight: '600' },
@@ -237,8 +241,8 @@ const s = StyleSheet.create({
   button: { backgroundColor: '#334155', paddingHorizontal: 8, paddingVertical: 8.4, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 30.8 },
   rowButton: { flex: 1, minWidth: 0 },
   undoButton: { width: 44, minHeight: 44 },
-  unpaidButton: { flexDirection: 'row', gap: 4.8, minHeight: 35.2, paddingHorizontal: 9.6, paddingVertical: 6.72, borderRadius: 8 },
-  unpaidButtonText: { fontSize: 8.96 },
+  unpaidButton: { flexDirection: 'row', flexShrink: 1, minWidth: 0, gap: 4, minHeight: 32, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 8 },
+  unpaidButtonText: { fontSize: 8.96, flexShrink: 1, minWidth: 0 },
   unpaidButtonActive: { backgroundColor: '#1d4ed8' },
   buttonText: { color: '#e2e8f0', fontSize: 11.2, textAlign: 'center' },
   summaryText: { fontSize: 11.2 },
