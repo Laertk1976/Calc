@@ -9,12 +9,15 @@ npm-debug.*
 
 .desktop-browser-test/
 
-# Private Android signing material and generated store bundles
+# Android build artifacts
+*.apk
+*.aab
+
+# Private Android signing material
 *.jks
 *.p12
 *.keystore
 !android/app/debug.keystore
-*.aab
 keystore.properties
 .firebase/
 firebase-debug*.log
