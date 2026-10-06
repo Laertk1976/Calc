@@ -1,4 +1,13 @@
 {
+  "Rename": "Rename",
+  "Rename names": "Rename names",
+  "New name": "New name",
+  "Combine names": "Combine names",
+  "Combine all entries under \"{{name}}\"?": "Combine all entries under \"{{name}}\"?",
+  "Select names for the same person or store. Changes apply across all dates and lists.": "Select names for the same person or store. Changes apply across all dates and lists.",
+  "Selected entries: {{count}}": "Selected entries: {{count}}",
+  "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.": "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.",
+  "Rename failed. Your names may have changed. Reopen this dialog and try again.": "Rename failed. Your names may have changed. Reopen this dialog and try again.",
   "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.",
   "Deleted rows stay here until restored or permanently deleted.": "Deleted rows stay here until restored or permanently deleted.",
   "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.",

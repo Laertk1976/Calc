@@ -1,4 +1,13 @@
 {
+  "Rename": "नाम बदलें",
+  "Rename names": "नाम बदलें",
+  "New name": "नया नाम",
+  "Combine names": "नाम मिलाएं",
+  "Combine all entries under \"{{name}}\"?": "सभी रिकॉर्ड को «{{name}}» नाम के अंतर्गत मिलाएं?",
+  "Select names for the same person or store. Changes apply across all dates and lists.": "एक ही व्यक्ति या दुकान के नाम चुनें। बदलाव सभी तारीखों और सूचियों पर लागू होंगे।",
+  "Selected entries: {{count}}": "चुने गए रिकॉर्ड: {{count}}",
+  "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.": "सभी रिकॉर्ड, परिणाम, तारीखें और भुगतान का इतिहास सुरक्षित रहते हैं। दोहराए गए रिकॉर्ड हटाए नहीं जाते।",
+  "Rename failed. Your names may have changed. Reopen this dialog and try again.": "नाम नहीं बदला जा सका। नाम पहले ही बदल गए हो सकते हैं। यह विंडो फिर से खोलें और दोबारा प्रयास करें।",
   "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "क्या इतिहास की यह प्रविष्टि स्थायी रूप से हटाएँ? वर्तमान गणना अपरिवर्तित रहेगी। यह प्रविष्टि बहाल नहीं की जा सकती।",
   "Deleted rows stay here until restored or permanently deleted.": "हटाई गई पंक्तियाँ बहाल करने या स्थायी रूप से हटाने तक यहाँ रहती हैं।",
   "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "क्या \"{{name}}\" और उसका इतिहास स्थायी रूप से हटाएँ? इसे पूर्ववत या बहाल नहीं किया जा सकता।",

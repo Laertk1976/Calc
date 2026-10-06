@@ -10,6 +10,45 @@ const original = { createdAt: '2026-09-16T12:00:00.000Z', title: 'Customer', exp
 const id = original.createdAt;
 const time = '2026-09-16T13:00:00.000Z';
 
+test('bulk rename combines exact names across dates without changing results or existing history', () => {
+  const entries = [
+    { ...original, id: 'a', title: 'Shop', cred: '0', paidOffAt: time, paidOffAmount: '25' },
+    { ...original, id: 'b', title: 'Shop', fact: '50', savedAt: '2025-01-01' },
+    { ...original, id: 'c', title: 'Old shop', fcash: '75', history: [{ id: 'prior', type: 'edit' }] },
+    { ...original, id: 'd', title: 'Final shop', cred: '20' },
+    { ...original, id: 'e', title: 'shop' },
+    { ...original, id: 'f', title: 'Shop', deletedAt: time },
+    { id: 'purged', permanentlyDeletedAt: time },
+  ].map(normalizeCalculation);
+  const before = JSON.stringify(entries);
+  const change = { type: 'renameName', fromNames: ['Shop', 'Old shop'], toName: ' Final shop ' };
+  assert.throws(() => apply(entries, change), /Confirm/);
+  const result = apply(entries, { ...change, mergeConfirmed: true }, time);
+  assert.equal(result.length, entries.length);
+  for (let i = 0; i < 3; i++) {
+    const { title, history, ...rest } = result[i];
+    const { title: oldTitle, history: oldHistory, ...oldRest } = entries[i];
+    assert.equal(title, 'Final shop');
+    assert.deepEqual(rest, oldRest);
+    assert.deepEqual(history.slice(0, -1), oldHistory);
+    assert.equal(history.at(-1).before.title, oldTitle);
+    assert.equal(history.at(-1).after.title, title);
+  }
+  assert.deepEqual(result.slice(3), entries.slice(3));
+  assert.equal(JSON.stringify(entries), before);
+});
+
+test('bulk rename validates destination, stale names and existing-name confirmation', () => {
+  const rows = [{ ...original, id: 'a', title: 'A' }, { ...original, id: 'b', title: 'B' }];
+  const request = { type: 'renameName', fromNames: ['A'], toName: 'B' };
+  assert.throws(() => apply(rows, request), /Confirm/);
+  assert.throws(() => apply(rows, { ...request, toName: '  ' }));
+  assert.throws(() => apply(rows, { ...request, fromNames: ['missing'] }), /changed/);
+  assert.throws(() => apply(rows, { ...request, fromNames: [] }));
+  assert.deepEqual(apply(rows, { ...request, toName: 'A' }), rows.map(normalizeCalculation));
+  assert.equal(apply(rows, { ...request, toName: 'New' })[0].title, 'New');
+});
+
 test('history with missing snapshots can be searched and displayed without modifying saved data', () => {
   const rows = [{ ...original, id, history: [
     { id: 'old', type: 'edit', at: time },

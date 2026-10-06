@@ -7,6 +7,21 @@ const history = url((await readFile(new URL('./calculationHistory.js', import.me
 const { applyCalculationChange, getCalculationListResults } = await import(history);
 const { debtNames, debtRows, groupDebtRows, monthDistance } = await import(url((await readFile(new URL('./debtList.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
 
+test('merged names combine debt and invoice totals while retaining every dated entry', () => {
+  const entries = [
+    { id: 'a', title: 'Shop', cred: '25', fact: '10', createdAt: '2025-01-01' },
+    { id: 'b', title: 'Alias', cred: '50', fact: '20', createdAt: '2026-10-01' },
+    { id: 'c', title: 'Shop', cred: '0', paidOffAmount: '30', paidOffAt: '2026-09-01', createdAt: '2026-09-01' },
+  ];
+  const renamed = applyCalculationChange(entries, { type: 'renameName', fromNames: ['Alias'], toName: 'Shop', mergeConfirmed: true });
+  const groups = groupDebtRows(debtRows(renamed));
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].total, 75);
+  assert.equal(groups[0].rows.length, 3);
+  const invoices = groupDebtRows(debtRows(renamed, '', '', null, 'fact'), 'fact');
+  assert.equal(invoices[0].total, 30);
+  assert.equal(renamed.find(row => row.id === 'c').paidOffAmount, '30');
+});
 test('name groups sum filtered amounts and preserve separate dated records', () => {
   const entries = [
     { id: 'one', title: ' Alice ', cred: '1,000.10', fact: '20', savedAt: '2026-01-01' },

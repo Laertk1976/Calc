@@ -1,4 +1,13 @@
 {
+  "Rename": "名前を変更",
+  "Rename names": "名前の変更",
+  "New name": "新しい名前",
+  "Combine names": "名前を統合",
+  "Combine all entries under \"{{name}}\"?": "すべての記録を「{{name}}」という名前に統合しますか？",
+  "Select names for the same person or store. Changes apply across all dates and lists.": "同じ人や店舗の名前を選択してください。変更はすべての日付とリストに適用されます。",
+  "Selected entries: {{count}}": "選択した記録：{{count}}",
+  "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.": "すべての記録、結果、日付、支払い履歴が保持されます。重複した記録も削除されません。",
+  "Rename failed. Your names may have changed. Reopen this dialog and try again.": "名前を変更できませんでした。名前がすでに変更された可能性があります。この画面を開き直して再試行してください。",
   "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "この履歴を完全に削除しますか？現在の計算は変更されません。この履歴は復元できません。",
   "Deleted rows stay here until restored or permanently deleted.": "削除した行は、復元するか完全に削除するまでここに残ります。",
   "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "「{{name}}」とその履歴を完全に削除しますか？この操作は取り消せず、復元もできません。",

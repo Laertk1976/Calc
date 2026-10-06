@@ -79,6 +79,18 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
       const state = await read(userId);
       assertWritable(userId, state);
       const rows = applyCalculationChange(state.rows, change, now());
+      if (change.type === 'renameName') {
+        const previous = new Map(state.rows.map(row => [row.id, row]));
+        const changed = rows.filter(row => !same(previous.get(row.id), row));
+        if (!changed.length) return visibleRows(state.rows);
+        const queue = userId ? [...state.queue, ...changed.map(after => ({
+          id: operationId(), rowId: after.id, before: previous.get(after.id), after,
+        }))] : [];
+        const next = await persist(userId, { ...state, rows, queue });
+        statuses.set(userId, { phase: userId ? 'pending' : 'local' });
+        notify(userId, next);
+        return visibleRows(next.rows);
+      }
       const id = change.type === 'add' ? change.row.id : change.id;
       const before = state.rows.find((row) => row.id === id) || null;
       const after = rows.find((row) => row.id === id);

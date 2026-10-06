@@ -72,6 +72,26 @@ export function latestUndoableChange(rows) {
 export function applyCalculationChange(calculations, change, at = new Date().toISOString()) {
   const rows = calculations.map(normalizeCalculation);
   if (change.type === 'add') return [normalizeCalculation(change.row), ...rows];
+  if (change.type === 'renameName') {
+    const names = new Set(change.fromNames);
+    const title = String(change.toName || '').trim();
+    if (!title || !names.size) throw new Error('Choose a name and enter a new name.');
+    const active = rows.filter(item => !item.deletedAt && !item.permanentlyDeletedAt);
+    if ([...names].some(name => !active.some(item => item.title === name))) {
+      throw new Error('These names have changed. Reopen Rename and try again.');
+    }
+    const combining = names.size > 1 || active.some(item => item.title === title && !names.has(title));
+    if (combining && !change.mergeConfirmed) throw new Error('Confirm combining these names first.');
+    return rows.map(item => {
+      if (item.deletedAt || item.permanentlyDeletedAt || !names.has(item.title) || item.title === title) return item;
+      const next = { ...item, title };
+      next.history = [...item.history, {
+        id: `${at}-${Math.random().toString(36).slice(2)}`, at, type: 'edit',
+        before: snapshot(item), after: snapshot(next),
+      }];
+      return next;
+    });
+  }
   const row = rows.find((item) => item.id === change.id);
   if (!row) throw new Error('This calculation no longer exists. Reopen the table and try again.');
   if (row.permanentlyDeletedAt) throw new Error('This calculation was permanently deleted.');

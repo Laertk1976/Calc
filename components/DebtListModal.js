@@ -91,7 +91,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     }
     setSaving(true); setError('');
     try {
-      await onUpdate({ type: 'edit', id: draft.id, payOff, amountField, changes: { title: draft.title.trim(), [amountField]: String(Number(amount)), comment: draft.comment } });
+      await onUpdate({ type: 'edit', id: draft.id, payOff, amountField, changes: { [amountField]: String(Number(amount)), comment: draft.comment } });
       setDraft(null);
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
@@ -135,7 +135,8 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
         </View>}
         {draft ? <ScrollView keyboardShouldPersistTaps="handled">
           {payoffDetails(draft)}
-          {['title', amountField, 'comment'].map(field => <View key={field}>
+          <Text style={s.heading}>{draft.title || t('Untitled')}</Text>
+          {[amountField, 'comment'].map(field => <View key={field}>
             <Text style={s.text}>{t({ title: 'Name', cred: 'Debt', fact: 'Invoice', comment: 'Comments' }[field])}</Text>
             <TextInput accessibilityLabel={t({ title: 'Name', cred: 'Debt', fact: 'Invoice', comment: 'Comments' }[field])} style={s.input} value={String(draft[field] ?? '')} editable={!saving} onChangeText={value => setDraft(current => ({ ...current, [field]: value }))} keyboardType={field === amountField ? 'numbers-and-punctuation' : 'default'} />
           </View>)}

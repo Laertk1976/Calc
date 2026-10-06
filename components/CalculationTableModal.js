@@ -1,6 +1,7 @@
 import Pressable from './SoundPressable';
 import { useCustomLabels } from './CustomLabelsProvider';
 import PanelModal from './PanelModal';
+import RenameNameModal from './RenameNameModal';
 import ButtonLabel from './ButtonLabel';
 import TableActionsMenu from './TableActionsMenu';
 import translations from '../i18n';
@@ -437,6 +438,7 @@ export default function CalculationTableModal({
   const custom = useCustomLabels();
   const columnLabel = (key, fallback) => custom.active ? custom.labels[key] || '' : t(fallback);
   const baseStyles = useCalculatorStyles();
+  const [renameName, setRenameName] = useState(null);
   const insets = useSafeAreaInsets();
   const [tableViewportWidth, setTableViewportWidth] = useState(0);
   const columnNames = ['nameColumn', 'infoColumn', 'commentsColumn', 'credColumn', 'factColumn', 'fcashColumn', 'paidOffColumn'];
@@ -964,7 +966,7 @@ export default function CalculationTableModal({
                             style={({ pressed }) => [styles.cellPressable, styles.nameInput, pressed && styles.pressed]}
                             accessibilityRole="button"
                             accessibilityLabel={t("Name") + ': ' + (calc.title || '')}
-                            onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'title', text: calc.title || '' })}
+                            onPress={() => setRenameName(calc.title || '')}
                           >
                             <Text style={[styles.cellPressableText, calc.sharedAt && styles.sentRowTitle, !calc.title && { color: '#64748b' }]} numberOfLines={1}>
                               {calc.title || t("Name")}
@@ -1271,6 +1273,7 @@ export default function CalculationTableModal({
           </View>
         </KeyboardModalFrame>
       </Modal>
+      {renameName !== null && <RenameNameModal name={renameName} calculations={calculations || []} onUpdate={onUpdateCalculations} onClose={() => setRenameName(null)} onRenamed={(title, names) => { if (names.includes(searchText.trim())) setSearchText(title); }} />}
       <CalculationHistoryModal
         visible={historyVisible}
         calculations={calculations || []}

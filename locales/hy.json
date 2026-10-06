@@ -1,4 +1,13 @@
 {
+  "Rename": "Վերանվանել",
+  "Rename names": "Անունների վերանվանում",
+  "New name": "Նոր անուն",
+  "Combine names": "Միավորել անունները",
+  "Combine all entries under \"{{name}}\"?": "Միավորե՞լ բոլոր գրառումները «{{name}}» անվան տակ։",
+  "Select names for the same person or store. Changes apply across all dates and lists.": "Ընտրեք նույն անձի կամ խանութի անունները։ Փոփոխությունները վերաբերում են բոլոր ամսաթվերին և ցուցակներին։",
+  "Selected entries: {{count}}": "Ընտրված գրառումներ՝ {{count}}",
+  "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.": "Բոլոր գրառումները, արդյունքները, ամսաթվերը և վճարումների պատմությունը պահպանվում են։ Կրկնվող գրառումները չեն ջնջվում։",
+  "Rename failed. Your names may have changed. Reopen this dialog and try again.": "Չհաջողվեց վերանվանել։ Անունները կարող են փոխված լինել։ Կրկին բացեք այս պատուհանը և փորձեք նորից։",
   "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Ընդմիշտ ջնջե՞լ պատմության այս գրառումը։ Ընթացիկ հաշվարկը կմնա անփոփոխ։ Այս գրառումը հնարավոր չէ վերականգնել։",
   "Deleted rows stay here until restored or permanently deleted.": "Ջնջված տողերը մնում են այստեղ մինչև վերականգնելը կամ ընդմիշտ ջնջելը։",
   "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Ընդմիշտ ջնջե՞լ «{{name}}»-ը և դրա պատմությունը։ Սա հնարավոր չէ հետարկել կամ վերականգնել։",

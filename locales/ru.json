@@ -1,4 +1,13 @@
 {
+  "Rename": "Переименовать",
+  "Rename names": "Переименование",
+  "New name": "Новое имя",
+  "Combine names": "Объединить имена",
+  "Combine all entries under \"{{name}}\"?": "Объединить все записи под именем «{{name}}»?",
+  "Select names for the same person or store. Changes apply across all dates and lists.": "Выберите имена одного человека или магазина. Изменения применяются ко всем датам и спискам.",
+  "Selected entries: {{count}}": "Выбрано записей: {{count}}",
+  "Every saved entry, result, date and payment history is kept. Duplicate entries are not removed.": "Все записи, результаты, даты и история платежей сохраняются. Дубликаты не удаляются.",
+  "Rename failed. Your names may have changed. Reopen this dialog and try again.": "Не удалось переименовать. Имена могли измениться. Откройте это окно заново и повторите попытку.",
   "Permanently delete this history entry? The current calculation will stay unchanged. This entry cannot be restored.": "Навсегда удалить эту запись истории? Текущий расчёт останется без изменений. Запись нельзя будет восстановить.",
   "Deleted rows stay here until restored or permanently deleted.": "Удалённые строки остаются здесь до восстановления или окончательного удаления.",
   "Permanently delete \"{{name}}\" and its history? This cannot be undone or restored.": "Удалить «{{name}}» и всю историю навсегда? Это действие нельзя отменить, а данные — восстановить.",

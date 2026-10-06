@@ -3,7 +3,7 @@ import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, ScrollView, Text, TextInput, View } from 'react-native';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { auth, isFirebaseConfigured } from '../authClient';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -76,8 +76,9 @@ export default function AuthModal({ visible, user, onClose }) {
               <Pressable disabled={busy || !isFirebaseConfigured} onPress={handleEmailAuth} style={({ pressed }) => [styles.authActionButton, styles.authEmailButton, (busy || !isFirebaseConfigured) && styles.disabledButton, pressed && styles.pressed]}>
                 <ButtonLabel style={styles.closeButtonText}>{mode === 'signIn' ? t("Sign in") : t("Create account")}</ButtonLabel>
               </Pressable>
-              <Pressable disabled={busy || !isFirebaseConfigured || !googleAuthReady} onPress={handleGoogleAuth} style={({ pressed }) => [styles.authActionButton, styles.googleButton, (busy || !isFirebaseConfigured || !googleAuthReady) && styles.disabledButton, pressed && styles.pressed]}>
-                <ButtonLabel style={styles.closeButtonText}>{t("Continue with Google")}</ButtonLabel>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('Continue with Google')} disabled={busy || !isFirebaseConfigured || !googleAuthReady} onPress={handleGoogleAuth} style={({ pressed }) => [styles.authActionButton, styles.googleButton, (busy || !isFirebaseConfigured || !googleAuthReady) && styles.disabledButton, pressed && styles.pressed]}>
+                <Image source={require('../assets/google-g.png')} style={styles.googleIcon} resizeMode="contain" accessible={false} />
+                <Text style={styles.googleButtonText}>{t("Continue with Google")}</Text>
               </Pressable>
             </View>
             <Pressable onPress={() => setMode((current) => current === 'signIn' ? 'signUp' : 'signIn')} style={styles.authModeButton}>

@@ -18,6 +18,37 @@ function fixture() {
 }
 const row = { id: 'one', title: 'Work', value: '5', createdAt: '2026-09-17T10:00:00Z' };
 
+test('bulk rename queues every changed row and preserves results through restart and sync', async () => {
+  const f = fixture();
+  let store = createOfflineCalculationStore(f);
+  for (const item of [row, { ...row, id: 'two', fact: '45' }, { ...row, id: 'three', title: 'Alias', cred: '0', paidOffAmount: '20', paidOffAt: '2026-10-01' }]) {
+    await store.change({ type: 'add', row: item }, 'account');
+  }
+  const saved = await store.change({ type: 'renameName', fromNames: ['Work', 'Alias'], toName: 'Store', mergeConfirmed: true }, 'account');
+  assert.equal(saved.length, 3);
+  assert.ok(saved.every(item => item.title === 'Store'));
+  const state = JSON.parse(await f.storage.getItem('calculatorCalculations:user:account'));
+  assert.deepEqual(new Set(state.queue.slice(-3).map(op => op.rowId)), new Set(['one', 'two', 'three']));
+  store = createOfflineCalculationStore(f);
+  assert.deepEqual(await store.getRows('account'), saved);
+  f.connect();
+  await store.sync('account');
+  assert.ok([...f.cloud.values()].every(item => item.row.title === 'Store'));
+  assert.equal(f.cloud.get('two').row.fact, '45');
+  assert.equal(f.cloud.get('three').row.paidOffAmount, '20');
+  assert.deepEqual(await store.getRows('another-account'), []);
+});
+
+test('failed bulk rename storage write leaves all names and queue unchanged', async () => {
+  const f = fixture();
+  const store = createOfflineCalculationStore(f);
+  await store.change({ type: 'add', row }, 'account');
+  const before = await f.storage.getItem('calculatorCalculations:user:account');
+  f.storage.setItem = async () => { throw new Error('disk full'); };
+  await assert.rejects(store.change({ type: 'renameName', fromNames: ['Work'], toName: 'New' }, 'account'), /disk full/);
+  assert.equal(await f.storage.getItem('calculatorCalculations:user:account'), before);
+});
+
 test('removed history stays removed when merged with stale edits in either direction', () => {
   const event = { id: 'event', at: '2026-10-03', type: 'edit', before: { title: 'Old' }, after: { title: 'New' } };
   const before = { ...row, history: [event] };
