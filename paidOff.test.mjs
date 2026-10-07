@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const url = text => `data:text/javascript;base64,${Buffer.from(text).toString('base64')}`;
-const { getPaidOffEntries, getPaidOffTotal } = await import(url(await readFile(new URL('./paidOff.js', import.meta.url), 'utf8')));
+const { getPaidOffEntries, getPaidOffTotal, getTablePaymentRows } = await import(url(await readFile(new URL('./paidOff.js', import.meta.url), 'utf8')));
 const utils = url(await readFile(new URL('./calculatorUtils.js', import.meta.url), 'utf8'));
 const { applyCalculationChange } = await import(url((await readFile(new URL('./calculationHistory.js', import.meta.url), 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils))));
 
@@ -30,4 +30,25 @@ test('old paid debts display and unpaid or cleared records stay empty', () => {
   assert.equal(getPaidOffEntries(rows[0])[0].category, 'Debt');
   assert.deepEqual(getPaidOffEntries(rows[1]), []);
   assert.deepEqual(getPaidOffEntries(rows[2]), []);
+});
+
+test('table attributes each payoff to its payment day without duplicating calculation totals', () => {
+  const original = { id: 'mixed', title: 'Shop', savedAt: '2026-09-01T12:00:00', info: '100', cred: '0', fact: '0', fcash: '10',
+    paidOffAt: '2026-10-07T15:00:00', paidOffAmount: '25', invoicePaidOffAt: '2026-10-08T10:00:00', invoicePaidOffAmount: '75' };
+  const rows = getTablePaymentRows([original]);
+  const onDay = day => rows.filter(row => row.savedAt.startsWith(day));
+  assert.equal(getPaidOffTotal(onDay('2026-09-01')), 0);
+  assert.equal(getPaidOffTotal(onDay('2026-10-07')), 25);
+  assert.equal(getPaidOffTotal(onDay('2026-10-08')), 75);
+  assert.equal(getPaidOffTotal(rows), 100);
+  assert.equal(rows[0].info, '100');
+  assert.equal(rows[0].fcash, '10');
+  for (const row of rows.slice(1)) {
+    assert.equal(row.paymentOnly, true);
+    for (const field of ['info', 'expression', 'cred', 'fact', 'fcash']) assert.equal(row[field], '');
+  }
+  assert.equal(new Set(rows.map(row => row.id)).size, 3);
+  assert.equal(original.paidOffAmount, '25');
+  assert.deepEqual(getTablePaymentRows([{ ...original, deletedAt: '2026-10-09' }]), []);
+  assert.equal(getTablePaymentRows([{ ...original, paidOffAt: '', invoicePaidOffAt: '' }]).length, 1);
 });

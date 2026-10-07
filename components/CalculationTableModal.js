@@ -22,7 +22,7 @@ import useDriveAuthorization from '../useDriveAuthorization';
 import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
 import CalculationHistoryModal from './CalculationHistoryModal';
 import { buildDriveExportFileName } from '../driveExportNames';
-import { getPaidOffEntries, getPaidOffTotal } from '../paidOff';
+import { getPaidOffEntries, getPaidOffTotal, getTablePaymentRows } from '../paidOff';
 
 function paidOffText(row, t) {
   return getPaidOffEntries(row).map(entry => `${t(entry.category)}: ${formatNumberDisplay(entry.amount)}`).join('\n');
@@ -526,7 +526,7 @@ export default function CalculationTableModal({
 
   const searchValue = searchText.trim().toLowerCase();
   const rowIndexes = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
-  const filteredRows = useMemo(() => rows.filter((r) => {
+  const filteredRows = useMemo(() => getTablePaymentRows(rows).filter((r) => {
     if (searchValue && !String(r.title || '').toLowerCase().includes(searchValue)) {
       return false;
     }
@@ -973,6 +973,7 @@ export default function CalculationTableModal({
                             </Text>
                           </Pressable>
                           <Pressable
+                            disabled={calc.paymentOnly}
                             onPress={() => {
                               void commitChange({ type: 'markShared', id: calc.id });
                               void shareRowSummary(calc);
@@ -997,6 +998,7 @@ export default function CalculationTableModal({
                           style={({ pressed }) => [styles.cellPressable, pressed && styles.pressed]}
                           accessibilityRole="button"
                           accessibilityLabel={t("Formula / Info")}
+                          disabled={calc.paymentOnly}
                           onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'info', text: calc.info || '' })}
                         >
                           <Text style={[styles.cellPressableText, !calc.info && { color: '#64748b' }]} numberOfLines={1}>
@@ -1010,6 +1012,7 @@ export default function CalculationTableModal({
                         <Pressable
                           style={({ pressed }) => [styles.cellPressable, pressed && styles.pressed]}
                           onPress={() => setTextModal({ visible: true, rowId: calc.id, field: 'comment', text: calc.comment || '' })}
+                          disabled={calc.paymentOnly}
                         >
                           <Text
                             style={[styles.cellPressableText, !calc.comment && { color: '#64748b' }]}
@@ -1025,6 +1028,7 @@ export default function CalculationTableModal({
                         <TextInput
                           style={[styles.cellInput, styles.cellInputNumber]}
                           value={String(calc.cred ?? '')}
+                          editable={!calc.paymentOnly}
                           onChangeText={(text) => handleCellChange(index, 'cred', text)}
                           onFocus={() => handleNumberCellFocus(index, 'cred')}
                           onBlur={() => handleNumberCellBlur(index, 'cred')}
@@ -1039,6 +1043,7 @@ export default function CalculationTableModal({
                         <TextInput
                           style={[styles.cellInput, styles.cellInputNumber]}
                           value={String(calc.fact ?? '')}
+                          editable={!calc.paymentOnly}
                           onChangeText={(text) => handleCellChange(index, 'fact', text)}
                           onFocus={() => handleNumberCellFocus(index, 'fact')}
                           onBlur={() => handleNumberCellBlur(index, 'fact')}
@@ -1053,6 +1058,7 @@ export default function CalculationTableModal({
                         <TextInput
                           style={[styles.cellInput, styles.cellInputNumber]}
                           value={String(calc.fcash ?? '')}
+                          editable={!calc.paymentOnly}
                           onChangeText={(text) => handleCellChange(index, 'fcash', text)}
                           onFocus={() => handleNumberCellFocus(index, 'fcash')}
                           onBlur={() => handleNumberCellBlur(index, 'fcash')}
@@ -1067,9 +1073,9 @@ export default function CalculationTableModal({
                         <Text style={styles.paidOffText}>{paidOffText(calc, t)}</Text>
                       </View>
                       <View style={[styles.tableCell, styles.actionColumn]}>
-                        <Pressable onPress={() => promptDeleteRow(index)} style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]} hitSlop={8}>
+                        {!calc.paymentOnly && <Pressable onPress={() => promptDeleteRow(index)} style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]} hitSlop={8}>
                           <Text style={styles.deleteButtonText}>✕</Text>
-                        </Pressable>
+                        </Pressable>}
                       </View>
                     </View>
                   );
