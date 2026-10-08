@@ -400,8 +400,9 @@ async function shareAsPdf(calculations, options, filterSummary) {
     printWindow.document.write(buildTableHtml(calculations, filterSummary));
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => printWindow.print(), 250);
-    return;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    printWindow.print();
+    return 'print';
   }
 
   const { uri } = await Print.printToFileAsync({
@@ -412,6 +413,7 @@ async function shareAsPdf(calculations, options, filterSummary) {
     orientation: 'landscape',
   });
   await Sharing.shareAsync(uri, options);
+  return 'share';
 }
 
 async function createPdfUri(calculations, filterSummary) {
@@ -651,12 +653,13 @@ export default function CalculationTableModal({
 
   const handleConfirmWarning = async () => {
     if (saving) return;
+    let saved = false;
     if (warningModal.type === 'delete_line') {
-      await commitChange({ type: 'delete', id: rows[warningModal.rowIndex].id });
+      saved = await commitChange({ type: 'delete', id: rows[warningModal.rowIndex].id });
     } else if (warningModal.type === 'change_number') {
-      await commitChange({ type: 'edit', id: rows[warningModal.rowIndex].id, changes: { [warningModal.field]: warningModal.newValue } });
+      saved = await commitChange({ type: 'edit', id: rows[warningModal.rowIndex].id, changes: { [warningModal.field]: warningModal.newValue } });
     }
-    setWarningModal({ visible: false, type: null });
+    if (saved) setWarningModal({ visible: false, type: null });
   };
 
   const handleCancelWarning = () => {
@@ -731,13 +734,17 @@ export default function CalculationTableModal({
   const handleSaveCsv = async () => {
     const csv = buildTableCsv(filteredRows);
     const fileName = `calculator-table-${new Date().toISOString().slice(0, 10)}.csv`;
-    if (downloadCsv(csv, fileName)) return;
+    if (downloadCsv(csv, fileName)) {
+      Alert.alert(t('CSV download started'), t('CSV download has started.'));
+      return;
+    }
 
     try {
       const dataUri = `data:text/csv;charset=utf-8,${encodeURIComponent(`\ufeff${csv}`)}`;
       await Sharing.shareAsync(dataUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      Alert.alert(t('CSV ready'), t('CSV is ready to save or share.'));
     } catch (error) {
-      Alert.alert(t("CSV export failed"), error.message);
+      Alert.alert(t('CSV export failed'), error?.message || t('Please try again.'));
     }
   };
 
@@ -794,16 +801,29 @@ export default function CalculationTableModal({
     }
   };
 
+  const exportPdf = async (options) => {
+    try {
+      const result = await shareAsPdf(filteredRows, options, filterSummary);
+      if (result === 'print') {
+        Alert.alert(t('Print dialog opened'), t('Use the browser print dialog to save or print the table.'));
+      } else {
+        Alert.alert(t('PDF ready'), t('PDF is ready to save or share.'));
+      }
+    } catch (error) {
+      Alert.alert(t('PDF export failed'), error?.message || t('Please try again.'));
+    }
+  };
+
   const saveTableAsPdf = () =>
-    shareAsPdf(filteredRows, {
+    exportPdf({
       UTI: 'com.adobe.pdf',
       mimeType: 'application/pdf',
-    }, filterSummary).catch((error) => console.log('PDF save error:', error));
+    });
 
   const shareTable = () =>
-    shareAsPdf(filteredRows, {
+    exportPdf({
       mimeType: 'application/pdf',
-    }, filterSummary).catch((error) => console.log('Share error:', error));
+    });
 
   const handleClose = () => {
     if (saving || warningModal.visible) return;
