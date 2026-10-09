@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,29 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
   const drawerWidth = Math.min(360, width - 24);
   const [open, setOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
+  const [languageHeight, setLanguageHeight] = useState(0);
+  const menuScroll = useRef(null);
+  const menuViewportHeight = useRef(0);
+  const menuScrollOffset = useRef(0);
+  const languageRow = useRef({ y: 0, height: 0 });
+  const revealLanguages = () => {
+    if (!menuViewportHeight.current || !languageHeight) return;
+    const { y, height } = languageRow.current;
+    // Show the last option with breathing room, keeping the Language heading
+    // visible too. On very small screens, start at the heading and allow scrolling.
+    const offset = Math.min(y, Math.max(menuScrollOffset.current,
+      y + height + languageHeight + 12 - menuViewportHeight.current));
+    menuScroll.current?.scrollTo({ y: Math.max(0, offset), animated: true });
+  };
+  const languageProgress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = Animated.timing(languageProgress, {
+      toValue: languageOpen ? 1 : 0, duration: 200,
+      easing: Easing.out(Easing.cubic), useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [languageOpen, languageProgress]);
   const progress = useRef(new Animated.Value(0)).current;
   const closing = useRef(false);
   const selected = languages.find(item => item.code === i18n.resolvedLanguage) || languages[1];
@@ -50,7 +73,9 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
             <Text accessibilityRole="header" style={s.title}>{t('Menu')}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={t('Close menu')} onPress={() => close()} style={s.trigger}><Ionicons name="close" size={26} color="#f8fafc" /></Pressable>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
+          <ScrollView ref={menuScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}
+            onLayout={({ nativeEvent }) => { menuViewportHeight.current = nativeEvent.layout.height; }}
+            onScroll={({ nativeEvent }) => { menuScrollOffset.current = nativeEvent.contentOffset.y; }} scrollEventThrottle={16}>
             {row('person-circle-outline', t(user ? 'Account' : 'Sign in'), () => close(onOpenAuth), user?.email)}
             {row('sparkles-outline', t(hasPro ? 'Pro is active' : 'Unlock Pro'), () => close(() => setPaywall(true)))}
             <View style={s.row}>
@@ -62,18 +87,26 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
               <Text style={s.text}>{t('Synchronization')}</Text>
               <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} showStatus />
             </View>
-            <Pressable testID="language-menu" accessibilityRole="button" accessibilityLabel={t('Language')} accessibilityState={{ expanded: languageOpen }} onPress={() => setLanguageOpen(value => !value)} style={s.row}>
+            <Pressable testID="language-menu" accessibilityRole="button" accessibilityLabel={t('Language')} accessibilityState={{ expanded: languageOpen }} onPress={() => setLanguageOpen(value => !value)}
+              onLayout={({ nativeEvent }) => { languageRow.current = nativeEvent.layout; }} style={s.row}>
               <Ionicons name="language-outline" size={22} color="#a8caff" />
               <View style={s.label}><Text style={s.text}>{t('Language')}</Text><Text style={s.detail}>{custom.active ? 'Custom' : selected.name}</Text></View>
-              <Ionicons name={languageOpen ? 'close' : 'menu'} size={24} color="#e2e8f0" />
+              <Ionicons name={languageOpen ? 'chevron-up' : 'menu'} size={24} color="#e2e8f0" />
             </Pressable>
-            {languageOpen && <View testID="drawer-languages" style={s.languages}>
+            <Animated.View testID="drawer-languages" pointerEvents={languageOpen ? 'auto' : 'none'}
+              onLayout={({ nativeEvent }) => {
+                if (languageOpen && nativeEvent.layout.height >= languageHeight - 1) revealLanguages();
+              }}
+              accessibilityElementsHidden={!languageOpen} importantForAccessibility={languageOpen ? 'auto' : 'no-hide-descendants'}
+              style={{ height: Animated.multiply(languageProgress, languageHeight), overflow: 'hidden' }}>
+            <View onLayout={({ nativeEvent }) => setLanguageHeight(nativeEvent.layout.height)} style={s.languages}>
               {languages.map(language => <Pressable key={language.code} accessibilityRole="radio" accessibilityState={{ checked: !custom.active && selected.code === language.code }} onPress={() => { custom.chooseStandard(); selectLanguage(language.code); setLanguageOpen(false); }} style={s.language}>
                 <Text style={[s.text, s.label]}>{language.name}</Text>
                 {!custom.active && selected.code === language.code && <Ionicons name="checkmark" size={20} color="#86efac" />}
               </Pressable>)}
               <Pressable accessibilityRole="radio" accessibilityState={{ checked: custom.active }} onPress={() => { custom.chooseCustom(); setLanguageOpen(false); }} style={s.language}><Text style={[s.text, s.label]}>Custom</Text>{custom.active && <Ionicons name="checkmark" size={20} color="#86efac" />}</Pressable>
-            </View>}
+            </View>
+            </Animated.View>
             <PrivacyPolicyLink />
           </ScrollView>
         </Animated.View>
@@ -93,6 +126,6 @@ const s = StyleSheet.create({
   text: { color: '#f8fafc', fontSize: 16 },
   detail: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
   section: { paddingTop: 20, paddingBottom: 8, borderBottomWidth: 1, borderColor: '#263449', gap: 8 },
-  languages: { paddingHorizontal: 12, backgroundColor: '#1e293b', borderRadius: 12 },
+  languages: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, backgroundColor: '#1e293b', borderRadius: 12 },
   language: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, minHeight: 48, gap: 8 },
 });

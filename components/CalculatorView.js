@@ -5,7 +5,7 @@ import SettingsDrawer from './SettingsDrawer';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, BackHandler, Easing, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import SafeAreaView from './CalculatorSafeArea';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
 import { pretty } from '../calculatorUtils';

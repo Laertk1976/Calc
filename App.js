@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Alert, AppState } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { auth } from './authClient';
 import { calculationStore, syncCalculations, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
@@ -304,7 +304,7 @@ function AppContent() {
   };
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <TapSoundProvider>
       <CustomLabelsProvider>
         <CalculatorView
