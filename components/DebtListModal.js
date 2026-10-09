@@ -1,7 +1,8 @@
 import Pressable from './SoundPressable';
 import PanelModal from './PanelModal';
 import ListExportActions from './ListExportActions';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { usePro } from './ProProvider';
 import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import DateRangeCalendar from './DateRangeCalendar';
 import useCalculatorStyles from '../useCalculatorStyles';
 
 export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
+  const { hasPro, requirePro, today: todayKey } = usePro();
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const invoice = amountField === 'fact';
@@ -31,12 +33,19 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [search, setSearch] = useState('');
   const [selectedName, setSelectedName] = useState(null);
   const [unpaidOnly, setUnpaidOnly] = useState(false);
+  useEffect(() => {
+    if (!hasPro) {
+      setFrom(todayKey.split('-').reverse().join('/')); setTo(todayKey.split('-').reverse().join('/'));
+      setPicker(false); setSearchVisible(false); setSearch(''); setSelectedName(null); setDraft(null); setSelectedId(null);
+    }
+  }, [hasPro, todayKey]);
   const filterUnpaid = !invoice && unpaidOnly;
   const undoable = latestUndoableChange(calculations.map(normalizeCalculation).filter(row =>
     selectedId?.includes(row.id) &&
     [row, row.history.at(-1)?.before].some(value => value?.[amountField] !== undefined && value[amountField] !== null && value[amountField] !== '')
   ));
   const undoLatest = async () => {
+    if (!requirePro()) return;
     if (saving || !undoable) return;
     setSaving(true); setError('');
     try {
@@ -64,6 +73,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const button = (label, action, disabled = false, inRow = false) => <Pressable accessibilityRole="button" disabled={disabled} onPress={action} style={[s.button, inRow && s.rowButton, disabled && { opacity: 0.5 }]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.buttonText}>{label}</Text></Pressable>;
   const payoffDetails = row => row[paidAt] ? <Text style={s.paid}>{t('Paid off amount')}: {pretty(String(row[paidAmount]))}{'\n'}{t('Paid off at')}: {new Date(row[paidAt]).toLocaleString(i18n.resolvedLanguage)}</Text> : null;
   const deleteDebt = async row => {
+    if (!requirePro()) return;
     if (saving) return;
     setSaving(true); setError('');
     try {
@@ -73,6 +83,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     finally { setSaving(false); }
   };
   const undoPayoff = async row => {
+    if (!requirePro()) return;
     if (saving) return;
     setSaving(true); setError('');
     try {
@@ -81,6 +92,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     finally { setSaving(false); }
   };
   const save = async (payOff = false) => {
+    if (!requirePro()) return;
     if (saving) return;
     const amount = String(draft[amountField]).trim().replace(/,/g, '');
     if (!draft.title.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount) || !Number.isFinite(Number(amount))) {
@@ -113,7 +125,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
               {unpaidOnly && <Ionicons name="checkmark" size={14.4} color="#e2e8f0" />}
             </Pressable>}
-          {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton]}>
+          {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton]}>
             <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
             <View style={{ position: 'absolute', width: 8, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 8, bottom: 10 }} />
           </Pressable>}
@@ -160,11 +172,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             {button(t('All names'), () => chooseName(null), false, true)}
           </View>}
           <View style={s.controls}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => setPicker(true)} style={({ pressed }) => [styles.dateDropdownButton, { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4 }, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => { if (requirePro()) setPicker(true); }} style={({ pressed }) => [styles.dateDropdownButton, { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4 }, pressed && styles.pressed]}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: 15 }]}>📅 {calendarLabel}</Text>
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => { setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" onPress={() => { if (!requirePro()) return; setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
               <Text numberOfLines={1} style={styles.dateDropdownButtonText}>{t('All dates')}</Text>
             </Pressable>
           </View>
@@ -195,7 +207,8 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
                 {!!row.comment && <Text style={s.text}>{row.comment}</Text>}
                 </Pressable>
                 <View style={s.controls}>
-                  {button(t('Edit'), () => { setError(''); setDraft({ ...row }); }, saving, true)}
+                  {button(t('Edit'), () => { if (!requirePro()) return; setError(''); setDraft({ ...row }); }, saving, true)}
+                  {!row[paidAt] && button(t('Pay off'), () => { if (!requirePro()) return; setError(''); setDraft({ ...row }); }, saving, true)}
                   <Pressable accessibilityRole="button" disabled={saving} onPress={() => deleteDebt(row)} style={[s.button, s.rowButton, { backgroundColor: '#7f1d1d' }, saving && { opacity: 0.5 }]}>
                     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.buttonText}>{t('Delete')}</Text>
                   </Pressable>

@@ -1,5 +1,7 @@
 # Calc privacy policy — draft for review
 
+**Superseded October 9, 2026:** The current policy is published at https://calc-7271f-account.web.app/privacy from `public-account/privacy.html`. Confirmed developer: laertkarap; audience: 13+; support emails: 12 months after resolution. The older text below is historical only. Do not publish it independently or treat its liability wording or placeholders as part of the current policy.
+
 **Not yet published. Before publishing:** add the public developer identity and effective date, confirm provider disclosures and Android backup behavior, verify account-deletion deployment, and finalize support retention and response times. Bracketed items require completion.
 
 ## Who operates Calc

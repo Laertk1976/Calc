@@ -1,0 +1,7 @@
+{
+  "en": { "Open menu": "Open menu", "Close menu": "Close menu", "Menu": "Menu", "Synchronization": "Synchronization" },
+  "hy": { "Open menu": "Բացել ընտրացանկը", "Close menu": "Փակել ընտրացանկը", "Menu": "Ընտրացանկ", "Synchronization": "Համաժամացում" },
+  "ru": { "Open menu": "Открыть меню", "Close menu": "Закрыть меню", "Menu": "Меню", "Synchronization": "Синхронизация" },
+  "ja": { "Open menu": "メニューを開く", "Close menu": "メニューを閉じる", "Menu": "メニュー", "Synchronization": "同期" },
+  "hi": { "Open menu": "मेनू खोलें", "Close menu": "मेनू बंद करें", "Menu": "मेनू", "Synchronization": "सिंक" }
+}

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 
-export default function SyncStatus({ syncStatus, onRetrySync, compact = false }) {
+export default function SyncStatus({ syncStatus, onRetrySync, compact = false, showStatus = false }) {
   const { t, i18n } = useTranslation();
   const rotation = useRef(new Animated.Value(0)).current;
   const turns = useRef(0);
@@ -38,6 +38,7 @@ export default function SyncStatus({ syncStatus, onRetrySync, compact = false })
 
   return (
     <View style={{ paddingHorizontal: compact ? 0 : 12, paddingBottom: compact ? 0 : 8 }}>
+      {showStatus && <Text accessibilityLiveRegion="polite" style={{ color: '#94a3b8', fontSize: 13 }}>{statusLabel}</Text>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={`${t('Retry sync')}. ${statusLabel}${syncedTime ? `, ${syncedTime}` : ''}`}
           accessibilityState={{ disabled, busy }} accessibilityLiveRegion="polite"

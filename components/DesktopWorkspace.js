@@ -1,24 +1,24 @@
 import Pressable from './SoundPressable';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import LanguageSelector from './LanguageSelector';
-import SyncStatus from './SyncStatus';
-import ButtonLabel from './ButtonLabel';
-import { useTapSound } from './TapSoundProvider';
+import SettingsDrawer from './SettingsDrawer';
 import CalculationListModal from './CalculationListModal';
 import CalculationTableModal from './CalculationTableModal';
 import DebtListModal from './DebtListModal';
+import { usePro } from './ProProvider';
 
 const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
 
 export default function DesktopWorkspace({ tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+  const { hasPro, requirePro } = usePro();
+  useEffect(() => { if (!hasPro && tab === 'table') onTabChange('list'); }, [hasPro, tab]);
   const { t } = useTranslation();
-  const { soundEnabled, toggleSound } = useTapSound();
   const [expanded, setExpanded] = useState(false);
   const [visited, setVisited] = useState({ list: true });
   useEffect(() => { setVisited(current => current[tab] ? current : { ...current, [tab]: true }); }, [tab]);
   const selectTab = next => {
+    if (next === 'table' && !requirePro()) return;
     setVisited(current => ({ ...current, [next]: true }));
     onTabChange(next);
   };
@@ -27,15 +27,7 @@ export default function DesktopWorkspace({ tab, onTabChange, display, keypad, ca
     <View style={s.toolbar}>
       <Text style={s.brand}>CALC</Text>
       <View style={s.toolbarSpacer} />
-      <SyncStatus compact syncStatus={syncStatus} onRetrySync={onRetrySync} />
-      <View style={s.sound}>
-        <Text style={s.toolbarText}>{t('Sound')}</Text>
-        <Switch accessibilityLabel={t('Sound')} value={soundEnabled} onValueChange={toggleSound} trackColor={{ false: '#475569', true: '#15803d' }} thumbColor={soundEnabled ? '#86efac' : '#cbd5e1'} />
-      </View>
-      <LanguageSelector />
-      <Pressable accessibilityRole="button" onPress={onOpenAuth} style={s.account}>
-        <ButtonLabel numberOfLines={1} style={s.toolbarText}>{t(user ? 'Account' : 'Sign in')}</ButtonLabel>
-      </Pressable>
+      <SettingsDrawer user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     </View>
     <View style={s.workspace}>
       <View testID="desktop-records" style={s.records}>
@@ -51,7 +43,7 @@ export default function DesktopWorkspace({ tab, onTabChange, display, keypad, ca
         </View>
         {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
           {id === 'list' && <CalculationListModal desktop inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
-          {id === 'table' && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
+          {id === 'table' && hasPro && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
           {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
         </View>)}

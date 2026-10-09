@@ -1,4 +1,5 @@
 {
+  "functions": [{ "source": "functions", "codebase": "billing", "ignore": ["node_modules", "*.test.cjs"] }],
   "firestore": { "rules": "firestore.rules" },
   "hosting": {
     "site": "calc-7271f-account",

@@ -13,8 +13,16 @@ import { applyPercentage, evaluateExpression, pretty } from './calculatorUtils';
 import AuthModal from './components/AuthModal';
 import AccountModal from './components/AccountModal';
 import CalculatorView from './components/CalculatorView';
+import ProProvider, { usePro } from './components/ProProvider';
+import ProModal from './components/ProModal';
+import { accessibleRecords } from './proAccess';
 
 export default function App() {
+  return <ProProvider><AppContent /></ProProvider>;
+}
+
+function AppContent() {
+  const { hasPro, today, requirePro, setPaywall } = usePro();
   const { t, i18n } = useTranslation();
   const [display, setDisplay] = useState('0');
   const [storedValue, setStoredValue] = useState(null);
@@ -68,6 +76,7 @@ export default function App() {
   }, [user?.uid]);
 
   const handleUpdateCalculations = async (change) => {
+    if (!requirePro()) return savedCalculations;
     if (syncStatus.deletionPending) { setAccountVisible(true); throw new Error(t('Account deletion is pending. Open Account to finish deletion.')); }
     const calculations = await updateSavedCalculations(change, user?.uid);
     setSavedCalculations(calculations);
@@ -92,6 +101,7 @@ export default function App() {
   };
 
   const showCalculatorTable = () => {
+    if (!requirePro()) return;
     getSavedCalculations(user?.uid).then((calculations) => {
       setSavedCalculations(calculations);
       setListVisible(false);
@@ -298,12 +308,13 @@ export default function App() {
       <TapSoundProvider>
       <CustomLabelsProvider>
         <CalculatorView
+          key={`${user?.uid || 'guest'}:${hasPro}:${today}`}
           display={visibleDisplay}
           expression={expression}
           onEditExpression={editExpression}
-          savedCalculations={savedCalculations}
+          savedCalculations={accessibleRecords(savedCalculations, hasPro, today)}
           listVisible={listVisible}
-          tableVisible={tableVisible}
+          tableVisible={tableVisible && hasPro}
           saveDialogVisible={saveDialogVisible}
           saveTitle={saveTitle}
           user={user}
@@ -326,6 +337,7 @@ export default function App() {
         <AccountModal visible={accountVisible} user={user} deletionPending={syncStatus.deletionPending}
           onClose={() => setAccountVisible(false)} onSignOut={() => auth && signOut(auth)}
           onDeleted={() => { setAccountVisible(false); setAuthVisible(false); setSavedCalculations([]); setTableVisible(false); setListVisible(false); setSaveDialogVisible(false); setExpression(''); setDisplay('0'); setStoredValue(null); setOperator(null); setFreshInput(false); }} />
+        <ProModal user={user} onSignIn={() => { setPaywall(false); setAuthVisible(true); }} />
       </CustomLabelsProvider>
       </TapSoundProvider>
     </SafeAreaProvider>

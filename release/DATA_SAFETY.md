@@ -10,6 +10,7 @@ Draft based on local code, 2026-09-27. This is not a completed Play Console decl
 | Titles, notes, calculations, comments, history and dates | Entered by users and synced with the record | Other user-generated content; assess names or other personal details entered in records |
 | Exported documents | Optional sharing and Drive export | Review files/docs and user-directed transfer exceptions; Drive export needs explicit authorization |
 | SDK technical data | Firebase Auth and Google Sign-In dependencies | Check current SDK disclosures and configuration for device identifiers and diagnostics; do not infer 'none' from lack of an analytics screen |
+| Pro purchases (when enabled) | Google Play purchase tokens, product/status information, Firebase UID and hashed account binding; server verification and refund notifications | Review purchase history and user identifiers for app functionality, account management and fraud prevention; payment-card details are handled by Google Play |
 
 ## Current implementation
 
@@ -24,10 +25,12 @@ Draft based on local code, 2026-09-27. This is not a completed Play Console decl
 
 ## Questions to resolve
 
+The policy at `https://calc-7271f-account.web.app/privacy` was published October 9, 2026 from `public-account/privacy.html`. Confirmed developer: laertkarap; audience: 13+; support emails: 12 months after resolution, then deletion. Billing records currently have no automatic expiry and their retention is disclosed separately from calculation/account deletion. The billing backend has not yet been deployed.
+
 1. Which optional data categories are collected by the final SDK configuration, including Google profile information and technical identifiers?
 2. How will permanent deletion and any retention obligations work, and how long will verified requests take?
 3. Which providers qualify as service providers under Google's definitions? A transfer to Firebase still counts as collection; apply sharing exceptions only after checking the policy.
-4. Does the target audience include children? This has not been selected.
+4. Ensure Play Console target-audience selections match the confirmed 13+ audience.
 5. Are public Firebase rules restricted to each authenticated owner and validated for writes?
 
 Source: [Google Play Data safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469).

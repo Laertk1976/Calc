@@ -1,4 +1,5 @@
 import Pressable from './SoundPressable';
+import PrivacyPolicyLink from './PrivacyPolicyLink';
 import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -84,6 +85,7 @@ export default function AuthModal({ visible, user, onClose }) {
             <Pressable onPress={() => setMode((current) => current === 'signIn' ? 'signUp' : 'signIn')} style={styles.authModeButton}>
               <ButtonLabel style={styles.authModeText}>{mode === 'signIn' ? t("Create a new account") : t("Already have an account? Sign in")}</ButtonLabel>
             </Pressable>
+            <PrivacyPolicyLink />
             <Pressable onPress={onClose} style={[styles.authActionButton, styles.cancelButton, { flexShrink: 0 }]}>
               <ButtonLabel style={styles.closeButtonText}>{t("Cancel")}</ButtonLabel>
             </Pressable>

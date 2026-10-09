@@ -6,8 +6,11 @@ import { Keyboard, Modal, Platform, ScrollView, Text, TextInput, View } from 're
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { getSavedCalculations } from '../calculationStorage';
 import useCalculatorStyles from '../useCalculatorStyles';
+import { usePro } from './ProProvider';
+import { accessibleRecords } from '../proAccess';
 
 export default function SaveCalculationModal({ visible, title, userId, onTitleChange, onConfirm, onClose }) {
+  const { hasPro, today } = usePro();
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles();
   const titleInputRef = useRef(null);
@@ -43,8 +46,11 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
   useEffect(() => {
     if (!visible) return;
     setLocalTitle(title);
-    getSavedCalculations(userId).then((items) => setSavedTitles(items.filter((item) => !item.deletedAt).map((item) => item.title)));
-  }, [visible, title, userId]);
+    let active = true;
+    setSavedTitles([]);
+    getSavedCalculations(userId).then((items) => { if (active) setSavedTitles(accessibleRecords(items, hasPro, today).filter((item) => !item.deletedAt).map((item) => item.title)); }).catch(() => {});
+    return () => { active = false; };
+  }, [visible, title, userId, hasPro, today]);
 
   useEffect(() => {
     return () => {
@@ -71,6 +77,7 @@ export default function SaveCalculationModal({ visible, title, userId, onTitleCh
           <View style={[styles.savePanel, { maxHeight: '100%', flexShrink: 1 }]}>
             <ScrollView keyboardShouldPersistTaps="always" keyboardDismissMode="none" style={{ flexShrink: 1 }}>
             <Text style={styles.listTitle}>{t("Save as")}</Text>
+            {!hasPro && <Text style={styles.authHint}>{t('Free access shows today only. Pro unlocks past records, search, calendar, Table, edits, payments and deletion.')}</Text>}
             <TextInput
               ref={titleInputRef}
               value={localTitle}

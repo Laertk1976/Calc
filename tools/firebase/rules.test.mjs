@@ -15,6 +15,25 @@ before(async () => {
 beforeEach(() => env.clearFirestore());
 after(async () => { await env?.cleanup(); });
 
+test('Pro entitlements are private and can only be written by the backend', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'proEntitlements', 'owner'), { active: true });
+    await setDoc(doc(context.firestore(), 'playPurchases', 'token'), { uid: 'owner' });
+    await setDoc(doc(context.firestore(), 'billingAccounts', 'binding'), { uid: 'owner' });
+  });
+  await assertSucceeds(getDoc(doc(userDb(), 'proEntitlements', 'owner')));
+  await assertFails(getDoc(doc(userDb('other'), 'proEntitlements', 'owner')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'proEntitlements', 'owner')));
+  await assertFails(getDocs(collection(userDb(), 'proEntitlements')));
+  await assertFails(setDoc(doc(userDb(), 'proEntitlements', 'owner'), { active: true }));
+  await assertFails(setDoc(doc(userDb('other'), 'proEntitlements', 'other'), { active: true }));
+  await assertFails(deleteDoc(doc(userDb(), 'proEntitlements', 'owner')));
+  for (const [collectionName, id] of [['playPurchases', 'token'], ['billingAccounts', 'binding']]) {
+    await assertFails(getDoc(doc(userDb(), collectionName, id)));
+    await assertFails(setDoc(doc(userDb(), collectionName, id), { uid: 'owner' }));
+  }
+});
+
 test('sync transaction can read a missing record and create it for its owner', async () => {
   const owner = userDb();
   const ref = doc(owner, 'calculations', 'local-owner-new');

@@ -1,13 +1,10 @@
 import Pressable from './SoundPressable';
 import DesktopWorkspace from './DesktopWorkspace';
-import ButtonLabel from './ButtonLabel';
 import { useTranslation } from 'react-i18next';
-import SyncStatus from './SyncStatus';
-import LanguageSelector from './LanguageSelector';
+import SettingsDrawer from './SettingsDrawer';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { useTapSound } from './TapSoundProvider';
-import { Animated, BackHandler, Easing, Platform, ScrollView, Switch, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Easing, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -49,7 +46,6 @@ export default function CalculatorView({
   onSignOut,
 }) {
   const { t, i18n } = useTranslation();
-  const { soundEnabled, toggleSound } = useTapSound();
   const [editing, setEditing] = useState(false);
   const [debtsVisible, setDebtsVisible] = useState(false);
   const [invoicesVisible, setInvoicesVisible] = useState(false);
@@ -204,25 +200,13 @@ export default function CalculatorView({
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
-        <View onLayout={measure('header')}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} compact />
+        <View onLayout={measure('header')} style={{ paddingVertical: 8 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <SettingsDrawer user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
           </View>
-          <LanguageSelector />
-          <Pressable accessibilityRole="button" onPress={onOpenAuth} style={[styles.authButton, styles.headerControl]}>
-            <ButtonLabel numberOfLines={1} style={styles.authButtonText}>{user ? t("Account") : t("Sign in")}</ButtonLabel>
+          <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { alignSelf: 'flex-start', marginTop: 4, marginBottom: 0 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
+            <Text style={styles.title}>CALC</Text>
           </Pressable>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
-        <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { marginBottom: 0 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
-          <Text style={styles.title}>CALC</Text>
-        </Pressable>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.authButtonText}>{t('Sound')}</Text>
-            <Switch accessibilityLabel={t('Sound')} value={soundEnabled} onValueChange={toggleSound} trackColor={{ false: '#475569', true: '#15803d' }} thumbColor={soundEnabled ? '#86efac' : '#cbd5e1'} />
-          </View>
-        </View>
         </View>
         {displayPanel}
         <Animated.View style={{ height: reveal, overflow: 'hidden' }} pointerEvents={listVisible ? 'auto' : 'none'} accessibilityElementsHidden={!listVisible} importantForAccessibility={listVisible ? 'auto' : 'no-hide-descendants'}>

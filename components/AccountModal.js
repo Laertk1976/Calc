@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Pressable from './SoundPressable';
+import PrivacyPolicyLink from './PrivacyPolicyLink';
 import ButtonLabel from './ButtonLabel';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -67,6 +68,7 @@ export default function AccountModal({ visible, user, deletionPending, onClose, 
               <ButtonLabel style={styles.closeButtonText}>{t('Delete account')}</ButtonLabel>
             </Pressable>
           </>}
+          <PrivacyPolicyLink />
           {deletionPending && <Text accessibilityRole="alert" style={styles.authHint}>{t('Account deletion is pending. Open Account to finish deletion.')}</Text>}
           <Pressable accessibilityRole="button" disabled={busy} onPress={close} style={[styles.authActionButton, styles.cancelButton, busy && styles.disabledButton]}>
             <ButtonLabel style={styles.closeButtonText}>{t('Close')}</ButtonLabel>

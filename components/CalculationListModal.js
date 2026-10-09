@@ -9,6 +9,7 @@ import useCalculatorStyles from '../useCalculatorStyles';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { formatSavedDate } from '../calculatorUtils';
 import { getCalculationListResults } from '../calculationHistory';
+import { usePro } from './ProProvider';
 
 function getSavedItemStyle(type) {
   if (type === 'Cred') return styles.savedItemRed;
@@ -29,6 +30,7 @@ function dateLabel(value) {
 }
 
 export default function CalculationListModal({ visible, calculations, onClose, inline = false, showClose = true, desktop = false }) {
+  const { hasPro, requirePro, today } = usePro();
   const { t } = useTranslation();
   const styles = useCalculatorStyles();
   const [searchVisible, setSearchVisible] = useState(false);
@@ -47,7 +49,7 @@ export default function CalculationListModal({ visible, calculations, onClose, i
       setSearch('');
       setSearchVisible(false);
     }
-  }, [visible]);
+  }, [visible, hasPro, today]);
   const rangeLabel = fromDate === toDate ? fromDate : `${fromDate} - ${toDate}`;
   const firstDateKey = fromDate.split('/').reverse().join('-');
   const lastDateKey = toDate.split('/').reverse().join('-');
@@ -70,17 +72,17 @@ export default function CalculationListModal({ visible, calculations, onClose, i
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
                 {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${rangeCalculations.length}` : rangeCalculations.length}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
                 <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
                 <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
               </Pressable>
-              {desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => setDatePickerVisible(true)} style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}>
+              {desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}>
                 <Text style={styles.dateDropdownButtonText}>{rangeLabel}</Text>
                 <Text style={styles.dateDropdownArrow}>▼</Text>
               </Pressable>}
             </View>
           </View>
-          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => setDatePickerVisible(true)} style={[styles.rangePill, { marginBottom: 8 }]}>
+          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={[styles.rangePill, { marginBottom: 8 }]}>
             <Text style={styles.rangePillText}>{rangeLabel}</Text>
           </Pressable>}
           <Modal transparent animationType="fade" visible={visible && datePickerVisible} onRequestClose={() => setDatePickerVisible(false)}>

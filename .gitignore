@@ -26,3 +26,7 @@ ui-debug.log
 .account-web-check/
 .account-android-check/
 release/deployed-firestore-backup.rules
+.pro-web-check/
+.pro-browser-test/
+pro-*.log
+build-pro.log

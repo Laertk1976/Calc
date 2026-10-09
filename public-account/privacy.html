@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How Calc handles calculations, accounts, cloud synchronization, exports and Pro purchases.">
+  <title>Calc privacy policy</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1220; color: #e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 20px; line-height: 1.7; }
+    main { max-width: 800px; margin: auto; }
+    h1, h2 { color: #f8fafc; line-height: 1.25; }
+    h1 { font-size: clamp(28px, 6vw, 42px); }
+    h2 { margin-top: 32px; font-size: 22px; }
+    a { color: #93c5fd; overflow-wrap: anywhere; }
+    a:focus-visible { outline: 3px solid #fbbf24; outline-offset: 4px; }
+    .notice { padding: 18px; border: 1px solid #475569; border-radius: 12px; background: #111827; }
+    li { margin: 8px 0; }
+    .brand { color: #86efac; letter-spacing: .15em; font-weight: 700; }
+  </style>
+</head>
+<body><main>
+  <div class="brand">CALC</div>
+  <h1>Privacy policy</h1>
+  <p class="notice"><strong>Effective date: October 9, 2026.</strong> Pro purchase processing described below applies when purchases are enabled in the Google Play version.</p>
+
+  <h2>Who to contact</h2>
+  <p>This policy describes the information handled by Calc. Developer: <strong>laertkarap</strong>. For privacy questions, access requests or deletion assistance, email <a href="mailto:laertkarap@gmail.com">laertkarap@gmail.com</a>. Do not send your password or payment-card details.</p>
+
+  <h2>Calculations and records</h2>
+  <p>Calc stores the information you enter, including calculations, names or titles, debts, invoices, cash invoices, amounts, payment dates, notes, comments and edit history. These records may contain personal or financial information. We use them to display your records and provide the calculation, search, reporting, payment-tracking and export features you use.</p>
+  <p>Guest records are saved locally on your device. Signed-in users have separate account-linked local records that can synchronize with Google Cloud Firestore over the internet. Signing in does not automatically move guest records into your account. Synchronization runs when the app is available and its schedule is due, or when you request it.</p>
+  <p>Free access shows today's records. Older records remain saved even when viewing or managing them requires Pro. A payment restriction does not delete those records.</p>
+
+  <h2>Accounts and preferences</h2>
+  <p>Firebase Authentication processes your email address, account identifier and sign-in credentials. If you use Google sign-in, Google and Firebase process the identity and profile information needed to authenticate you, which can include your name, email address and profile image. The developer does not receive your Google password.</p>
+  <p>The app stores settings such as language, tap sounds and custom labels on your device. Authentication sessions and recently verified Pro access are also cached locally. Administrator-granted access is associated with the account identifier; it does not require a payment.</p>
+
+  <h2>Pro purchases</h2>
+  <p>When Pro purchases are available, Google Play processes the payment. Calc does not collect or store full payment-card numbers. Google handles payment information under its own privacy terms.</p>
+  <p>To verify and restore Pro, Calc sends the Google Play purchase token to its Firebase backend. The backend checks the purchase with the Google Play Developer API and associates it with your Calc account. It stores the account identifier, purchase token, product identifier, entitlement status, refund/revocation status and verification timestamps. A hashed account identifier is supplied to Google Play to link the purchase to the correct Calc account.</p>
+  <p>Google purchase responses may also contain order, country, purchase-time and test-purchase information. Calc uses purchase verification and Google notifications to confirm completed payments, acknowledge purchases, handle pending payments, prevent reuse of receipts across accounts, restore access and process refunds. The app may cache verified access for up to seven days while offline.</p>
+
+  <h2>Exports and Google Drive</h2>
+  <p>If you choose an export or sharing action, the selected records are included in the document you create or send. The destination app or recipient you select receives that copy.</p>
+  <p>Google Drive export requires your authorization. Calc uses the Drive file-access permission to create and manage files it creates or files you explicitly make available to it, including an export folder named Calculator. This permission does not provide unrestricted access to all files in your Drive. Authorization tokens are used to perform the export.</p>
+  <p>Exported files and shared copies remain in their destinations independently of Calc. You can manage or delete them there and revoke Calc's Google access in your Google Account settings.</p>
+
+  <h2>Service providers and technical information</h2>
+  <p>Calc uses Google/Firebase services for authentication, cloud records and, when enabled, purchase verification and notifications. Google Play provides billing, and Google Drive provides optional exports. These services may process network information such as IP addresses, device or request information and operational/security logs to deliver and protect their services. Hosting this policy also involves ordinary web requests.</p>
+  <p>See <a href="https://firebase.google.com/support/privacy">Firebase privacy information</a> and <a href="https://policies.google.com/privacy">Google's privacy policy</a> for provider practices, including storage and processing locations. Provider processing can take place outside your country.</p>
+  <p>The current app does not include advertising, Firebase Analytics or Crashlytics integrations. Calc does not sell your calculation records or use them for targeted advertising. This does not mean that service providers process no technical information.</p>
+
+  <h2>Storage, security and backups</h2>
+  <p>Connections to the cloud services use HTTPS. Account-linked cloud records are protected by account access controls. Local application storage is not separately encrypted by Calc, and synchronization is not end-to-end encrypted. Device access and operating-system protections therefore matter.</p>
+  <p>Android backup is enabled in the current app. Depending on the Android version and your device/Google settings, app data may be included in system backup or device transfer. Manage those copies through your device's backup settings. Keep independent copies of important records; synchronization and backup do not guarantee recovery.</p>
+
+  <h2>Retention and deletion</h2>
+  <p>Saved records remain until you delete them. A recoverable record deletion retains the information needed to restore it, including history; permanent record deletion removes its content but may retain an identifier and deletion marker to prevent synchronization from restoring it.</p>
+  <p>You can delete your Calc account without buying Pro. In the app, open <strong>Account → Delete account</strong> and verify your identity, or use the <a href="/delete-account">account-deletion request page</a>. Account deletion removes your Calc authentication account and its cloud calculations, debts, invoices, payment records, notes and history, including recoverably deleted rows. In-app deletion also clears that account's records and queued changes on the device used for deletion.</p>
+  <p>A minimal account ID and deletion timestamp are retained indefinitely to prevent old sessions or offline devices from recreating deleted cloud records. This marker contains no email address or calculation content.</p>
+  <p>Where Pro purchases are enabled, purchase-verification records and account-to-purchase bindings are retained separately after account deletion to handle refunds and prevent receipt reuse. The current implementation has no automatic expiry for these records. They contain purchase identifiers and status information, rather than your saved calculations. Contact us with questions or deletion requests concerning these records.</p>
+  <p>Google Play keeps its own transaction records under Google's policies. Deleting Calc or your Calc account does not itself request a Google Play refund.</p>
+  <p>Account deletion does not remotely erase guest records, copies on other offline devices, Android backups or exported/shared files. Clear local app data on those devices and manage backups and exports in their respective services. Deleting a Calc account does not delete your Google account.</p>
+  <p>When you contact support, your email address and message are used to respond and verify requests. Support correspondence is retained for 12 months after the request is resolved, then deleted. Service providers may retain their own operational or security records under their policies.</p>
+
+  <h2>Your choices</h2>
+  <p>You can use local calculations without an account, choose whether to authorize Drive exports, manage device backups and request account deletion. Contact the address above for help accessing, correcting or deleting personal information. We may ask you to verify ownership before acting. Additional rights may apply depending on where you live.</p>
+
+  <h2>Intended audience</h2>
+  <p>Calc is intended for users aged 13 and older and is not directed at children under 13. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided personal information through Calc, contact laertkarap@gmail.com so we can investigate and delete it. Where local law requires parental or guardian permission for a minor to use online services, that permission must be obtained.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>Updates will be published on this page with a revised date. The app will provide any additional notice or consent required for changes in how information is used.</p>
+  <p>Privacy contact: <a href="mailto:laertkarap@gmail.com">laertkarap@gmail.com</a></p>
+</main></body>
+</html>

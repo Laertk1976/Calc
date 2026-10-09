@@ -5,6 +5,13 @@ service cloud.firestore {
     function activeAccount() {
       return signedIn() && !exists(/databases/$(database)/documents/accountDeletions/$(request.auth.uid));
     }
+    match /proEntitlements/{userId} {
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list, create, update, delete: if false;
+    }
+    // Purchase tokens and account bindings are only accessible to the backend.
+    match /playPurchases/{purchaseId} { allow read, write: if false; }
+    match /billingAccounts/{accountId} { allow read, write: if false; }
     match /calculations/{calculationId} {
       // Sync transactions check for a record before creating it. Missing records
       // contain no data; existing records still require ownership.
