@@ -16,6 +16,10 @@ import CalculatorView from './components/CalculatorView';
 import ProProvider, { usePro } from './components/ProProvider';
 import ProModal from './components/ProModal';
 import { accessibleRecords } from './proAccess';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createLocalCalculationHistory } from './localCalculationHistory';
+
+const localHistory = createLocalCalculationHistory(AsyncStorage);
 
 export default function App() {
   return <ProProvider><AppContent /></ProProvider>;
@@ -39,6 +43,13 @@ function AppContent() {
   const [syncStatus, setSyncStatus] = useState({ phase: 'local', pending: 0 });
   const [authVisible, setAuthVisible] = useState(false);
   const [accountVisible, setAccountVisible] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState([]);
+  const historyError = () => Alert.alert(t('Error'), t('Calculation history could not be saved on this device.'));
+  useEffect(() => {
+    const unsubscribe = localHistory.subscribe(setHistoryEntries);
+    void localHistory.load().catch(historyError);
+    return unsubscribe;
+  }, []);
 
   const expressionTokens = expression.trim() ? expression.trim().split(/\s+/) : [];
   const lastExpressionToken = expressionTokens[expressionTokens.length - 1];
@@ -249,6 +260,7 @@ function AppContent() {
       if (storedValue !== null && operator && display !== 'Error') {
         const formula = `${expression}${freshInput ? ` ${pretty(display)}` : ''}`;
         const result = evaluateExpression(formula);
+        if (result !== 'Error') void localHistory.add(formula, result).catch(historyError);
         setExpression(`${formula} = ${pretty(String(result))}`);
         setDisplay(String(result));
         setStoredValue(null);
@@ -262,6 +274,7 @@ function AppContent() {
     const next = freshInput ? (key === '.' ? '0.' : key) : `${display}${key}`;
     setDisplay(next.length > 12 ? display : next);
     setExpression((current) => {
+      if (freshInput && current.includes('=')) return next;
       if (!current || !freshInput) {
         if (!current) return next;
         return `${current}${key}`;
@@ -312,6 +325,8 @@ function AppContent() {
           display={visibleDisplay}
           expression={expression}
           onEditExpression={editExpression}
+          historyEntries={historyEntries}
+          onDeleteHistory={id => { void localHistory.remove(id).catch(historyError); }}
           savedCalculations={accessibleRecords(savedCalculations, hasPro, today)}
           listVisible={listVisible}
           tableVisible={tableVisible && hasPro}

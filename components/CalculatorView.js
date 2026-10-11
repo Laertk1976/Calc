@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import SettingsDrawer from './SettingsDrawer';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, BackHandler, Easing, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Easing, NativeModules, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
 import SafeAreaView from './CalculatorSafeArea';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -14,6 +14,7 @@ import CalculationTableModal from './CalculationTableModal';
 import SaveCalculationModal from './SaveCalculationModal';
 import UtilityButtons from './UtilityButtons';
 import DebtListModal from './DebtListModal';
+import LocalCalculationHistory from './LocalCalculationHistory';
 
 const calculationSymbolStyle = { color: '#22c55e' };
 const colorCalculationSymbols = value => String(value).split(/([=+\-×÷−*/%])/g).map((part, index) => (
@@ -24,6 +25,8 @@ export default function CalculatorView({
   display,
   expression,
   onEditExpression,
+  historyEntries,
+  onDeleteHistory,
   savedCalculations,
   listVisible,
   tableVisible,
@@ -47,6 +50,10 @@ export default function CalculatorView({
 }) {
   const { t, i18n } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const drawerVisible = listVisible || historyVisible;
+  const closeDrawer = () => { setHistoryVisible(false); onCloseList(); };
+  useEffect(() => { if (listVisible || tableVisible) setHistoryVisible(false); }, [listVisible, tableVisible]);
   const [debtsVisible, setDebtsVisible] = useState(false);
   const [invoicesVisible, setInvoicesVisible] = useState(false);
   const [draft, setDraft] = useState('');
@@ -58,7 +65,10 @@ export default function CalculatorView({
     setEditing(true);
   };
   const playKeyFeedback = () => {
-    if (Platform.OS === 'android') Vibration.vibrate(8);
+    if (Platform.OS === 'android') {
+      if (NativeModules.CalcButtonFeedback) NativeModules.CalcButtonFeedback.haptic();
+      else Vibration.vibrate(35);
+    }
   };
   const pressKey = (key) => {
     onKeyPress(key);
@@ -109,19 +119,19 @@ export default function CalculatorView({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
-    settle(listVisible);
-  }, [listVisible, panelHeight]);
+    settle(drawerVisible);
+  }, [drawerVisible, panelHeight]);
 
   useEffect(() => {
-    if (!listVisible) return;
+    if (!drawerVisible) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      onCloseList();
+      closeDrawer();
       return true;
     });
     return () => subscription.remove();
-  }, [listVisible, onCloseList]);
+  }, [drawerVisible, onCloseList]);
 
-  const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : listVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }]}>
+  const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : drawerVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }]}>
           <View style={{ width: '100%', minWidth: 0 }} onLayout={({ nativeEvent }) => setResultWidth(nativeEvent.layout.width)}>
             {editing ? (
               <TextInput
@@ -167,7 +177,7 @@ export default function CalculatorView({
               {resultText}
             </Text>
           </View>
-          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={listVisible ? t("Close saved calculations") : t("Open saved calculations")} accessibilityState={{ expanded: listVisible }} onPress={listVisible ? onCloseList : onList} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
+          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={drawerVisible ? t("Close calculation history") : t("Open calculation history")} accessibilityState={{ expanded: drawerVisible }} onPress={() => { if (drawerVisible) closeDrawer(); else { finishEditing(); setHistoryVisible(true); } }} hitSlop={8} style={{ alignSelf: 'center', paddingTop: 12 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
           </Pressable>}
         </View>);
@@ -199,7 +209,7 @@ export default function CalculatorView({
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!listVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: listVisible ? 0 : 20 }]}>
+      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!drawerVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: drawerVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')} style={{ paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <SettingsDrawer user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
@@ -209,12 +219,12 @@ export default function CalculatorView({
           </Pressable>
         </View>
         {displayPanel}
-        <Animated.View style={{ height: reveal, overflow: 'hidden' }} pointerEvents={listVisible ? 'auto' : 'none'} accessibilityElementsHidden={!listVisible} importantForAccessibility={listVisible ? 'auto' : 'no-hide-descendants'}>
+        <Animated.View style={{ height: reveal, overflow: 'hidden' }} pointerEvents={drawerVisible ? 'auto' : 'none'} accessibilityElementsHidden={!drawerVisible} importantForAccessibility={drawerVisible ? 'auto' : 'no-hide-descendants'}>
           <View style={{ height: panelHeight }}>
-          <CalculationListModal inline visible={listVisible} calculations={savedCalculations.filter((item) => !item.deletedAt)} onClose={onCloseList} />
+          {historyVisible ? <LocalCalculationHistory entries={historyEntries} onDelete={onDeleteHistory} onRestore={formula => { onEditExpression(formula); closeDrawer(); }} /> : <CalculationListModal inline visible={listVisible} calculations={savedCalculations.filter((item) => !item.deletedAt)} onClose={onCloseList} />}
           </View>
         </Animated.View>
-        {!listVisible && keypadPanel}
+        {!drawerVisible && keypadPanel}
         <CalculationTableModal
           visible={tableVisible}
           calculations={savedCalculations}

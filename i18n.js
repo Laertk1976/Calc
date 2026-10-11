@@ -10,6 +10,7 @@ import account from './locales/account.json';
 import pro from './locales/pro.json';
 import privacy from './locales/privacy.json';
 import menu from './locales/menu.json';
+import localHistory from './locales/localHistory.json';
 
 export const languages = [
   { code: 'hy', name: 'Հայերեն' },
@@ -22,7 +23,7 @@ const storageKey = 'calculator.language';
 let selectionChanged = false;
 let pendingSave = Promise.resolve();
 i18n.use(initReactI18next).init({
-  resources: Object.fromEntries(Object.entries({ en, hy, ru, ja, hi }).map(([code, messages]) => [code, { translation: { ...messages, ...account[code], ...pro[code], ...privacy[code], ...menu[code] } }])),
+  resources: Object.fromEntries(Object.entries({ en, hy, ru, ja, hi }).map(([code, messages]) => [code, { translation: { ...messages, ...account[code], ...pro[code], ...privacy[code], ...menu[code], ...localHistory[code] } }])),
   lng: 'en', fallbackLng: 'en', supportedLngs: languages.map(({ code }) => code),
   keySeparator: false, nsSeparator: false,
   interpolation: { escapeValue: false },

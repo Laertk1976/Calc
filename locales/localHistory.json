@@ -1,0 +1,42 @@
+{
+  "en": {
+    "Calculation history": "Calculation history",
+    "Open calculation history": "Open calculation history",
+    "Close calculation history": "Close calculation history",
+    "Tap to reuse. Swipe left or right to delete.": "Tap to reuse. Swipe left or right to delete.",
+    "No calculations yet.": "No calculations yet.",
+    "Calculation history could not be saved on this device.": "Calculation history could not be saved on this device."
+  },
+  "hy": {
+    "Calculation history": "Հաշվարկների պատմություն",
+    "Open calculation history": "Բացել հաշվարկների պատմությունը",
+    "Close calculation history": "Փակել հաշվարկների պատմությունը",
+    "Tap to reuse. Swipe left or right to delete.": "Հպեք՝ կրկին օգտագործելու համար։ Ջնջելու համար սահեցրեք ձախ կամ աջ։",
+    "No calculations yet.": "Դեռ հաշվարկներ չկան։",
+    "Calculation history could not be saved on this device.": "Չհաջողվեց պահպանել հաշվարկների պատմությունն այս սարքում։"
+  },
+  "ru": {
+    "Calculation history": "История вычислений",
+    "Open calculation history": "Открыть историю вычислений",
+    "Close calculation history": "Закрыть историю вычислений",
+    "Tap to reuse. Swipe left or right to delete.": "Нажмите для повторного использования. Смахните влево или вправо для удаления.",
+    "No calculations yet.": "Вычислений пока нет.",
+    "Calculation history could not be saved on this device.": "Не удалось сохранить историю вычислений на этом устройстве."
+  },
+  "ja": {
+    "Calculation history": "計算履歴",
+    "Open calculation history": "計算履歴を開く",
+    "Close calculation history": "計算履歴を閉じる",
+    "Tap to reuse. Swipe left or right to delete.": "タップして再利用。左右にスワイプして削除。",
+    "No calculations yet.": "計算履歴はまだありません。",
+    "Calculation history could not be saved on this device.": "この端末に計算履歴を保存できませんでした。"
+  },
+  "hi": {
+    "Calculation history": "गणना का इतिहास",
+    "Open calculation history": "गणना का इतिहास खोलें",
+    "Close calculation history": "गणना का इतिहास बंद करें",
+    "Tap to reuse. Swipe left or right to delete.": "फिर से उपयोग करने के लिए टैप करें। हटाने के लिए बाएँ या दाएँ स्वाइप करें।",
+    "No calculations yet.": "अभी कोई गणना नहीं है।",
+    "Calculation history could not be saved on this device.": "इस डिवाइस पर गणना का इतिहास सहेजा नहीं जा सका।"
+  }
+}

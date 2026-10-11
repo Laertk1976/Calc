@@ -32,19 +32,25 @@ export default function ProProvider({ children }) {
       const run = ++generation.current;
       stop(); stop = () => {};
       const account = user?.uid || null;
-      setAccess({ uid: account, active: false, loading: !!account });
+      // Token refreshes on resume must not unmount the open Pro screen.
+      // Keep this account's unexpired access until fresh evidence replaces it.
+      const retainAccess = current => !!account && current.uid === account
+        && current.active && current.expiresAt > Date.now();
+      setAccess(current => retainAccess(current)
+        ? current : { uid: account, active: false, loading: !!account });
       if (!account) return;
       const key = `calc.pro.v1.${account}`;
       let authoritative = false;
-      const publish = (active, persist = false, checkedAt = Date.now()) => {
+      const publish = (active, persist = false, checkedAt = Date.now(), fallback = false) => {
         if (generation.current !== run) return;
-        setAccess({ uid: account, active, loading: false, expiresAt: checkedAt + 7 * 24 * 60 * 60 * 1000 });
+        setAccess(current => fallback && retainAccess(current) ? current
+          : { uid: account, active, loading: false, expiresAt: checkedAt + 7 * 24 * 60 * 60 * 1000 });
         if (persist) void AsyncStorage.setItem(key, JSON.stringify({ uid: account, active, checkedAt: Date.now() })).catch(() => {});
       };
       try {
         const cached = JSON.parse(await AsyncStorage.getItem(key));
-        if (!authoritative) publish(cachedProAccess(cached, account), false, cached?.checkedAt || 0);
-      } catch { publish(false); }
+        if (!authoritative) publish(cachedProAccess(cached, account), false, cached?.checkedAt || 0, true);
+      } catch { publish(false, false, 0, true); }
       if (generation.current !== run) return;
       try {
         const result = await user.getIdTokenResult();

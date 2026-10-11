@@ -1,10 +1,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 // Measure the modal window itself: Android may already resize it for the keyboard.
 // Only remove the remaining overlap, so the keyboard space is never counted twice.
-export default function KeyboardModalFrame({ children, style, onKeyboardVisibilityChange }) {
+export default function KeyboardModalFrame(props) {
+  if (Platform.OS !== 'android') return <ModalFrameContent {...props} />;
+
+  // Each Android dialog has its own window/insets. Measure here instead of
+  // reusing the activity's padding or guessing the user's navigation mode.
+  return (
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: StyleSheet.flatten(props.style)?.backgroundColor }}>
+      <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1 }}>
+        <ModalFrameContent {...props} />
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+
+function ModalFrameContent({ children, style, onKeyboardVisibilityChange }) {
 
   const frame = useRef(null);
   const keyboardTop = useRef(Keyboard.metrics?.()?.screenY ?? null);
