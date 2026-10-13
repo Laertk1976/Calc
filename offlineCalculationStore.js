@@ -1,4 +1,4 @@
-import { applyCalculationChange, normalizeCalculation } from './calculationHistory';
+import { applyCalculationChange, normalizeCalculation, limitCalculationHistory, applyHistoryFloor } from './calculationHistory';
 
 const DEVICE_KEY = 'calculatorCalculations';
 export const AUTO_SYNC_INTERVAL_MS = 8 * 60 * 60 * 1000;
@@ -12,7 +12,7 @@ const visibleRows = rows => rows.filter(row => !row.permanentlyDeletedAt);
 export function mergeRemoteCalculation(current, operation) {
   if (current?.permanentlyDeletedAt) return normalizeCalculation(current);
   if (operation.after?.permanentlyDeletedAt) return normalizeCalculation(operation.after);
-  if (!current) return operation.after;
+  if (!current) return applyHistoryFloor(operation.after);
   if (!operation.before) return current; // Existing cloud row wins over a device import.
   const merged = { ...current };
   const fields = new Set([...Object.keys(operation.before), ...Object.keys(operation.after)]);
@@ -28,7 +28,7 @@ export function mergeRemoteCalculation(current, operation) {
     if (!events.has(event.id) || event.type === 'purged') events.set(event.id, event);
   }
   merged.history = [...events.values()];
-  return merged;
+  return applyHistoryFloor(merged, [current.historyPrunedThrough || '', operation.after.historyPrunedThrough || ''].sort().at(-1));
 }
 
 export function createOfflineCalculationStore({ storage, remote, now = () => new Date().toISOString() }) {
@@ -57,7 +57,9 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
     if (!state || state.version !== 1 || !Array.isArray(state.rows) || !Array.isArray(state.queue)) {
       throw new Error('Saved calculations could not be read. Your device data has not been overwritten.');
     }
-    return { ...freshState(), ...state, rows: state.rows.map((row, index) => normalizeCalculation({ ...row, id: row.id || row.createdAt || `legacy-${index}` })) };
+    const normalized = { ...freshState(), ...state, rows: state.rows.map((row, index) => normalizeCalculation({ ...row, id: row.id || row.createdAt || `legacy-${index}` })) };
+    const limited = limitCalculationHistory(normalized.rows);
+    return limited.some((row, index) => row !== normalized.rows[index]) ? persist(userId, normalized) : normalized;
   }
 
   function notify(userId, state, status = statuses.get(userId)) {
@@ -70,6 +72,19 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
   }
 
   async function persist(userId, state) {
+    const rows = limitCalculationHistory(state.rows);
+    const changed = rows.filter((row, index) => row !== state.rows[index]);
+    if (changed.length) {
+      const floors = new Map(changed.map(row => [row.id, row.historyPrunedThrough]));
+      const queue = state.queue.map(operation => floors.has(operation.rowId) ? {
+        ...operation, before: applyHistoryFloor(operation.before, floors.get(operation.rowId)),
+        after: applyHistoryFloor(operation.after, floors.get(operation.rowId)),
+      } : operation);
+      if (userId) for (const row of changed) queue.push({
+        id: operationId(), rowId: row.id, before: row, after: row,
+      });
+      state = { ...state, rows, queue };
+    }
     await storage.setItem(keyFor(userId), JSON.stringify(userId ? state : state.rows));
     return state;
   }
@@ -126,10 +141,10 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
         imported.add(row.id);
       }
       state.importedIds = [...imported];
-      await persist(userId, state);
+      const saved = await persist(userId, state);
       statuses.set(userId, { phase: 'pending' });
-      notify(userId, state);
-      return visibleRows(state.rows);
+      notify(userId, saved);
+      return visibleRows(saved.rows);
     });
   }
 

@@ -7,6 +7,31 @@ export const HISTORY_FIELDS = {
 };
 const snapshotFields = [...Object.keys(HISTORY_FIELDS), 'expression', 'value', 'type'];
 
+export const HISTORY_LIMIT = 500;
+const eventKey = event => `${event.at || ''}|${event.id || ''}`;
+const recoveryId = row => row.deletedAt && row.history?.at(-1)?.type === 'delete' ? row.history.at(-1).id : null;
+
+// A compact watermark prevents another device from restoring expired snapshots.
+export function applyHistoryFloor(row, floor = row?.historyPrunedThrough) {
+  if (!row || row.permanentlyDeletedAt || !floor) return row;
+  const through = [floor, row.historyPrunedThrough || ''].sort().at(-1);
+  const protectedId = recoveryId(row);
+  return { ...row, historyPrunedThrough: through,
+    history: (row.history || []).filter(event => eventKey(event) > through || event.id === protectedId) };
+}
+
+export function limitCalculationHistory(rows, limit = HISTORY_LIMIT) {
+  const candidates = rows.flatMap((row, index) => (row.history || [])
+    .filter(event => event.id !== recoveryId(row))
+    .map(event => ({ index, event, key: eventKey(event) })));
+  candidates.sort((a, b) => a.key < b.key ? 1 : a.key > b.key ? -1 : a.index - b.index);
+  const floors = new Map();
+  for (const { index, key } of candidates.slice(limit)) {
+    if (!floors.has(index) || key > floors.get(index)) floors.set(index, key);
+  }
+  return rows.map((row, index) => floors.has(index) ? applyHistoryFloor(row, floors.get(index)) : row);
+}
+
 export function normalizeCalculation(calc) {
   if (calc.permanentlyDeletedAt) return { id: calc.id, permanentlyDeletedAt: calc.permanentlyDeletedAt };
   const type = calc.type || 'Add';

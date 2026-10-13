@@ -16,7 +16,7 @@ function load(file, modules, clock = Date) {
 const jsx = (type, props) => ({ type, props });
 const runtime = { jsx, jsxs: jsx };
 
-test('press feedback happens on touch down once, preserving long press and silent controls', () => {
+test('scroll touches stay silent; completed taps and long presses play sound', () => {
   const calls = [];
   const Pressable = load('components/SoundPressable.js', {
     react: { forwardRef: fn => fn },
@@ -26,16 +26,19 @@ test('press feedback happens on touch down once, preserving long press and silen
   });
   const props = { onPressIn: () => calls.push('down'), onPress: () => calls.push('press'), onLongPress: () => calls.push('hold') };
   const button = Pressable(props).props;
-  button.onPressIn(); button.onLongPress();
-  assert.deepEqual(calls, ['sound', 'down', 'hold']);
-  calls.length = 0;
-  button.onPressIn(); button.onPress();
-  assert.deepEqual(calls, ['sound', 'down', 'press']);
-  calls.length = 0;
-  Pressable({ ...props, silent: true }).props.onPressIn();
+  button.onPressIn();
   assert.deepEqual(calls, ['down']);
   calls.length = 0;
-  Pressable({ disabled: true }).props.onPressIn();
+  button.onPressIn(); button.onLongPress();
+  assert.deepEqual(calls, ['down', 'sound', 'hold']);
+  calls.length = 0;
+  button.onPressIn(); button.onPress();
+  assert.deepEqual(calls, ['down', 'sound', 'press']);
+  calls.length = 0;
+  Pressable({ ...props, silent: true }).props.onPress();
+  assert.deepEqual(calls, ['press']);
+  calls.length = 0;
+  Pressable({ ...props, disabled: true }).props.onPress();
   assert.deepEqual(calls, []);
   assert.equal(button.android_disableSound, true);
 });

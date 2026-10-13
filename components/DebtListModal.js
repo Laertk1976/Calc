@@ -91,11 +91,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
   };
-  const save = async (payOff = false) => {
+  const save = async (payOff = false, entry = draft) => {
     if (!requirePro()) return;
     if (saving) return;
-    const amount = String(draft[amountField]).trim().replace(/,/g, '');
-    if (!draft.title.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount) || !Number.isFinite(Number(amount))) {
+    const amount = String(entry[amountField]).trim().replace(/,/g, '');
+    if (!entry.title.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount) || !Number.isFinite(Number(amount))) {
       setError(t(invoice ? 'Enter a name and a valid invoice amount.' : 'Enter a name and a valid debt amount.')); return;
     }
     if (payOff && Number(amount) <= 0) {
@@ -103,7 +103,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     }
     setSaving(true); setError('');
     try {
-      await onUpdate({ type: 'edit', id: draft.id, payOff, amountField, changes: { [amountField]: String(Number(amount)), comment: draft.comment } });
+      await onUpdate({ type: 'edit', id: entry.id, payOff, amountField, changes: { [amountField]: String(Number(amount)), comment: entry.comment } });
       setDraft(null);
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
@@ -208,7 +208,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
                 </Pressable>
                 <View style={s.controls}>
                   {button(t('Edit'), () => { if (!requirePro()) return; setError(''); setDraft({ ...row }); }, saving, true)}
-                  {!row[paidAt] && button(t('Pay off'), () => { if (!requirePro()) return; setError(''); setDraft({ ...row }); }, saving, true)}
+                  {!row[paidAt] && button(t('Pay off'), () => save(true, row), saving, true)}
                   <Pressable accessibilityRole="button" disabled={saving} onPress={() => deleteDebt(row)} style={[s.button, s.rowButton, { backgroundColor: '#7f1d1d' }, saving && { opacity: 0.5 }]}>
                     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.buttonText}>{t('Delete')}</Text>
                   </Pressable>

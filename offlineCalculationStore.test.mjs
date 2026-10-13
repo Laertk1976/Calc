@@ -18,6 +18,61 @@ function fixture() {
 }
 const row = { id: 'one', title: 'Work', value: '5', createdAt: '2026-09-17T10:00:00Z' };
 
+test('account history caps at 500 across rows, persists pruning and preserves deleted-row recovery', async () => {
+  const f = fixture();
+  const entries = Array.from({ length: 520 }, (_, index) => ({
+    id: `event-${String(index).padStart(4, '0')}`, at: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+    type: 'edit', before: { title: 'old' }, after: { title: 'new' },
+  }));
+  const originals = [
+    { ...row, history: entries.slice(0, 260) },
+    { ...row, id: 'two', history: entries.slice(260) },
+    { ...row, id: 'deleted', deletedAt: '2025-01-01', history: [{ id: 'delete', at: '2025-01-01', type: 'delete', before: { title: 'Work' }, after: {} }] },
+  ];
+  await f.storage.setItem('calculatorCalculations:user:account', JSON.stringify({ version: 1, rows: originals, queue: [] }));
+  const store = createOfflineCalculationStore(f);
+  const rows = await store.getRows('account');
+  assert.equal(rows.filter(item => !item.deletedAt).flatMap(item => item.history).length, 500);
+  assert.equal(rows[0].history[0].id, 'event-0020');
+  assert.equal(rows[2].history[0].id, 'delete');
+  assert.equal(rows[2].title, 'Work');
+  const saved = JSON.parse(await f.storage.getItem('calculatorCalculations:user:account'));
+  assert.equal(saved.queue.length, 1);
+  assert.ok(!JSON.stringify(saved).includes('event-0000'));
+  assert.deepEqual(await createOfflineCalculationStore(f).getRows('account'), rows);
+  // Either side of a stale-device merge must respect the pruning watermark.
+  for (const [current, after] of [[originals[0], rows[0]], [rows[0], originals[0]]]) {
+    const merged = mergeRemoteCalculation(current, { before: originals[0], after });
+    assert.equal(merged.history.length, 240);
+    assert.equal(merged.history[0].id, 'event-0020');
+  }
+  f.cloud.set('one', { docId: 'one', row: originals[0] });
+  f.cloud.set('two', { docId: 'two', row: originals[1] });
+  f.cloud.set('deleted', { docId: 'deleted', row: originals[2] });
+  f.connect();
+  await store.sync('account');
+  assert.equal(f.cloud.get('one').row.history.length, 240);
+  await store.change({ type: 'restore', id: 'deleted' }, 'account');
+  const restored = (await store.getRows('account')).find(item => item.id === 'deleted');
+  assert.equal(restored.deletedAt, undefined);
+  assert.equal(restored.title, 'Work');
+  assert.equal((await store.getRows('account')).flatMap(item => item.history).length, 500);
+  assert.deepEqual(await store.getRows('other-account'), []);
+});
+
+test('pruning removes expired history from pending uploads without losing queued edits', async () => {
+  const f = fixture();
+  const store = createOfflineCalculationStore(f);
+  const history = Array.from({ length: 501 }, (_, index) => ({ id: `e${index}`, at: String(index).padStart(5, '0'), type: 'edit', before: {}, after: {} }));
+  await store.change({ type: 'add', row: { ...row, history } }, 'account');
+  const saved = JSON.parse(await f.storage.getItem('calculatorCalculations:user:account'));
+  assert.equal(saved.rows[0].history.length, 500);
+  for (const op of saved.queue) {
+    assert.ok(!op.after.history.some(event => event.id === 'e0'));
+    assert.equal(op.after.title, 'Work');
+  }
+});
+
 test('bulk rename queues every changed row and preserves results through restart and sync', async () => {
   const f = fixture();
   let store = createOfflineCalculationStore(f);

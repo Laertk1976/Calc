@@ -19,7 +19,7 @@ import { evaluateExpression, formatSavedDate, pretty } from '../calculatorUtils'
 import { uploadFileToGoogleDrive } from '../googleDrive';
 import { shareRowSummary } from '../shareUtils';
 import useDriveAuthorization from '../useDriveAuthorization';
-import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
+import { normalizeCalculation } from '../calculationHistory';
 import CalculationHistoryModal from './CalculationHistoryModal';
 import { buildDriveExportFileName } from '../driveExportNames';
 import { getPaidOffEntries, getPaidOffTotal, getTablePaymentRows } from '../paidOff';
@@ -463,7 +463,6 @@ export default function CalculationTableModal({
   const [rows, setRows] = useState(() => (calculations || []).filter((row) => !row.deletedAt).map(normalizeCalculation));
   const [historyVisible, setHistoryVisible] = useState(false);
   const [saving, setSaving] = useState(false);
-  const undoable = latestUndoableChange(calculations || []);
   const [driveUploadBusy, setDriveUploadBusy] = useState(false);
   const driveAuthorization = useDriveAuthorization();
   const initialValuesRef = useRef({});
@@ -852,15 +851,10 @@ export default function CalculationTableModal({
     <PanelModal inline={inline} animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, !inline && Platform.OS !== 'web' && { paddingTop: Math.max(StyleSheet.flatten(styles.tablePanel).padding || 0, insets.top + 4) }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
-          <View style={{ flexDirection: 'row', flexWrap: 'nowrap', gap: 8, marginBottom: 8, alignItems: 'stretch' }}>
-            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { flex: 1, minWidth: 0 }]} accessibilityRole="button">
-              <ButtonLabel style={styles.authButtonText}>{t('History')}</ButtonLabel>
+          <View style={{ flexDirection: 'row', direction: 'ltr', flexWrap: 'nowrap', marginBottom: 8, alignItems: 'stretch' }}>
+            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { width: '50%', flexGrow: 0, flexShrink: 0, minWidth: 0, alignItems: 'center', justifyContent: 'center' }]} accessibilityRole="button">
+              <ButtonLabel numberOfLines={1} style={[styles.authButtonText, { textAlign: 'center' }]}>{t('History')}</ButtonLabel>
             </Pressable>
-            {undoable ? (
-              <Pressable disabled={saving} onPress={() => commitChange({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id })} style={[styles.authButton, { flex: 1, minWidth: 0 }]} accessibilityRole="button">
-                <ButtonLabel style={styles.authButtonText}>{t(undoable.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}</ButtonLabel>
-              </Pressable>
-            ) : null}
           </View>
           {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}

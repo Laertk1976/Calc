@@ -141,7 +141,7 @@ export const styles = StyleSheet.create({
   savedItem: { borderBottomColor: '#475569', borderBottomWidth: 1, paddingVertical: 12, borderRadius: 6, paddingHorizontal: 10, marginBottom: 8 },
   savedItemGreen: { backgroundColor: 'rgba(34, 197, 94, 0.18)' },
   savedItemRed: { backgroundColor: 'rgba(239, 68, 68, 0.18)' },
-  savedItemPurple: { backgroundColor: 'rgba(139, 92, 246, 0.18)' },
+  savedItemPurple: { backgroundColor: 'rgba(168, 18, 244, 0.42)' },
   savedItemBlue: { backgroundColor: 'rgba(59, 130, 246, 0.18)' },
   savedTitle: { color: '#86efac', fontSize: 18, fontWeight: '700', marginBottom: 4 },
   savedExpression: { color: '#cbd5e1', fontSize: 15, marginBottom: 4 },
