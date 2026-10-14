@@ -3,7 +3,7 @@ import PanelModal from './PanelModal';
 import ListExportActions from './ListExportActions';
 import { useEffect, useState } from 'react';
 import { usePro } from './ProProvider';
-import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import KeyboardModalFrame from './KeyboardModalFrame';
@@ -18,6 +18,8 @@ import useCalculatorStyles from '../useCalculatorStyles';
 export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
   const { hasPro, requirePro, today: todayKey } = usePro();
   const { t, i18n } = useTranslation();
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
   const styles = useCalculatorStyles();
   const invoice = amountField === 'fact';
   const paidAt = invoice ? 'invoicePaidOffAt' : 'paidOffAt';
@@ -110,10 +112,33 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   };
   return <PanelModal inline={inline} transparent animationType="fade" visible onRequestClose={() => { if (!saving) { if (draft) { setDraft(null); setError(''); } else if (selectedRow) { setSelectedId(null); setError(''); } else if (searchVisible) setSearchVisible(false); else if (picker) setPicker(false); else onClose?.(); } }}>
     <KeyboardModalFrame style={[s.backdrop, inline && { padding: 0, backgroundColor: 'transparent' }]}>
-      <View style={[s.panel, selectedRow && { height: '95%' }, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }]}>
+      <View style={[s.panel, landscape && { padding: 8, gap: 4 }, selectedRow && { height: '95%' }, inline && { flex: 1, minHeight: 0, maxHeight: '100%', maxWidth: '100%', borderRadius: 0, backgroundColor: '#1e293b' }, inline && landscape && { position: 'relative' }]}>
         <View style={s.header}>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.heading, s.headerTitle]}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
-          {!draft && !selectedRow && <View style={[s.controls, s.headerControls]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={[s.heading, s.headerTitle, landscape && { fontSize: 13 }]}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
+          {landscape && !draft && !selectedRow && <SyncStatus compact iconOnly syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+          {landscape && !draft && !selectedRow && <View style={[s.controls, s.landscapeHeaderControls]}>
+            {!invoice && <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Unpaid only')}
+              accessibilityState={{ selected: unpaidOnly }}
+              onPress={() => setUnpaidOnly(current => !current)}
+              style={[s.button, s.unpaidButton, s.landscapeUnpaidControl, unpaidOnly && s.unpaidButtonActive]}
+            >
+              <Ionicons name={unpaidOnly ? 'filter' : 'filter-outline'} size={12} color="#e2e8f0" />
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
+              {unpaidOnly && <Ionicons name="checkmark" size={12} color="#e2e8f0" />}
+            </Pressable>}
+            <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton, s.landscapeIconControl]}>
+              <Ionicons name="search" size={16} color="#f8fafc" />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${calendarLabel}`} accessibilityState={{ expanded: picker }} onPress={() => { if (requirePro()) setPicker(true); }} style={[s.button, s.landscapeIconControl]}>
+              <Ionicons name="calendar-outline" size={16} color="#f8fafc" />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('All dates')} onPress={() => { if (!requirePro()) return; setFrom(''); setTo(''); setPicker(false); }} style={[s.button, s.landscapeIconControl]}>
+              <Ionicons name="calendar-clear-outline" size={16} color="#f8fafc" />
+            </Pressable>
+          </View>}
+          {!landscape && !draft && !selectedRow && <View style={[s.controls, s.headerControls]}>
             {!invoice && <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Unpaid only')}
@@ -131,7 +156,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           </Pressable>}
           </View>}
         </View>
-        {!draft && !selectedRow && <View style={[s.controls, { justifyContent: 'space-between' }]}>
+        {!draft && !selectedRow && !landscape && <View style={[s.controls, { justifyContent: 'space-between' }]}>
           <SyncStatus compact syncStatus={syncStatus} onRetrySync={onRetrySync} />
         </View>}
         {!draft && !!selectedRow && <View style={[s.controls, { justifyContent: 'flex-end' }]}>
@@ -171,21 +196,23 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             <Text style={[s.text, s.summaryText, { flexShrink: 1 }]}>{t('Name')}: {selectedName}</Text>
             {button(t('All names'), () => chooseName(null), false, true)}
           </View>}
-          <View style={s.controls}>
+          {!landscape && <View style={s.controls}>
             <Pressable accessibilityRole="button" accessibilityLabel={t('Choose date range')} accessibilityState={{ expanded: picker }} onPress={() => { if (requirePro()) setPicker(true); }} style={({ pressed }) => [styles.dateDropdownButton, { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4 }, pressed && styles.pressed]}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: 15 }]}>📅 {calendarLabel}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.dateDropdownButtonText, { flexShrink: 1, fontSize: landscape ? 11 : 15 }]}>📅 {calendarLabel}</Text>
               <Text style={styles.dateDropdownArrow}>▼</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => { if (!requirePro()) return; setFrom(''); setTo(''); setPicker(false); }} style={({ pressed }) => [styles.dateDropdownButton, { flexShrink: 0 }, pressed && styles.pressed]}>
-              <Text numberOfLines={1} style={styles.dateDropdownButtonText}>{t('All dates')}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={[styles.dateDropdownButtonText, landscape && { fontSize: 10 }]}>{t('All dates')}</Text>
             </Pressable>
+          </View>}
+          <View style={landscape && { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+            {!landscape && <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{rangeLabel}</Text>}
+            <Text style={[s.heading, s.detailHeading, landscape && { fontSize: 12, flexShrink: 0 }]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
           </View>
-          <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{rangeLabel}</Text>
-          <Text style={[s.heading, s.detailHeading]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
           </>}
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
           {selectedRows.length > 1 && <Text style={s.heading}>{selectedRow.title || t('Untitled')} · {t('TOTAL')}: {pretty(String(Number(selectedRows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0).toPrecision(15))))}</Text>}
-          <ScrollView key={selectedRow ? selectedRow.id : 'list'} keyboardShouldPersistTaps="handled" style={selectedRow ? { flex: 1 } : { flexShrink: 1 }} contentContainerStyle={selectedRow && { flexGrow: 1 }}>
+          <ScrollView key={selectedRow ? selectedRow.id : 'list'} keyboardShouldPersistTaps="handled" style={inline || selectedRow ? { flex: 1, minHeight: 0 } : { flexShrink: 1 }} contentContainerStyle={inline || selectedRow ? { flexGrow: 1, paddingBottom: inline && landscape ? 36 : 0 } : undefined}>
             {!visibleRows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
             {visibleRows.map((row, index) => {
               const group = !selectedRow ? groups[index] : null;
@@ -198,12 +225,12 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
                 <Pressable accessibilityRole="button" accessibilityLabel={row.title || t('Untitled')} disabled={saving || !!selectedRow} onPress={() => openRows([row])} style={[{ gap: 6 }, selectedRows.length === 1 && { flex: 1 }]}>
                 <Text style={[s.heading, s.detailHeading]}>{row.title || t('Untitled')}</Text>
                 <Text style={[s.amount, row[paidAt] && { color: '#86efac' }]}>{pretty(String(row[paidAt] ? row[paidAmount] : row[amountField]))}</Text>
-                <View style={s.dateBlock}>
+                {!landscape && <View style={s.dateBlock}>
                   <Text style={s.text}>{t('Date')}: {t(formatSavedDate(row.savedAt || row.createdAt))}</Text>
-                </View>
+                </View>}
                 {!!row[paidAt] && <Text style={s.paidBadge}>{t('Paid off')}</Text>}
-                {payoffDetails(row)}
-                <Text style={s.muted}>{distance === null ? t('No date') : distance < 0 ? t('In {{count}} months', { count: -distance }) : t('{{count}} months ago', { count: distance })}</Text>
+                {!landscape && payoffDetails(row)}
+                {!landscape && <Text style={s.muted}>{distance === null ? t('No date') : distance < 0 ? t('In {{count}} months', { count: -distance }) : t('{{count}} months ago', { count: distance })}</Text>}
                 {!!row.comment && <Text style={s.text}>{row.comment}</Text>}
                 </Pressable>
                 <View style={s.controls}>
@@ -217,8 +244,8 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               </View>;
             })}
           </ScrollView>
-          {selectedRow && <ListExportActions rows={selectedRows} amountField={amountField} summary={selectedRow.title || t('Untitled')} accessibilityLabel={`${t('Share')}: ${selectedRow.title || t('Untitled')}`} />}
-          {!selectedRow && <ListExportActions rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : '', filterUnpaid ? t('Unpaid only') : ''].filter(Boolean).join(' | ')} />}
+          {selectedRow && <ListExportActions floating={inline && landscape} rows={selectedRows} amountField={amountField} summary={selectedRow.title || t('Untitled')} accessibilityLabel={`${t('Share')}: ${selectedRow.title || t('Untitled')}`} />}
+          {!selectedRow && <ListExportActions floating={inline && landscape} rows={rows} amountField={amountField} summary={[rangeLabel, selectedName !== null ? `${t('Name')}: ${selectedName}` : '', filterUnpaid ? t('Unpaid only') : ''].filter(Boolean).join(' | ')} />}
           {selectedRow ? button(t('Back'), () => { setSelectedId(null); setError(''); }, saving) : !inline && button(t('Close'), onClose, saving)}
         </>}
       </View>
@@ -244,6 +271,9 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
   headerTitle: { flex: 1, minWidth: 0, fontSize: 16 },
   headerControls: { flexShrink: 1, minWidth: 0, maxWidth: '70%' },
+  landscapeHeaderControls: { flexShrink: 0, gap: 3 },
+  landscapeUnpaidControl: { minHeight: 28, paddingHorizontal: 4, paddingVertical: 0, borderRadius: 6, flexShrink: 1 },
+  landscapeIconControl: { width: 28, height: 28, minHeight: 28, flexShrink: 0, paddingHorizontal: 0, paddingVertical: 0, borderRadius: 6 },
   searchButton: { width: 44, flexShrink: 0 },
   text: { color: '#e2e8f0', fontSize: 16 },
   muted: { color: '#94a3b8', fontSize: 14 },

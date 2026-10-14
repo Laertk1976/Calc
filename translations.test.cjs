@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const babel = require('@babel/core');
 const i18next = require('i18next');
-const codes = ['hy', 'en', 'ru', 'ja', 'hi'];
+const codes = ['hy', 'en', 'ru', 'ja', 'hi', 'ko'];
 const resources = Object.fromEntries(codes.map(code => [code, { translation: require(`./locales/${code}.json`) }]));
 test('account deletion disclosures are available in every supported language', () => {
   const messages = require('./locales/account.json');
@@ -61,7 +61,7 @@ test('language changes interpolate messages and retain internal category IDs', a
     assert.ok(instance.t('Rows: {{count}}', { count: 3 }).includes('3'));
   }
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(writes.at(-1)[1], 'hi');
+  assert.equal(writes.at(-1)[1], 'ko');
 });
 
 test('saved language restores and a delayed restore cannot overwrite a new choice', async () => {

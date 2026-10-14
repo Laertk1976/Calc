@@ -113,5 +113,28 @@
     "Purchases are unavailable. Please try again from the Google Play version.": "खरीदारी उपलब्ध नहीं है। Google Play संस्करण से फिर कोशिश करें।",
     "Pro is unlocked. Thank you!": "Pro अनलॉक हो गया है। धन्यवाद!",
     "No active Pro purchase was found.": "Pro की कोई सक्रिय खरीदारी नहीं मिली।"
+  },
+  "ko": {
+    "Unlock Pro": "Pro 이용하기",
+    "Unlock Calc Pro": "Calc Pro 이용하기",
+    "Pro is active": "Pro 사용 중",
+    "One-time purchase. No subscription.": "일회성 구매입니다. 구독이 아닙니다.",
+    "Table, search and calendar": "표, 검색 및 달력",
+    "Access records from every date": "모든 날짜의 기록 열람",
+    "Edit, pay off and delete records": "기록 수정, 결제 완료 처리 및 삭제",
+    "Free access includes calculations, adding records and today’s List. Older records stay saved.": "무료로 계산, 기록 추가 및 오늘의 목록을 이용할 수 있습니다. 이전 기록은 계속 보관됩니다.",
+    "Free access shows today only. Pro unlocks past records, search, calendar, Table, edits, payments and deletion.": "무료 버전에서는 오늘의 기록만 표시됩니다. Pro에서는 이전 기록, 검색, 달력, 표, 수정, 결제 처리 및 삭제를 이용할 수 있습니다.",
+    "Sign in to buy or restore Pro": "Pro를 구매하거나 복원하려면 로그인하세요",
+    "Buy Pro": "Pro 구매",
+    "Buy Pro — {{price}}": "Pro 구매 — {{price}}",
+    "Restore purchases": "구매 복원",
+    "Please wait...": "잠시만 기다려 주세요...",
+    "Try again": "다시 시도",
+    "Purchase Pro in the Google Play version of Calc.": "Google Play 버전의 Calc에서 Pro를 구매하세요.",
+    "Payment is pending. Pro unlocks after Google Play confirms it.": "결제가 대기 중입니다. Google Play에서 결제를 확인하면 Pro가 활성화됩니다.",
+    "Use the Calc account that originally bought Pro.": "처음 Pro를 구매한 Calc 계정을 사용하세요.",
+    "Purchases are unavailable. Please try again from the Google Play version.": "구매할 수 없습니다. Google Play 버전에서 다시 시도하세요.",
+    "Pro is unlocked. Thank you!": "Pro가 활성화되었습니다. 감사합니다!",
+    "No active Pro purchase was found.": "유효한 Pro 구매 내역을 찾을 수 없습니다."
   }
 }

@@ -38,5 +38,13 @@
     "Tap to reuse. Swipe left or right to delete.": "फिर से उपयोग करने के लिए टैप करें। हटाने के लिए बाएँ या दाएँ स्वाइप करें।",
     "No calculations yet.": "अभी कोई गणना नहीं है।",
     "Calculation history could not be saved on this device.": "इस डिवाइस पर गणना का इतिहास सहेजा नहीं जा सका।"
+  },
+  "ko": {
+    "Calculation history": "계산 기록",
+    "Open calculation history": "계산 기록 열기",
+    "Close calculation history": "계산 기록 닫기",
+    "Tap to reuse. Swipe left or right to delete.": "탭하여 다시 사용하세요. 삭제하려면 왼쪽이나 오른쪽으로 미세요.",
+    "No calculations yet.": "아직 계산 기록이 없습니다.",
+    "Calculation history could not be saved on this device.": "이 기기에 계산 기록을 저장하지 못했습니다."
   }
 }

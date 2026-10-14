@@ -83,5 +83,22 @@
     "Deletion could not finish. Check your connection and try again. If deletion has started, saving and sync stay paused until you finish.": "खाता हटाना पूरा नहीं हो सका। कनेक्शन जाँचें और फिर कोशिश करें। यदि हटाना शुरू हो गया है, तो पूरा होने तक सहेजना और सिंक रुके रहेंगे।",
     "Account deletion is pending. Open Account to finish deletion.": "खाता हटाना बाकी है। पूरा करने के लिए «खाता» खोलें।",
     "For deletion help, email laertkarap@gmail.com. Never send your password.": "हटाने में मदद के लिए laertkarap@gmail.com पर ईमेल करें। अपना पासवर्ड कभी न भेजें।"
+  },
+  "ko": {
+    "Account": "계정",
+    "Delete account": "계정 삭제",
+    "Delete your Calc account?": "Calc 계정을 삭제할까요?",
+    "Delete permanently": "영구 삭제",
+    "Confirm with Google and delete": "Google로 본인 확인 후 삭제",
+    "Deleting account...": "계정 삭제 중...",
+    "This permanently deletes your Calc sign-in account, synced calculations, debts, invoices, payments and edit history, including deleted records. This cannot be undone.": "Calc 로그인 계정과 동기화된 계산, 채무, 청구서, 결제 및 수정 기록이 삭제된 기록을 포함하여 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
+    "Account records and queued changes on this device are also removed. Guest records, copies on other offline devices, Android backups and exported files are not removed by this action.": "이 기기의 계정 기록과 대기 중인 변경 사항도 삭제됩니다. 게스트 기록, 다른 오프라인 기기의 사본, Android 백업 및 내보낸 파일은 삭제되지 않습니다.",
+    "A minimal account ID and deletion timestamp are retained to block old devices from uploading deleted records again.": "이전 기기에서 삭제된 기록을 다시 업로드하지 못하도록 최소한의 계정 ID와 삭제 시각을 보관합니다.",
+    "Confirm your identity to delete. Your Google account itself will not be deleted.": "삭제하려면 본인 확인을 진행하세요. Google 계정 자체는 삭제되지 않습니다.",
+    "Use the Google account shown above.": "위에 표시된 Google 계정을 사용하세요.",
+    "The password is incorrect.": "비밀번호가 올바르지 않습니다.",
+    "Deletion could not finish. Check your connection and try again. If deletion has started, saving and sync stay paused until you finish.": "삭제를 완료하지 못했습니다. 연결을 확인하고 다시 시도하세요. 삭제가 시작된 경우 완료될 때까지 저장 및 동기화가 일시 중지됩니다.",
+    "Account deletion is pending. Open Account to finish deletion.": "계정 삭제가 대기 중입니다. 계정 메뉴를 열어 삭제를 완료하세요.",
+    "For deletion help, email laertkarap@gmail.com. Never send your password.": "삭제 관련 도움이 필요하면 laertkarap@gmail.com으로 이메일을 보내세요. 비밀번호는 절대 보내지 마세요."
   }
 }

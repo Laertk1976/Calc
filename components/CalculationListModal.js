@@ -3,13 +3,14 @@ import ButtonLabel from './ButtonLabel';
 import DateRangeCalendar from './DateRangeCalendar';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { styles } from '../calculatorStyles';
 import useCalculatorStyles from '../useCalculatorStyles';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { formatSavedDate } from '../calculatorUtils';
 import { getCalculationListResults } from '../calculationHistory';
 import { usePro } from './ProProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 function getSavedItemStyle(type) {
   if (type === 'Cred') return styles.savedItemRed;
@@ -32,6 +33,8 @@ function dateLabel(value) {
 export default function CalculationListModal({ visible, calculations, onClose, inline = false, showClose = true, desktop = false }) {
   const { hasPro, requirePro, today } = usePro();
   const { t } = useTranslation();
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
   const styles = useCalculatorStyles();
   const [searchVisible, setSearchVisible] = useState(false);
   const [search, setSearch] = useState('');
@@ -66,23 +69,24 @@ export default function CalculationListModal({ visible, calculations, onClose, i
     onClose();
   };
   const panel = (
-        <View style={[styles.listPanel, inline && { height: '100%', maxHeight: '100%', maxWidth: showClose ? undefined : '100%', flex: 1, padding: 12 }]}>
+        <View style={[styles.listPanel, inline && { height: '100%', maxHeight: '100%', maxWidth: showClose ? undefined : '100%', flex: 1, minHeight: 0, padding: 12 }]}>
           <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: 18 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: landscape ? 4 : 8, marginBottom: landscape ? 4 : 8 }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={[styles.listTitle, { flex: 1, marginBottom: 0, fontSize: landscape ? 13 : 18 }]}>
                 {t('Saved calculations')} · {search.trim() ? `${filteredCalculations.length}/${rangeCalculations.length}` : rangeCalculations.length}
               </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(!searchVisible); setSearch(''); }} style={styles.searchIconButton}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t("Search saved calculations")} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(!searchVisible); setSearch(''); }} style={[styles.searchIconButton, landscape && { width: 28, height: 28 }]}>
                 <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
                 <View style={{ position: 'absolute', width: 7, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 6, bottom: 8 }} />
               </Pressable>
-              {desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={({ pressed }) => [styles.dateDropdownButton, pressed && styles.pressed]}>
-                <Text style={styles.dateDropdownButtonText}>{rangeLabel}</Text>
+              {(desktop || landscape) && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={({ pressed }) => [styles.dateDropdownButton, landscape && { flexShrink: 1, minWidth: 0, maxWidth: 142, paddingHorizontal: 5, paddingVertical: 4, gap: 3 }, pressed && styles.pressed]}>
+                <Ionicons name="calendar-outline" size={landscape ? 12 : 16} color="#e2e8f0" />
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={[styles.dateDropdownButtonText, landscape && { fontSize: 10, flexShrink: 1 }]}>{rangeLabel}</Text>
                 <Text style={styles.dateDropdownArrow}>▼</Text>
               </Pressable>}
             </View>
           </View>
-          {!desktop && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={[styles.rangePill, { marginBottom: 8 }]}>
+          {!desktop && !landscape && <Pressable accessibilityRole="button" accessibilityLabel={`${t('Choose date range')}, ${rangeLabel}`} accessibilityState={{ expanded: datePickerVisible }} onPress={() => { if (requirePro()) setDatePickerVisible(true); }} style={[styles.rangePill, { marginBottom: 8 }]}>
             <Text style={styles.rangePillText}>{rangeLabel}</Text>
           </Pressable>}
           <Modal transparent animationType="fade" visible={visible && datePickerVisible} onRequestClose={() => setDatePickerVisible(false)}>
@@ -104,7 +108,7 @@ export default function CalculationListModal({ visible, calculations, onClose, i
               <Text style={[styles.searchClearText, { width: '100%', textAlign: 'center', includeFontPadding: false }]}>×</Text>
             </Pressable>
           </View>}
-          <ScrollView keyboardShouldPersistTaps="handled" style={[styles.listScroll, inline && { flex: 1 }]} nestedScrollEnabled>
+          <ScrollView keyboardShouldPersistTaps="handled" style={[styles.listScroll, inline && { flex: 1, minHeight: 0 }]} nestedScrollEnabled>
             {filteredCalculations.length ? filteredCalculations.map((calculation, index) => (
               <View key={`${calculation.createdAt}-${index}`} style={[styles.savedItem, getSavedItemStyle(calculation.type)]}>
                 <Text style={styles.savedTitle}>{index + 1}. {calculation.title}</Text>

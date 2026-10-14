@@ -11,7 +11,8 @@ import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -437,12 +438,16 @@ export default function CalculationTableModal({
   inline = false,
 }) {
   const { t, i18n } = useTranslation();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const landscape = windowWidth > windowHeight;
+  const compactLandscape = landscape && inline;
   const custom = useCustomLabels();
   const columnLabel = (key, fallback) => custom.active ? custom.labels[key] || '' : t(fallback);
   const baseStyles = useCalculatorStyles();
   const [renameName, setRenameName] = useState(null);
   const insets = useSafeAreaInsets();
   const [tableViewportWidth, setTableViewportWidth] = useState(0);
+  const [tableViewportHeight, setTableViewportHeight] = useState(0);
   const columnNames = ['nameColumn', 'infoColumn', 'commentsColumn', 'credColumn', 'factColumn', 'fcashColumn', 'paidOffColumn'];
   const columnWidth = name => StyleSheet.flatten(baseStyles[name]).width;
   const contentWidth = columnNames.reduce((total, name) => total + columnWidth(name), 0);
@@ -450,10 +455,24 @@ export default function CalculationTableModal({
   const columnScale = inline ? Math.max(1, (tableViewportWidth - fixedWidth) / contentWidth) : 1;
   const styles = {
     ...baseStyles,
+    ...(landscape && {
+      listTitle: [baseStyles.listTitle, { fontSize: 14 }],
+      tableTopHeader: [baseStyles.tableTopHeader, { flexWrap: 'nowrap', marginBottom: 4, gap: 4 }],
+      tableTitleGroup: [baseStyles.tableTitleGroup, { flex: 1, minWidth: 0, gap: 4 }],
+      tableTitle: [baseStyles.tableTitle, { fontSize: 12 }],
+      searchIconButton: [baseStyles.searchIconButton, { width: 28, height: 28 }],
+      searchIcon: [baseStyles.searchIcon, { fontSize: 18, lineHeight: 20 }],
+      dateDropdownButton: [baseStyles.dateDropdownButton, { flexShrink: 1, minWidth: 0, maxWidth: 150, paddingHorizontal: 5, paddingVertical: 4, gap: 3 }],
+      dateDropdownButtonText: [baseStyles.dateDropdownButtonText, { flexShrink: 1, fontSize: 9 }],
+      dateDropdownArrow: [baseStyles.dateDropdownArrow, { fontSize: 9 }],
+      tableHeaderText: [baseStyles.tableHeaderText, { fontSize: 10 }],
+      tableCellText: [baseStyles.tableCellText, { fontSize: 10 }],
+      listSubtitle: [baseStyles.listSubtitle, { fontSize: 10, marginBottom: 4 }],
+    }),
     ...(inline && {
-      tableCell: [baseStyles.tableCell, { minHeight: 76, paddingVertical: 10 }],
-      cellInput: [baseStyles.cellInput, { minHeight: 42, height: 42, paddingVertical: 10 }],
-      cellPressable: [baseStyles.cellPressable, { minHeight: 42, paddingVertical: 10 }],
+      tableCell: [baseStyles.tableCell, { minHeight: compactLandscape ? 38 : 76, paddingVertical: compactLandscape ? 3 : 10 }],
+      cellInput: [baseStyles.cellInput, { minHeight: compactLandscape ? 32 : 42, height: compactLandscape ? 32 : 42, paddingVertical: compactLandscape ? 3 : 10 }],
+      cellPressable: [baseStyles.cellPressable, { minHeight: compactLandscape ? 32 : 42, paddingVertical: compactLandscape ? 3 : 10 }],
     }),
     ...Object.fromEntries(columnNames.map(name => [name, [baseStyles[name], { width: columnWidth(name) * columnScale }]])),
   };
@@ -850,17 +869,20 @@ export default function CalculationTableModal({
   return (
     <PanelModal inline={inline} animationType="fade" transparent visible={visible} onRequestClose={() => actionsVisible ? setActionsVisible(false) : handleClose()}>
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
-        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, !inline && Platform.OS !== 'web' && { paddingTop: Math.max(StyleSheet.flatten(styles.tablePanel).padding || 0, insets.top + 4) }, inline && { maxWidth: '100%', padding: 16, paddingBottom: 16, minHeight: 0 }]}>
-          <View style={{ flexDirection: 'row', direction: 'ltr', flexWrap: 'nowrap', marginBottom: 8, alignItems: 'stretch' }}>
-            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { width: '50%', flexGrow: 0, flexShrink: 0, minWidth: 0, alignItems: 'center', justifyContent: 'center' }]} accessibilityRole="button">
+        <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, !inline && Platform.OS !== 'web' && { paddingTop: Math.max(StyleSheet.flatten(styles.tablePanel).padding || 0, insets.top + 4) }, inline && { maxWidth: '100%', padding: compactLandscape ? 4 : 16, paddingBottom: compactLandscape ? 4 : 16, minHeight: 0 }, compactLandscape && { position: 'relative' }]}>
+          {!compactLandscape && <View style={{ flexDirection: 'row', direction: 'ltr', flexWrap: 'nowrap', marginBottom: 3, alignItems: 'stretch' }}>
+            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { width: compactLandscape ? undefined : '50%', minHeight: compactLandscape ? 30 : undefined, paddingVertical: compactLandscape ? 3 : undefined, flexGrow: 0, flexShrink: 0, minWidth: 0, alignItems: 'center', justifyContent: 'center' }]} accessibilityRole="button">
               <ButtonLabel numberOfLines={1} style={[styles.authButtonText, { textAlign: 'center' }]}>{t('History')}</ButtonLabel>
             </Pressable>
-          </View>
+          </View>}
           {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
           {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>
+              {compactLandscape && <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.searchIconButton, { width: 28, height: 28 }]} accessibilityRole="button" accessibilityLabel={t('History')}>
+                <Ionicons name="time-outline" size={16} color="#f8fafc" />
+              </Pressable>}
               <Pressable
                 style={({ pressed }) => [styles.searchIconButton, searchVisible && styles.searchIconButtonActive, pressed && styles.pressed]}
                 onPress={() => setSearchVisible(current => !current)}
@@ -936,14 +958,18 @@ export default function CalculationTableModal({
             </View>
           </ScrollView>
           <View
-            style={styles.tableVerticalScroll}
-            onLayout={inline ? event => setTableViewportWidth(event.nativeEvent.layout.width) : undefined}
+            style={[styles.tableVerticalScroll, compactLandscape && { marginBottom: 0 }]}
+            onLayout={inline ? event => {
+              const { width: nextWidth, height: nextHeight } = event.nativeEvent.layout;
+              setTableViewportWidth(current => current === nextWidth ? current : nextWidth);
+              setTableViewportHeight(current => current === nextHeight ? current : nextHeight);
+            } : undefined}
           >
             <ScrollView
               ref={tableBodyScrollRef}
               horizontal
-              style={{ flex: 1 }}
-              contentContainerStyle={{ height: '100%' }}
+              style={[{ flex: 1 }, compactLandscape && { height: tableViewportHeight || undefined }]}
+              contentContainerStyle={{ height: compactLandscape && tableViewportHeight ? tableViewportHeight : '100%' }}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="none"
               nestedScrollEnabled
@@ -954,7 +980,7 @@ export default function CalculationTableModal({
             >
               {/* Keep the vertical viewport bounded so offscreen rows can unmount. */}
               <FlatList
-                style={{ width: fixedWidth + contentWidth * columnScale, height: '100%' }}
+                style={{ width: fixedWidth + contentWidth * columnScale, height: compactLandscape && tableViewportHeight ? tableViewportHeight : '100%' }}
                 data={filteredRows}
                 keyExtractor={(item) => String(item.id)}
                 keyboardShouldPersistTaps="handled"
@@ -1131,8 +1157,8 @@ export default function CalculationTableModal({
               />
             </ScrollView>
           </View>
-          <View style={[styles.tableFooter, { zIndex: 11 }, keyboardVisible && { display: 'none' }]}>
-            <TableActionsMenu open={actionsVisible} onToggle={() => setActionsVisible(value => !value)} onDismiss={() => setActionsVisible(false)} actions={[
+          <View style={[styles.tableFooter, { zIndex: 11 }, compactLandscape && { position: 'absolute', right: 0, bottom: 0, paddingBottom: 0 }, keyboardVisible && { display: 'none' }]}>
+            <TableActionsMenu floating={compactLandscape} open={actionsVisible} onToggle={() => setActionsVisible(value => !value)} onDismiss={() => setActionsVisible(false)} actions={[
               { id: 'add', label: t('+ Add Row'), onPress: handleAddRow },
               { id: 'pdf', label: t('Save PDF'), onPress: saveTableAsPdf },
               { id: 'csv', label: t('Save CSV'), onPress: handleSaveCsv },

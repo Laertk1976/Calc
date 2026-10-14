@@ -74,6 +74,10 @@ The table supports saving CSV locally, uploading CSV to Google Drive, and upload
 
 ## Standalone Android APK
 
+With phone auto-rotate enabled, landscape opens the desktop-style workspace with records on the left and the calculator on the right. Portrait restores the usual calculator view. The current calculation and expression draft survive rotation. Landscape uses compact controls and scrolls the calculator when space is limited; the table can expand to the full workspace width. Opening the keyboard in portrait does not switch layouts.
+
+Rotation changes require rebuilding the native APK. Run `node --test workspaceLayout.test.cjs` to check layout selection, keyboard handling, keypad sizing and expression editing across rotation.
+
 Build a release APK with Java 21, Node.js, and the Android SDK available:
 
 ```powershell

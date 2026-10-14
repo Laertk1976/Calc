@@ -4,14 +4,14 @@ import { useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-export default function TableActionsMenu({ open, onToggle, onDismiss, actions, accessibilityLabel }) {
+export default function TableActionsMenu({ open, onToggle, onDismiss, actions, accessibilityLabel, floating = false }) {
 
   const { t } = useTranslation();
   const { height, width } = useWindowDimensions();
   const trigger = useRef(null);
   const [position, setPosition] = useState({ bottom: 120, right: 12, availableHeight: height - 140 });
   return (
-    <View style={s.anchor}>
+    <View style={[s.anchor, floating && s.floatingAnchor]}>
       <Modal transparent statusBarTranslucent visible={open} animationType="fade" onRequestClose={onDismiss}>
         <View style={{ flex: 1 }}>
           <Pressable silent accessibilityRole="button" accessibilityLabel={t('Close menu')} onPress={onDismiss}
@@ -46,6 +46,7 @@ export default function TableActionsMenu({ open, onToggle, onDismiss, actions, a
 
 const s = StyleSheet.create({
   anchor: { alignSelf: 'flex-end', marginBottom: 10, position: 'relative', zIndex: 2 },
+  floatingAnchor: { position: 'absolute', right: 8, bottom: 4, marginBottom: 0 },
   trigger: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', elevation: 4 },
   icon: { color: '#ffffff', fontSize: 15, lineHeight: 17 },
   menu: { position: 'absolute', bottom: 58, right: 0, width: 250, backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: '#475569', padding: 6, elevation: 8, overflow: 'hidden' },

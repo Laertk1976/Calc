@@ -5,7 +5,7 @@
     "icon": "./assets/icon.png",
      "android": {
       "package": "com.example.calc",
-      "versionCode": 28,
+      "versionCode": 33,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -17,8 +17,8 @@
       "com.example.calc",
       "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
     ],
-    "version": "1.1.6",
-    "orientation": "portrait",
+    "version": "1.1.11",
+    "orientation": "default",
     "userInterfaceStyle": "dark",
     "web": {
       "bundler": "metro"

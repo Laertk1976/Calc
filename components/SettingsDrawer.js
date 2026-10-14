@@ -11,7 +11,7 @@ import { languages, selectLanguage } from '../i18n';
 import SyncStatus from './SyncStatus';
 import PrivacyPolicyLink from './PrivacyPolicyLink';
 
-export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySync }) {
+export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySync, compact = false }) {
   const { t, i18n } = useTranslation();
   const { soundEnabled, toggleSound } = useTapSound();
   const { hasPro, setPaywall } = usePro();
@@ -61,8 +61,8 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
     <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
   </Pressable>;
   return <>
-    <Pressable testID="open-settings" accessibilityRole="button" accessibilityLabel={t('Open menu')} accessibilityState={{ expanded: open }} onPress={() => { progress.setValue(0); setOpen(true); }} style={s.trigger}>
-      <Ionicons name="menu" size={28} color="#f8fafc" />
+    <Pressable testID="open-settings" accessibilityRole="button" accessibilityLabel={t('Open menu')} accessibilityState={{ expanded: open }} onPress={() => { progress.setValue(0); setOpen(true); }} style={[s.trigger, compact && { width: 24, height: 24, borderRadius: 6 }]}>
+      <Ionicons name="menu" size={compact ? 20 : 28} color="#f8fafc" />
     </Pressable>
     <Modal transparent visible={open} animationType="none" onShow={() => animate(1)} onRequestClose={() => close()}>
       <View style={s.overlay}>

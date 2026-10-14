@@ -7,10 +7,12 @@ import CalculationListModal from './CalculationListModal';
 import CalculationTableModal from './CalculationTableModal';
 import DebtListModal from './DebtListModal';
 import { usePro } from './ProProvider';
+import SafeAreaView from './CalculatorSafeArea';
 
 const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
 
-export default function DesktopWorkspace({ tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+  const { compact = false, calculatorWidth = 380 } = layout;
   const { hasPro, requirePro } = usePro();
   useEffect(() => { if (!hasPro && tab === 'table') onTabChange('list'); }, [hasPro, tab]);
   const { t } = useTranslation();
@@ -23,40 +25,49 @@ export default function DesktopWorkspace({ tab, onTabChange, display, keypad, ca
     onTabChange(next);
   };
   const fullWidth = expanded && tab === 'table';
-  return <View testID="desktop-workspace" style={s.screen}>
-    <View style={s.toolbar}>
-      <Text style={s.brand}>CALC</Text>
+  return <SafeAreaView style={s.screen}>
+    <View testID="desktop-workspace" style={s.screen}>
+    <View style={[s.toolbar, compact && { minHeight: 24, paddingHorizontal: 8, gap: 4 }]}>
+      <Text style={[s.brand, compact && { fontSize: 14, letterSpacing: 3 }]}>CALC</Text>
       <View style={s.toolbarSpacer} />
-      <SettingsDrawer user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      <SettingsDrawer compact={compact} user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     </View>
-    <View style={s.workspace}>
+    <View style={[s.workspace, compact && { gap: 8, padding: 8 }]}>
       <View testID="desktop-records" style={s.records}>
-        <View style={s.navigation}>
-          <View accessibilityRole="tablist" style={s.tabs}>
-            {tabs.map(([id, label]) => <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} onPress={() => selectTab(id)} style={({ pressed }) => [s.tab, tab === id && s.activeTab, pressed && { opacity: 0.8 }]}>
-              <Text style={[s.tabText, tab === id && s.activeTabText]}>{t(label)}</Text>
+        <View style={[s.navigation, compact && { padding: 2, gap: 2 }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+          <View accessibilityRole="tablist" style={[s.tabs, compact && { flexWrap: 'nowrap' }]}>
+            {tabs.map(([id, label]) => <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} onPress={() => selectTab(id)} style={({ pressed }) => [s.tab, compact && { minHeight: 20, paddingHorizontal: 8, borderRadius: 5 }, tab === id && s.activeTab, pressed && { opacity: 0.8 }]}>
+              <Text numberOfLines={1} style={[s.tabText, compact && { fontSize: 10 }, tab === id && s.activeTabText]}>{t(label)}</Text>
             </Pressable>)}
           </View>
-          {tab === 'table' && <Pressable accessibilityRole="button" accessibilityLabel={t(fullWidth ? 'Restore split view' : 'Expand table')} onPress={() => setExpanded(value => !value)} style={s.expand}>
-            <Text style={s.toolbarText}>{t(fullWidth ? 'Restore split view' : 'Expand table')}</Text>
+          </ScrollView>
+          {tab === 'table' && <Pressable accessibilityRole="button" accessibilityLabel={t(fullWidth ? 'Restore split view' : 'Expand table')} onPress={() => setExpanded(value => !value)} style={[s.expand, compact && { minHeight: 18, paddingHorizontal: 6 }]}>
+            <Text style={[s.toolbarText, compact && { fontSize: 10 }]}>{t(fullWidth ? 'Restore split view' : 'Expand table')}</Text>
           </Pressable>}
         </View>
         {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
-          {id === 'list' && <CalculationListModal desktop inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
+          {id === 'list' && <CalculationListModal desktop={!compact} inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
           {id === 'table' && hasPro && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
           {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
         </View>)}
       </View>
-      <View testID="desktop-calculator" style={[s.calculator, fullWidth && { display: 'none' }]}>
+      <View testID="desktop-calculator" onLayout={onCalculatorLayout} style={[s.calculator, { width: calculatorWidth }, fullWidth && { display: 'none' }]}>
+        {compact ? <ScrollView testID="landscape-calculator-scroll" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 4 }}>
+          {display}
+          {keypad}
+        </ScrollView> : <>
         <ScrollView style={s.calculatorDisplay} contentContainerStyle={s.calculatorContent} keyboardShouldPersistTaps="handled">
           <Text style={s.sectionLabel}>{t('Calculator')}</Text>
           {display}
         </ScrollView>
         <View style={s.calculatorKeypad}>{keypad}</View>
+        </>}
       </View>
     </View>
-  </View>;
+    </View>
+  </SafeAreaView>;
 }
 
 const s = StyleSheet.create({

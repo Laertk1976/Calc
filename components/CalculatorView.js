@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import SettingsDrawer from './SettingsDrawer';
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, BackHandler, Easing, NativeModules, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Dimensions, Easing, NativeModules, Platform, ScrollView, Text, TextInput, Vibration, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getWorkspaceLayout } from '../workspaceLayout';
 import SafeAreaView from './CalculatorSafeArea';
 import { keys, operators } from '../calculatorConstants';
 import useCalculatorStyles from '../useCalculatorStyles';
@@ -79,19 +81,35 @@ export default function CalculatorView({
     setEditing(false);
   };
   const { width, height, fontScale } = useWindowDimensions();
-  const desktop = Platform.OS === 'web' && width > 1100;
+  const [sizes, setSizes] = useState({ viewport: 0, header: 0, display: 0 });
+  const [workspaceHeight, setWorkspaceHeight] = useState(0);
+  const insets = useSafeAreaInsets();
+  const screen = Dimensions.get('screen');
+  const workspaceLayout = getWorkspaceLayout({ platform: Platform.OS, width, height, screenWidth: screen.width, screenHeight: screen.height, insets, calculatorHeight: workspaceHeight });
+  const { desktop, compact } = workspaceLayout;
   const [desktopTab, setDesktopTab] = useState('list');
+  useEffect(() => {
+    if (!desktop) return;
+    if (tableVisible) setDesktopTab('table');
+    else if (debtsVisible) setDesktopTab('debts');
+    else if (invoicesVisible) setDesktopTab('invoices');
+    else if (listVisible) setDesktopTab('list');
+    setDebtsVisible(false);
+    setInvoicesVisible(false);
+    setHistoryVisible(false);
+    onCloseList();
+    onCloseTable();
+  }, [desktop]);
   const [resultWidth, setResultWidth] = useState(0);
   const resultText = display === 'Error' ? t('Error') : pretty(display);
   // Size the formatted text, including separators, before native auto-fitting.
   // This also keeps the web display within its bounds.
   const resultUnits = [...resultText].reduce((total, char) => total + (/[.,\s]/.test(char) ? 0.35 : 0.7), 0);
   const availableResultWidth = resultWidth || Math.min(width, 720) - (width < 600 ? 24 : 40) - 16;
-  const resultFontSize = Math.min(width < 380 ? 62.4 : 81.6, Math.max(1, (availableResultWidth - 8) / Math.max(1, resultUnits) / Math.max(1, fontScale)));
+  const resultFontSize = Math.min(compact ? 28 : width < 380 ? 62.4 : 81.6, Math.max(1, (availableResultWidth - 8) / Math.max(1, resultUnits) / Math.max(1, fontScale)));
   const scrollRef = useRef(null);
   const reveal = useRef(new Animated.Value(0)).current;
   const currentReveal = useRef(0);
-  const [sizes, setSizes] = useState({ viewport: 0, header: 0, display: 0 });
   const measure = (part) => ({ nativeEvent }) => {
     const measured = nativeEvent.layout.height;
     setSizes((previous) => previous[part] === measured ? previous : { ...previous, [part]: measured });
@@ -131,13 +149,13 @@ export default function CalculatorView({
     return () => subscription.remove();
   }, [drawerVisible, onCloseList]);
 
-  const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : drawerVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }]}>
+  const displayPanel = (<View onLayout={measure('display')} style={[styles.display, { marginTop: desktop ? 0 : drawerVisible ? 0 : 'auto' }, desktop && { minHeight: 160, paddingHorizontal: 0, paddingTop: 16, paddingBottom: 24 }, compact && { minHeight: 48, paddingTop: 0, paddingBottom: 4 }]}>
           <View style={{ width: '100%', minWidth: 0 }} onLayout={({ nativeEvent }) => setResultWidth(nativeEvent.layout.width)}>
             {editing ? (
               <TextInput
                 ref={expressionInput}
                 accessibilityLabel={t("Edit calculation")}
-                style={[styles.expression, { width: '100%', textAlign: 'right', padding: 0, borderWidth: 0, includeFontPadding: false }, Platform.OS === 'web' && { outlineStyle: 'none' }]}
+                style={[styles.expression, { width: '100%', textAlign: 'right', padding: 0, borderWidth: 0, includeFontPadding: false }, compact && { fontSize: 16, marginBottom: 2 }, Platform.OS === 'web' && { outlineStyle: 'none' }]}
                 value={draft}
                 onChangeText={setDraft}
                 onBlur={finishEditing}
@@ -164,12 +182,12 @@ export default function CalculatorView({
                 onLayout={scrollExpressionToEnd}
               >
                 <Pressable onPress={beginEditing} accessibilityRole="button" accessibilityLabel={t("Edit calculation")}>
-                  <Text numberOfLines={1} style={[styles.expression, { textAlign: 'right', flexShrink: 0 }]}>
+                  <Text numberOfLines={1} style={[styles.expression, { textAlign: 'right', flexShrink: 0 }, compact && { fontSize: 16, marginBottom: 2 }]}>
                     {colorCalculationSymbols(expression)}
                   </Text>
                 </Pressable>
               </ScrollView>
-            ) : null}
+            ) : compact ? <View accessible={false} style={{ height: 23, marginBottom: 2 }} /> : null}
             <Text
               numberOfLines={1}
               style={[styles.displayText, { width: '100%', textAlign: 'right', fontSize: resultFontSize, padding: 0, color: '#f8fafc', includeFontPadding: false }]}
@@ -181,26 +199,27 @@ export default function CalculatorView({
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#64748b' }} />
           </Pressable>}
         </View>);
-  const keypadPanel = (<View style={[styles.keypadLayout, desktop && { gap: 8 }]}>
-          <View style={[styles.keypad, desktop && { gap: 8 }]}>
+  const keypadPanel = (<View style={[styles.keypadLayout, desktop && { gap: compact ? 4 : 8 }]}>
+          <View style={[styles.keypad, desktop && { gap: compact ? 4 : 8 }]}>
             {keys.map((row) => (
-              <View key={row.join('')} style={[styles.keyRow, desktop && { gap: 8 }]}>
+              <View key={row.join('')} style={[styles.keyRow, desktop && { gap: compact ? 4 : 8 }]}>
                 {row.map((key) => {
                   const isOperator = operators.includes(key) || key === '=';
                   const isFunction = ['AC', 'C', '±', '%'].includes(key);
                   return (
-                    <Pressable key={key} android_disableSound onPressIn={playKeyFeedback} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, desktop && { height: 54 }, isOperator && styles.operator, isFunction && styles.function, pressed && styles.pressed]}>
-                      <Text style={[styles.keyText, isFunction && styles.functionText]}>{key}</Text>
+                    <Pressable key={key} android_disableSound onPressIn={() => compact ? pressKey(key) : playKeyFeedback()} onPress={() => { if (!compact) pressKey(key); }} style={({ pressed }) => [styles.key, desktop && { height: workspaceLayout.keyHeight }, isOperator && styles.operator, isFunction && styles.function, pressed && (compact ? { backgroundColor: '#334155', opacity: 0.9 } : styles.pressed)]}>
+                      <Text style={[styles.keyText, compact && { fontSize: 22 }, isFunction && styles.functionText]}>{key}</Text>
                     </Pressable>
                   );
                 })}
               </View>
             ))}
           </View>
-          <UtilityButtons desktop={desktop} maxKeypadHeight={maxKeypadHeight} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
+          <UtilityButtons desktop={desktop} compactKeyHeight={compact ? workspaceLayout.keyHeight : undefined} maxKeypadHeight={maxKeypadHeight} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
         </View>);
   if (desktop) return <>
-    <DesktopWorkspace tab={desktopTab} onTabChange={setDesktopTab} display={displayPanel} keypad={keypadPanel}
+    <StatusBar style="light" hidden={compact && Platform.OS !== 'web'} />
+    <DesktopWorkspace layout={workspaceLayout} onCalculatorLayout={({ nativeEvent }) => setWorkspaceHeight(nativeEvent.layout.height)} tab={desktopTab} onTabChange={setDesktopTab} display={displayPanel} keypad={keypadPanel}
       calculations={savedCalculations} onUpdateCalculations={onUpdateCalculations}
       user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
@@ -208,7 +227,7 @@ export default function CalculatorView({
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar style="light" />
+      <StatusBar style="light" hidden={false} />
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!drawerVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: drawerVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')} style={{ paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>

@@ -10,11 +10,12 @@ export default function useCalculatorStyles(maxKeypadHeight) {
     const gap = compact ? 8 : 12;
     const contentWidth = Math.min(width, 720) - padding * 2;
     const keyWidth = (contentWidth - gap * 4) / 5;
-    const naturalKeyHeight = Math.max(44, Math.min(keyWidth, 88, (height - 280 - gap * 4) / 5));
+    const landscapeMobile = width > height;
+    const naturalKeyHeight = Math.max(landscapeMobile ? 32 : 44, Math.min(keyWidth, 88, (height - 280 - gap * 4) / 5));
     // The utility column adds 24px of group borders/padding, offset by
     // four buttons that are 3px shorter and one that is 3px taller.
     const keyHeight = maxKeypadHeight == null ? naturalKeyHeight
-      : Math.max(0, Math.min(naturalKeyHeight, (maxKeypadHeight - gap * 4 - 15) / 5));
+      : Math.max(landscapeMobile ? 32 : 0, Math.min(naturalKeyHeight, (maxKeypadHeight - gap * 4 - 15) / 5));
     const overrides = {
       calculator: { paddingHorizontal: padding },
       display: { minHeight: compact || height < 700 ? 112 : 150, paddingBottom: 16 },

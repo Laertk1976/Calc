@@ -15,7 +15,7 @@ function getUtilityKeyStyle(key) {
   return styles.utilityKeyGreen;
 }
 
-export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts, onInvoices, desktop = false, maxKeypadHeight }) {
+export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDebts, onInvoices, desktop = false, compactKeyHeight, maxKeypadHeight }) {
   const { t, i18n } = useTranslation();
   const styles = useCalculatorStyles(maxKeypadHeight);
   const custom = useCustomLabels();
@@ -27,7 +27,7 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
     const needsLabel = customizable && (custom.editable.includes(key) || !custom.labels[key]);
     const label = customizable ? custom.labels[key] || '' : t(key);
     const armenianInvoice = !customizable && i18n.resolvedLanguage === 'hy' && ['Fact', 'Fcash'].includes(key);
-    const buttonStyle = [styles.utilityKey, grouped && styles.utilityPrimaryKey, desktop && { height: 58, aspectRatio: undefined, position: 'relative', overflow: 'hidden' }, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, customizable && { position: 'relative', overflow: 'hidden' }];
+    const buttonStyle = [styles.utilityKey, grouped && styles.utilityPrimaryKey, desktop && { height: compactKeyHeight == null ? 58 : compactKeyHeight + (grouped ? -3 : 3), aspectRatio: undefined, position: 'relative', overflow: 'hidden' }, getUtilityKeyStyle(key), armenianInvoice && { flexShrink: 0, overflow: 'hidden', position: 'relative' }, customizable && { position: 'relative', overflow: 'hidden' }];
     if (customizable && editingKey === key) {
       return <View key={key} style={buttonStyle}>
         <TextInput autoFocus selectTextOnFocus multiline={false} maxLength={30}
@@ -51,7 +51,7 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
       accessibilityRole="button"
       accessibilityLabel={needsLabel ? `Edit label: ${label || t(key)}` : label}
       accessibilityHint={key === 'Cred' ? t('Hold to open debts') : key === 'Fact' ? t('Hold to open invoices') : undefined}
-      style={({ pressed }) => [buttonStyle, pressed && styles.pressed]}
+      style={({ pressed }) => [buttonStyle, pressed && (compactKeyHeight != null ? { opacity: 0.9 } : styles.pressed)]}
     >
       <ButtonLabel
         accessibilityLabel={label}
@@ -59,6 +59,7 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
         style={[
           styles.utilityKeyText,
           armenianInvoice && { fontSize: 18, lineHeight: 23 },
+          compactKeyHeight != null && { fontSize: 12, lineHeight: 14 },
         ]}
       >
         {!customizable && key === 'Fcash' && i18n.resolvedLanguage === 'ja'
@@ -69,12 +70,12 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
   );
   };
   return (
-    <View style={[styles.utilityColumn, desktop && { width: 82, gap: 8 }]}>
-      <View style={[styles.utilityPrimaryGroup, desktop && { gap: 8, padding: 4, borderWidth: 2 }]}>
+    <View style={[styles.utilityColumn, desktop && { width: compactKeyHeight == null ? 82 : 72, gap: compactKeyHeight == null ? 8 : 4 }]}>
+      <View style={[styles.utilityPrimaryGroup, desktop && { gap: compactKeyHeight == null ? 8 : 4, padding: 4, borderWidth: 2 }]}>
         {utilityKeys.slice(0, 2).map((key) => renderButton(key, true))}
       </View>
       {renderButton(utilityKeys[2])}
-      <View style={[styles.utilityPrimaryGroup, desktop && { gap: 8, padding: 4, borderWidth: 2 }]}>
+      <View style={[styles.utilityPrimaryGroup, desktop && { gap: compactKeyHeight == null ? 8 : 4, padding: 4, borderWidth: 2 }]}>
         {utilityKeys.slice(3, 5).map((key) => renderButton(key, true))}
       </View>
     </View>
