@@ -4,8 +4,8 @@
     "slug": "calc",
     "icon": "./assets/icon.png",
      "android": {
-      "package": "com.example.calc",
-      "versionCode": 33,
+      "package": "com.laertkarap.calc",
+      "versionCode": 34,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -14,10 +14,10 @@
        "googleServicesFile": "./google-services.json"
     },
     "scheme": [
-      "com.example.calc",
+      "com.laertkarap.calc",
       "com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"
     ],
-    "version": "1.1.11",
+    "version": "1.2.1",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "web": {

@@ -54,7 +54,7 @@ export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab,
         </View>)}
       </View>
       <View testID="desktop-calculator" onLayout={onCalculatorLayout} style={[s.calculator, { width: calculatorWidth }, fullWidth && { display: 'none' }]}>
-        {compact ? <ScrollView testID="landscape-calculator-scroll" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 4 }}>
+        {compact ? <ScrollView testID="landscape-calculator-scroll" keyboardShouldPersistTaps="handled" style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 8, paddingBottom: 4 }}>
           {display}
           {keypad}
         </ScrollView> : <>

@@ -26,7 +26,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="com.example.calc"/>
+        <data android:scheme="com.laertkarap.calc"/>
         <data android:scheme="com.googleusercontent.apps.186668101668-d2preo1to754tg8edidaod4v1lfp8gvu"/>
         <data android:scheme="exp+calc"/>
       </intent-filter>

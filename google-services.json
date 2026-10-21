@@ -41,6 +41,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:251291907207:android:735bc8b254eb6449def422",
+        "android_client_info": {
+          "package_name": "com.laertkarap.calc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "251291907207-majdpf3u7mk9tgp8tjqrd4aeola8580k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.laertkarap.calc",
+            "certificate_hash": "cb356869e41064c9b76271953c25e18ac21a5f2e"
+          }
+        },
+        {
+          "client_id": "251291907207-0f1m51dtkjlob3noksfejcn3fm3h15ih.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZvuP1mu6fwYPOCzLSlVgGb0_eDAZi314"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "251291907207-0f1m51dtkjlob3noksfejcn3fm3h15ih.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

@@ -1,4 +1,4 @@
-package com.example.calc
+package com.laertkarap.calc
 
 import android.app.Application
 import android.content.res.Configuration

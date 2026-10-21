@@ -27,7 +27,7 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
 EXPO_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
 ```
 
-In Firebase Authentication, enable Email/Password and Google providers. Add an Android app with package name `com.example.calc` in the Firebase project. Register the SHA-1 certificate of the installed APK in that Android app's settings. Set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` to a **Web application** OAuth client ID from the same Google Cloud/Firebase project.
+In Firebase Authentication, enable Email/Password and Google providers. The Android app `com.laertkarap.calc` is registered in Firebase project `calc-7271f`; `google-services.json` is generated for that project and includes both the legacy app and the new app. The current local debug SHA-1/SHA-256 fingerprints are registered for the new app. Add the upload certificate fingerprint after creating the private upload keystore, and add the Play App Signing fingerprint after the first Play upload. `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` is the matching **Web application** OAuth client ID from this Firebase project.
 
 Web Google sign-in uses Firebase `signInWithPopup`, so `http://localhost:8081` is not an OAuth redirect URI for this app. In Firebase Authentication, ensure `localhost` is listed under Authorized domains. Android uses the native Google Sign-In SDK and exchanges its ID token for a Firebase credential; account sign-in does not use the Drive OAuth redirect.
 
@@ -53,7 +53,7 @@ The local debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Its 
 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
 ```
 
-Register this fingerprint for `com.example.calc` in Firebase project `calc-7271f`. A `DEVELOPER_ERROR` / code 10 means the native app and Google OAuth configuration do not match. Verify the package, actual APK certificate, and Web OAuth client ID together.
+Register this fingerprint for `com.laertkarap.calc` in Firebase project `calc-7271f`. A `DEVELOPER_ERROR` / code 10 means the native app and Google OAuth configuration do not match. Verify the package, actual APK certificate, and Web OAuth client ID together. Add the Play App Signing certificate fingerprint from Play Console after enabling Play App Signing.
 
 For a cloud build, log in to EAS, link/configure the project, and run `eas build --profile development --platform android`; `eas.json` includes that profile. Configure the required `EXPO_PUBLIC_*` variables for the build environment. Verify the resulting APK's certificate because EAS signing can differ from local signing.
 
@@ -90,7 +90,7 @@ Output: `android/app/build/outputs/apk/release/app-release.apk`. Install this AP
 
 The local release currently uses the existing development signing key, allowing it to update the development app without clearing saved data. This is a standalone release for personal installation, not a Play Store signing setup. Keep the same signing key for future updates.
 
-To update an existing local installation, open the newer APK on the phone and choose **Update**. Do not uninstall the previous app or clear its storage: the update reuses its saved calculations. Version 1.0.1 uses Android version code 2 and the same `com.example.calc` package and signing key. For later releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict, obtain a build signed with the original installation's key instead of uninstalling the app.
+The Play app now uses `com.laertkarap.calc`, so Android treats it as a separate app from existing `com.example.calc` installs. Keep the old app installed until its guest records are exported or synced and verified in the new install. For future releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict for a same-package development build, obtain a build signed with the original installation's key instead of uninstalling the app.
 
 For an EAS cloud APK build, configure/link the project and run `eas build --profile standalone --platform android`. The `standalone` profile disables the development client and builds the release variant. EAS signing credentials may differ from the local key.
 

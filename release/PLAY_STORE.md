@@ -6,19 +6,19 @@ Prepared 2026-09-27. This is a preparation pack, not approval to publish.
 
 - App name: **Calc**
 - Support email: **laertkarap@gmail.com**
-- Developer account: not created yet
-- Current code version: 1.0.13 (16)
-- Current Android application ID: `com.example.calc`
+- Developer account: personal account access confirmed; account creation date not yet confirmed
+- Current code version: 1.1.9 (31), matching the version observed on the connected phone
+- Permanent Android application ID selected: `com.laertkarap.calc` (updated locally; Firebase registration and matching config are pending)
 - Android target: API 36; minimum: API 24
 
 ## Before the first upload
 
-1. Create a [Google Play Console account](https://play.google.com/console/signup). Google currently charges a [one-time US$25 registration fee](https://support.google.com/googleplay/android-developer/answer/6112435). Complete identity and device verification when requested. Choose the account type that reflects your real status.
+1. Complete any remaining Play Console identity and device verification. The account is personal; confirm its creation date. If it was created after November 13, 2023, Google requires a closed test with 12 opted-in testers for 14 continuous days before production access.
 2. Choose the public developer name, target countries, audience and free/paid distribution. These are still undecided.
-3. Confirm the permanent application ID. `com.example.calc` is a development-style identifier; a unique identifier associated with your developer identity is preferable before the first upload. Changing it requires matching native code/configuration and Firebase/OAuth registration. Existing locally saved records will not automatically move into an app with a different ID.
+3. The permanent application ID is `com.laertkarap.calc`. It is updated in Expo, Android and Play billing verification code. Firebase Android app registration and matching `google-services.json` are complete; the existing Web OAuth client still matches. The current local debug certificate is registered for local testing. Add the upload certificate fingerprint after creating the private upload keystore, then add the Play App Signing certificate after the first Play upload. The package change creates a separate Android app: existing installs and local records under `com.example.calc` will not be upgraded or copied automatically. Account-synced records can be restored by signing into the same Firebase account; guest/local-only records need to be exported/imported from the old app before switching.
 4. Create and securely back up a private upload keystore. Do not use `android/app/debug.keystore` for Play. Enable Play App Signing. Keep the upload key, its passwords and backup outside source control.
 5. Verify the deployed rules and public deletion-request page, then test **Account → Delete account** using a designated test account. The flow is implemented; production acceptance is separate. See `ACCOUNT_DELETION_PLAN.md`. Recoverable row deletion remains separate from account deletion. [Google's account-deletion requirement](https://support.google.com/googleplay/android-developer/answer/13327111).
-6. Finalize and host the privacy policy at a public URL, then link it inside the app and in Play Console. The separate deletion-request page is live at https://calc-7271f-account.web.app/delete-account; the privacy policy remains a draft.
+6. The privacy policy is published at https://calc-7271f-account.web.app/privacy and the deletion-request page at https://calc-7271f-account.web.app/delete-account. Add the privacy policy URL to the Play listing and verify both pages from the account used for Play Console.
 7. Verify deployed Firestore security rules with two accounts. The local repository does not establish which rules are live. Reads, updates and deletes must check ownership; updates must not change `userId` to another account.
 8. Review `DATA_SAFETY.md`, including Firebase and Google Sign-In SDK behavior. Complete the Data safety, ads, app access, content rating, target audience and financial-features forms from the final app's actual behavior.
 9. Add the Play **app signing certificate** SHA-1/SHA-256 to the correct Firebase Android application. The upload certificate alone does not configure Google sign-in for Play-installed builds. Verify package, OAuth web client and Firebase project together.
@@ -75,8 +75,8 @@ For a new personal account, Google currently requires at least **12 opted-in tes
 ## Still needed from the owner
 
 - Public developer name and final application ID decision
-- Developer account registration and verification
-- Hosting/domain for policy and deletion pages (a custom domain is optional)
+- Confirmation of the personal developer account creation date and any outstanding verification
+- Play listing and Data safety declarations
 - Audience, countries and pricing decisions
 - Private upload signing setup and backup
 

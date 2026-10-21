@@ -72,7 +72,7 @@ test('refund revokes matching access but an older refunded purchase cannot revok
   const h = harness(); h.addPurchase('old'); h.addPurchase('new');
   await h.getProBillingAccount({ auth: { uid: 'alice' } });
   await h.verify('old'); await h.verify('new');
-  const notification = token => ({ data: { message: { json: { packageName: 'com.example.calc', voidedPurchaseNotification: { purchaseToken: token } } } } });
+  const notification = token => ({ data: { message: { json: { packageName: 'com.laertkarap.calc', voidedPurchaseNotification: { purchaseToken: token } } } } });
   await h.playBillingNotification(notification('old'));
   assert.equal(h.records.get('proEntitlements/alice').active, true);
   await h.playBillingNotification(notification('new'));
@@ -86,7 +86,7 @@ test('a completed pending purchase is granted by the server notification after t
   const h = harness();
   await h.getProBillingAccount({ auth: { uid: 'alice' } });
   h.addPurchase('later');
-  await h.playBillingNotification({ data: { message: { json: { packageName: 'com.example.calc', oneTimeProductNotification: { purchaseToken: 'later' } } } } });
+  await h.playBillingNotification({ data: { message: { json: { packageName: 'com.laertkarap.calc', oneTimeProductNotification: { purchaseToken: 'later' } } } } });
   assert.equal(h.records.get('proEntitlements/alice').active, true);
   assert.deepEqual(h.acknowledgements, ['later']);
 });

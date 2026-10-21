@@ -1,6 +1,6 @@
 const { createHash } = require('node:crypto');
 const PRODUCT_ID = 'calc_pro_lifetime';
-const PACKAGE_NAME = 'com.example.calc';
+const PACKAGE_NAME = 'com.laertkarap.calc';
 const hash = value => createHash('sha256').update(value).digest('hex');
 const accountId = uid => hash(`calc-pro:${uid}`);
 

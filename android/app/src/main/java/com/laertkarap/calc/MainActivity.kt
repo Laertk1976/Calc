@@ -1,4 +1,4 @@
-package com.example.calc
+package com.laertkarap.calc
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,4 +1,4 @@
-package com.example.calc
+package com.laertkarap.calc
 
 import android.media.AudioAttributes
 import android.media.SoundPool
