@@ -1,30 +1,59 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+/* Old signed-in entitlement sync retained for future use:
 import { onIdTokenChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../authClient';
-import { cachedProAccess, localDay } from '../proAccess';
+*/
+import { isTrialActive, localDay, trialDaysRemaining } from '../proAccess';
 
 const ProContext = createContext(null);
 export const usePro = () => useContext(ProContext);
 
 export default function ProProvider({ children }) {
-  const [access, setAccess] = useState({ uid: null, active: false, loading: true });
+  const [paidAccess, setPaidAccess] = useState({ active: false, checkedAt: 0, expiresAt: 0 });
   const [today, setToday] = useState(() => localDay(new Date()));
+  const [trialStartedAt, setTrialStartedAt] = useState(null);
+  const [trialReady, setTrialReady] = useState(false);
+  const [trialNow, setTrialNow] = useState(() => Date.now());
   const [paywall, setPaywall] = useState(false);
-  const generation = useRef(0);
-  const uid = auth?.currentUser?.uid || null;
-  const hasPro = !!uid && access.uid === uid && access.active;
+  const inTrial = trialReady && isTrialActive(trialStartedAt, trialNow);
+  const hasPro = inTrial || (paidAccess.active && paidAccess.expiresAt > trialNow);
+  const setPurchasedPro = useCallback(async (active, verified = false) => {
+    if (!verified) return;
+    const checkedAt = Date.now();
+    const next = { active: !!active, checkedAt, expiresAt: checkedAt + 7 * 24 * 60 * 60 * 1000 };
+    setPaidAccess(next);
+    try { await AsyncStorage.setItem('calc.pro.purchase.v1', JSON.stringify(next)); } catch { /* Keep the in-memory verification for this session. */ }
+  }, []);
   useEffect(() => {
+    let active = true;
+    const key = 'calc.pro.trial.start.v1';
+    void AsyncStorage.getItem(key).then(async value => {
+      let startedAt = Number(value);
+      if (!Number.isFinite(startedAt) || startedAt <= 0) {
+        startedAt = Date.now();
+        await AsyncStorage.setItem(key, String(startedAt));
+      }
+      if (active) { setTrialStartedAt(startedAt); setTrialReady(true); }
+    }).catch(() => { if (active) setTrialReady(true); });
+    void AsyncStorage.getItem('calc.pro.purchase.v1').then(value => {
+      const cached = JSON.parse(value || 'null');
+      if (active && cached?.active === true && Number.isFinite(cached.checkedAt) && cached.checkedAt > 0 && cached.checkedAt <= Date.now()) {
+        setPaidAccess({ active: true, checkedAt: cached.checkedAt, expiresAt: cached.checkedAt + 7 * 24 * 60 * 60 * 1000 });
+      }
+    }).catch(() => {});
     const tick = () => {
       setToday(localDay(new Date()));
-      setAccess(current => current.active && current.expiresAt <= Date.now() ? { ...current, active: false } : current);
+      setTrialNow(Date.now());
+      setPaidAccess(current => current.active && current.expiresAt <= Date.now() ? { ...current, active: false } : current);
     };
-    const timer = setInterval(tick, 1000);
+    const timer = setInterval(tick, 60000);
     const listener = AppState.addEventListener('change', state => { if (state === 'active') tick(); });
-    return () => { clearInterval(timer); listener.remove(); };
+    return () => { active = false; clearInterval(timer); listener.remove(); };
   }, []);
+  /* Old account-bound purchase entitlement listener retained for future use:
   useEffect(() => {
     if (!auth) { setAccess({ uid: null, active: false, loading: false }); return; }
     let stop = () => {};
@@ -56,13 +85,15 @@ export default function ProProvider({ children }) {
         const result = await user.getIdTokenResult();
         if (generation.current !== run) return;
         if (result.claims.calcOwner === true) { authoritative = true; publish(true, true); return; }
-      } catch { /* Retain recently verified access while offline. */ }
+      } catch { // Retain recently verified access while offline.
+      }
       if (generation.current !== run) return;
       stop = onSnapshot(doc(db, 'proEntitlements', account), snapshot => {
         if (snapshot.metadata.fromCache) return;
         authoritative = true;
         publish(snapshot.data()?.active === true, true);
-      }, () => { /* Cached access expires on the next refresh. */ });
+      }, () => { // Cached access expires on the next refresh.
+      });
     });
     const refresh = AppState.addEventListener('change', state => {
       if (state === 'active') void auth.currentUser?.getIdToken(true).catch(() => {});
@@ -70,10 +101,11 @@ export default function ProProvider({ children }) {
     void auth.currentUser?.getIdToken(true).catch(() => {});
     return () => { generation.current++; unsubscribe(); stop(); refresh.remove(); };
   }, []);
+  */
   const requirePro = () => {
-    if (hasPro) return true;
+    if (!trialReady || hasPro) return true;
     setPaywall(true);
     return false;
   };
-  return <ProContext.Provider value={{ hasPro, loading: access.loading, today, paywall, setPaywall, requirePro }}>{children}</ProContext.Provider>;
+  return <ProContext.Provider value={{ hasPro, inTrial, trialDaysLeft: trialDaysRemaining(trialStartedAt, trialNow), loading: !trialReady, today, paywall, setPaywall, setPurchasedPro, requirePro }}>{children}</ProContext.Provider>;
 }

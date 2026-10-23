@@ -1,4 +1,14 @@
 export const PRO_PRODUCT_ID = 'calc_pro_lifetime';
+export const TRIAL_DURATION_MS = 15 * 24 * 60 * 60 * 1000;
+
+export function isTrialActive(startedAt, now = Date.now()) {
+  return Number.isFinite(startedAt) && startedAt > 0 && now >= startedAt && now < startedAt + TRIAL_DURATION_MS;
+}
+
+export function trialDaysRemaining(startedAt, now = Date.now()) {
+  if (!isTrialActive(startedAt, now)) return 0;
+  return Math.ceil((startedAt + TRIAL_DURATION_MS - now) / (24 * 60 * 60 * 1000));
+}
 
 export function localDay(value) {
   const date = new Date(value);

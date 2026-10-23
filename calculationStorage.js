@@ -1,9 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+/* Cloud sync retained for future reuse; disabled for this local-only build.
 import { collection, doc, getDocsFromServer, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { db } from './authClient';
 import { createOfflineCalculationStore, mergeRemoteCalculation } from './offlineCalculationStore';
+*/
+import { createOfflineCalculationStore } from './offlineCalculationStore';
 
-export const calculationStore = createOfflineCalculationStore({
+export const calculationStore = createOfflineCalculationStore({ storage: AsyncStorage, localOnly: true });
+/* Server-backed store configuration retained for future reuse:
+export const syncedCalculationStore = createOfflineCalculationStore({
   storage: AsyncStorage,
   remote: {
     async list(userId) {
@@ -26,10 +31,13 @@ export const calculationStore = createOfflineCalculationStore({
     },
   },
 });
+*/
 
 export const getSavedCalculations = (userId = null) => calculationStore.getRows(userId);
-export function syncCalculations(userId, options) {
-  return calculationStore.sync(userId, options).catch(() => {});
+// Server sync is intentionally disabled; keep the function for API compatibility.
+export function syncCalculations(userId, options) { // eslint-disable-line no-unused-vars
+  return Promise.resolve(null);
+  /* return calculationStore.sync(userId, options).catch(() => {}); */
 }
 export async function updateSavedCalculations(change, userId = null) {
   const rows = await calculationStore.change(change, userId);

@@ -10,6 +10,9 @@ if (-not [IO.Path]::IsPathRooted($env:CALC_UPLOAD_STORE_FILE) -or -not (Test-Pat
     throw 'CALC_UPLOAD_STORE_FILE must be an absolute path to an existing keystore.'
 }
 $env:NODE_ENV = 'production'
+if (-not $env:GRADLE_USER_HOME) {
+    $env:GRADLE_USER_HOME = Join-Path $projectDirectory '.g'
+}
 Push-Location (Join-Path $projectDirectory 'android')
 try {
     & .\gradlew.bat app:bundleRelease -PplayStoreRelease=true --console=plain --no-daemon

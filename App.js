@@ -4,10 +4,12 @@ import './i18n';
 import { useTranslation } from 'react-i18next';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Alert, AppState } from 'react-native';
+import { Alert } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { auth } from './authClient';
-import { calculationStore, syncCalculations, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
+import { calculationStore, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
+// Server synchronization remains available for future reuse:
+// import { syncCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
 import { applyPercentage, evaluateExpression, pretty } from './calculatorUtils';
 import AuthModal from './components/AuthModal';
@@ -16,8 +18,12 @@ import CalculatorView from './components/CalculatorView';
 import ProProvider, { usePro } from './components/ProProvider';
 import ProModal from './components/ProModal';
 import { accessibleRecords } from './proAccess';
+import { filterCalculationsForDateRange, shareTableCsv } from './tableCsvExport';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { createLocalCalculationHistory } from './localCalculationHistory';
+import { parseTableCsv } from './tableCsvExport';
 
 const localHistory = createLocalCalculationHistory(AsyncStorage);
 
@@ -36,6 +42,7 @@ function AppContent() {
   const [savedCalculations, setSavedCalculations] = useState([]);
   const [listVisible, setListVisible] = useState(false);
   const [tableVisible, setTableVisible] = useState(false);
+  const [tableAction, setTableAction] = useState(null);
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
   const [saveType, setSaveType] = useState('Add');
   const [saveTitle, setSaveTitle] = useState('');
@@ -62,28 +69,26 @@ function AppContent() {
 
   useEffect(() => auth ? onAuthStateChanged(auth, setUser) : undefined, []);
   useEffect(() => {
-    const userId = user?.uid || null;
     let active = true;
+    const userId = user?.uid || null;
     setSavedCalculations([]);
-    setSyncStatus({ phase: userId ? 'checking' : 'local', pending: 0 });
-    const unsubscribe = calculationStore.subscribe(userId, ({ rows, status }) => {
-      if (active) { setSavedCalculations(rows); setSyncStatus(status); }
+    setSyncStatus({ phase: 'local', pending: 0 });
+    // Cloud transfer is disabled; retain each existing local storage namespace.
+    const unsubscribe = calculationStore.subscribe(userId, ({ rows }) => {
+      if (active) { setSavedCalculations(rows); setSyncStatus({ phase: 'local', pending: 0 }); }
     });
-    const retry = () => { if (active) void syncCalculations(userId, { automatic: true }); };
-    calculationStore.getSnapshot(userId).then(() => { if (active) retry(); }).catch(() => {
+    calculationStore.getSnapshot(userId).catch(() => {
       if (active) setSyncStatus({ phase: 'error', error: 'Saved device data could not be read.', pending: 0 });
     });
-    // This checks the persisted schedule locally; cloud access is limited to every 8 hours.
+    return () => { active = false; unsubscribe(); };
+    /* Server sync loop retained for future reuse:
+    const userId = user?.uid || null;
+    const retry = () => { if (active) void syncCalculations(userId, { automatic: true }); };
     const timer = userId ? setInterval(retry, 60000) : null;
     const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') retry(); });
     globalThis.addEventListener?.('online', retry);
-    return () => {
-      active = false;
-      unsubscribe();
-      clearInterval(timer);
-      subscription.remove();
-      globalThis.removeEventListener?.('online', retry);
-    };
+    return () => { clearInterval(timer); subscription.remove(); globalThis.removeEventListener?.('online', retry); };
+    */
   }, [user?.uid]);
 
   const handleUpdateCalculations = async (change) => {
@@ -121,7 +126,45 @@ function AppContent() {
     });
   };
 
+  const openTableAction = (action) => {
+    if (!requirePro()) return;
+    setListVisible(false);
+    setTableAction(action);
+    setTableVisible(true);
+  };
+
+  const exportCsvForRange = async ({ fromDate, toDate }) => {
+    if (!requirePro()) return;
+    const rows = filterCalculationsForDateRange(savedCalculations, fromDate, toDate);
+    await shareTableCsv(rows, fromDate, toDate, t);
+  };
+
+  const importCsvFile = async () => {
+    if (!requirePro()) return;
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({ type: ['text/csv', 'text/comma-separated-values', 'public.comma-separated-values-text'], copyToCacheDirectory: true });
+      if (picked.canceled || !picked.assets?.[0]?.uri) return;
+      const asset = picked.assets[0];
+      const content = asset.file?.text ? await asset.file.text() : await FileSystem.readAsStringAsync(asset.uri);
+      const imported = parseTableCsv(content, t, i18n);
+      const existing = await getSavedCalculations(user?.uid);
+      const knownIds = new Set(existing.map(row => row.id));
+      let added = 0;
+      for (const row of imported) {
+        if (knownIds.has(row.id)) continue;
+        await updateSavedCalculations({ type: 'add', row }, user?.uid);
+        knownIds.add(row.id);
+        added++;
+      }
+      setSavedCalculations(await getSavedCalculations(user?.uid));
+      Alert.alert(t('CSV import complete'), t('Imported {{count}} calculations.', { count: added }));
+    } catch (error) {
+      Alert.alert(t('CSV import failed'), error?.message || t('Please try again.'));
+    }
+  };
+
   const openSaveDialog = (type) => {
+    if (!requirePro()) return;
     setSaveType(type);
     setSaveTitle('');
     getSavedCalculations(user?.uid).then(setSavedCalculations);
@@ -129,6 +172,7 @@ function AppContent() {
   };
 
   const confirmSave = async (titleOverride = saveTitle) => {
+    if (!requirePro()) return;
     if (syncStatus.deletionPending) { setSaveDialogVisible(false); setAccountVisible(true); return; }
     const trimmedTitle = titleOverride.trim();
     if (!trimmedTitle) {
@@ -330,11 +374,13 @@ function AppContent() {
           savedCalculations={accessibleRecords(savedCalculations, hasPro, today)}
           listVisible={listVisible}
           tableVisible={tableVisible && hasPro}
+          tableAction={tableAction}
+          onTableActionHandled={() => setTableAction(null)}
           saveDialogVisible={saveDialogVisible}
           saveTitle={saveTitle}
           user={user}
           syncStatus={syncStatus}
-          onRetrySync={() => syncCalculations(user?.uid)}
+          onRetrySync={undefined}
           onKeyPress={onPress}
           onSaveType={openSaveDialog}
           onList={showSavedCalculations}
@@ -344,6 +390,9 @@ function AppContent() {
           onTitleChange={setSaveTitle}
           onConfirmSave={confirmSave}
           onOpenTable={showCalculatorTable}
+          onExportCsv={exportCsvForRange}
+          onImportCsv={importCsvFile}
+          onOpenCalendar={undefined}
           onUpdateCalculations={handleUpdateCalculations}
           onOpenAuth={() => user ? setAccountVisible(true) : setAuthVisible(true)}
           onSignOut={() => auth && signOut(auth)}

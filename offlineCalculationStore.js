@@ -31,7 +31,7 @@ export function mergeRemoteCalculation(current, operation) {
   return applyHistoryFloor(merged, [current.historyPrunedThrough || '', operation.after.historyPrunedThrough || ''].sort().at(-1));
 }
 
-export function createOfflineCalculationStore({ storage, remote, now = () => new Date().toISOString() }) {
+export function createOfflineCalculationStore({ storage, remote, localOnly = false, now = () => new Date().toISOString() }) {
   let localWrites = Promise.resolve();
   const syncs = new Map();
   const listeners = new Map();
@@ -80,7 +80,7 @@ export function createOfflineCalculationStore({ storage, remote, now = () => new
         ...operation, before: applyHistoryFloor(operation.before, floors.get(operation.rowId)),
         after: applyHistoryFloor(operation.after, floors.get(operation.rowId)),
       } : operation);
-      if (userId) for (const row of changed) queue.push({
+      if (userId && !localOnly) for (const row of changed) queue.push({
         id: operationId(), rowId: row.id, before: row, after: row,
       });
       state = { ...state, rows, queue };

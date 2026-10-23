@@ -17,6 +17,7 @@ import SaveCalculationModal from './SaveCalculationModal';
 import UtilityButtons from './UtilityButtons';
 import DebtListModal from './DebtListModal';
 import LocalCalculationHistory from './LocalCalculationHistory';
+import { usePro } from './ProProvider';
 
 const calculationSymbolStyle = { color: '#22c55e' };
 const colorCalculationSymbols = value => String(value).split(/([=+\-×÷−*/%])/g).map((part, index) => (
@@ -32,6 +33,8 @@ export default function CalculatorView({
   savedCalculations,
   listVisible,
   tableVisible,
+  tableAction,
+  onTableActionHandled,
   saveDialogVisible,
   saveTitle,
   user,
@@ -46,11 +49,15 @@ export default function CalculatorView({
   onTitleChange,
   onConfirmSave,
   onOpenTable,
+  onExportCsv,
+  onImportCsv,
+  onOpenCalendar,
   onUpdateCalculations,
   onOpenAuth,
   onSignOut,
 }) {
   const { t, i18n } = useTranslation();
+  const { hasPro, requirePro } = usePro();
   const [editing, setEditing] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
   const drawerVisible = listVisible || historyVisible;
@@ -215,13 +222,13 @@ export default function CalculatorView({
               </View>
             ))}
           </View>
-          <UtilityButtons desktop={desktop} compactKeyHeight={compact ? workspaceLayout.keyHeight : undefined} maxKeypadHeight={maxKeypadHeight} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => desktop ? setDesktopTab('debts') : setDebtsVisible(true)} onInvoices={() => desktop ? setDesktopTab('invoices') : setInvoicesVisible(true)} />
+          <UtilityButtons desktop={desktop} compactKeyHeight={compact ? workspaceLayout.keyHeight : undefined} maxKeypadHeight={maxKeypadHeight} onSaveType={onSaveType} onList={desktop ? () => setDesktopTab('list') : onList} onButtonPress={playKeyFeedback} onDebts={() => { if (!requirePro()) return; desktop ? setDesktopTab('debts') : setDebtsVisible(true); }} onInvoices={() => { if (!requirePro()) return; desktop ? setDesktopTab('invoices') : setInvoicesVisible(true); }} />
         </View>);
   if (desktop) return <>
     <StatusBar style="light" hidden={compact && Platform.OS !== 'web'} />
     <DesktopWorkspace layout={workspaceLayout} onCalculatorLayout={({ nativeEvent }) => setWorkspaceHeight(nativeEvent.layout.height)} tab={desktopTab} onTabChange={setDesktopTab} display={displayPanel} keypad={keypadPanel}
       calculations={savedCalculations} onUpdateCalculations={onUpdateCalculations}
-      user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} tableAction={tableAction} onTableActionHandled={onTableActionHandled} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
   </>;
 
@@ -231,7 +238,7 @@ export default function CalculatorView({
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!drawerVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: drawerVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')} style={{ paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-            <SettingsDrawer user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+            <SettingsDrawer user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} syncStatus={syncStatus} onRetrySync={onRetrySync} />
           </View>
           <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { alignSelf: 'flex-start', marginTop: 4, marginBottom: 0 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
             <Text style={styles.title}>CALC</Text>
@@ -251,11 +258,13 @@ export default function CalculatorView({
           onRetrySync={onRetrySync}
           onClose={onCloseTable}
           onUpdateCalculations={onUpdateCalculations}
+          requestedAction={tableAction}
+          onRequestedActionHandled={onTableActionHandled}
         />
       </ScrollView>
       <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
-      {invoicesVisible && <DebtListModal amountField="fact" calculations={savedCalculations} onClose={() => setInvoicesVisible(false)} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
-      {debtsVisible && <DebtListModal calculations={savedCalculations} onClose={() => setDebtsVisible(false)} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+      {hasPro && invoicesVisible && <DebtListModal amountField="fact" calculations={savedCalculations} onClose={() => setInvoicesVisible(false)} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+      {hasPro && debtsVisible && <DebtListModal calculations={savedCalculations} onClose={() => setDebtsVisible(false)} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
     </SafeAreaView>
   );
 }

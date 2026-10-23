@@ -11,16 +11,16 @@ import SafeAreaView from './CalculatorSafeArea';
 
 const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
 
-export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, syncStatus, onRetrySync }) {
+export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, onExportCsv, onImportCsv, onOpenCalendar, tableAction, onTableActionHandled, syncStatus, onRetrySync }) {
   const { compact = false, calculatorWidth = 380 } = layout;
   const { hasPro, requirePro } = usePro();
-  useEffect(() => { if (!hasPro && tab === 'table') onTabChange('list'); }, [hasPro, tab]);
+  useEffect(() => { if (!hasPro && ['table', 'debts', 'invoices'].includes(tab)) onTabChange('list'); }, [hasPro, tab]);
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [visited, setVisited] = useState({ list: true });
   useEffect(() => { setVisited(current => current[tab] ? current : { ...current, [tab]: true }); }, [tab]);
   const selectTab = next => {
-    if (next === 'table' && !requirePro()) return;
+    if (['table', 'debts', 'invoices'].includes(next) && !requirePro()) return;
     setVisited(current => ({ ...current, [next]: true }));
     onTabChange(next);
   };
@@ -30,7 +30,7 @@ export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab,
     <View style={[s.toolbar, compact && { minHeight: 24, paddingHorizontal: 8, gap: 4 }]}>
       <Text style={[s.brand, compact && { fontSize: 14, letterSpacing: 3 }]}>CALC</Text>
       <View style={s.toolbarSpacer} />
-      <SettingsDrawer compact={compact} user={user} onOpenAuth={onOpenAuth} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      <SettingsDrawer compact={compact} user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     </View>
     <View style={[s.workspace, compact && { gap: 8, padding: 8 }]}>
       <View testID="desktop-records" style={s.records}>
@@ -48,9 +48,9 @@ export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab,
         </View>
         {tabs.filter(([id]) => visited[id] || id === tab).map(([id]) => <View key={id} testID={'desktop-panel-' + id} style={[s.panel, tab !== id && { display: 'none' }]}>
           {id === 'list' && <CalculationListModal desktop={!compact} inline showClose={false} visible calculations={calculations.filter(row => !row.deletedAt)} />}
-          {id === 'table' && hasPro && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} />}
-          {id === 'debts' && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
-          {id === 'invoices' && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+          {id === 'table' && hasPro && <CalculationTableModal inline visible calculations={calculations} onUpdateCalculations={onUpdateCalculations} onClose={() => selectTab('list')} requestedAction={tableAction} onRequestedActionHandled={onTableActionHandled} />}
+          {id === 'debts' && hasPro && <DebtListModal inline calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
+          {id === 'invoices' && hasPro && <DebtListModal inline amountField="fact" calculations={calculations} onUpdate={onUpdateCalculations} syncStatus={syncStatus} onRetrySync={onRetrySync} />}
         </View>)}
       </View>
       <View testID="desktop-calculator" onLayout={onCalculatorLayout} style={[s.calculator, { width: calculatorWidth }, fullWidth && { display: 'none' }]}>

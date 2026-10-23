@@ -10,6 +10,7 @@ import DateRangeCalendar from './DateRangeCalendar';
 import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -436,6 +437,8 @@ export default function CalculationTableModal({
   onClose,
   onUpdateCalculations,
   inline = false,
+  requestedAction = null,
+  onRequestedActionHandled,
 }) {
   const { t, i18n } = useTranslation();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -752,19 +755,34 @@ export default function CalculationTableModal({
   const handleSaveCsv = async () => {
     const csv = buildTableCsv(filteredRows);
     const fileName = `calculator-table-${new Date().toISOString().slice(0, 10)}.csv`;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof File !== 'undefined' && navigator.share) {
+      const file = new File([`\ufeff${csv}`], fileName, { type: 'text/csv;charset=utf-8' });
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: fileName }); return; }
+        catch (error) { if (error?.name === 'AbortError') return; }
+      }
+    }
     if (downloadCsv(csv, fileName)) {
       Alert.alert(t('CSV download started'), t('CSV download has started.'));
       return;
     }
 
     try {
-      const dataUri = `data:text/csv;charset=utf-8,${encodeURIComponent(`\ufeff${csv}`)}`;
-      await Sharing.shareAsync(dataUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      const uri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(uri, `\ufeff${csv}`);
+      await Sharing.shareAsync(uri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
       Alert.alert(t('CSV ready'), t('CSV is ready to save or share.'));
     } catch (error) {
       Alert.alert(t('CSV export failed'), error?.message || t('Please try again.'));
     }
   };
+
+  useEffect(() => {
+    if (!visible || !requestedAction) return;
+    if (requestedAction === 'csv') void handleSaveCsv();
+    if (requestedAction === 'calendar') setDateDropdownVisible(true);
+    onRequestedActionHandled?.();
+  }, [visible, requestedAction]);
 
   const handleDriveUpload = async (format) => {
     if (driveUploadBusy) return;

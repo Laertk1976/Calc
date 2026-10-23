@@ -1,13 +1,13 @@
 # Calc: Google Play preparation
 
-Prepared 2026-09-27. This is a preparation pack, not approval to publish.
+Reviewed 2026-10-21. This is a preparation pack, not approval to publish.
 
 ## Confirmed details
 
 - App name: **Calc**
 - Support email: **laertkarap@gmail.com**
 - Developer account: personal account access confirmed; account creation date not yet confirmed
-- Current code version: 1.1.9 (31), matching the version observed on the connected phone
+- Current code version: 1.2.3 (36)
 - Permanent Android application ID selected: `com.laertkarap.calc` (updated locally; Firebase registration and matching config are pending)
 - Android target: API 36; minimum: API 24
 
@@ -25,6 +25,8 @@ Prepared 2026-09-27. This is a preparation pack, not approval to publish.
 10. Supply store images and test the Play-distributed build. See `STORE_LISTING.md`.
 
 ## Release signing and build
+
+The previous release candidate was built for package `com.laertkarap.calc`, version 1.2.2 (35). This candidate increments the version to 1.2.3 (36) so Play can distinguish it from that release. Its JAR signature must verify against the saved **Calc Upload** certificate before uploading. Confirm version code 36 is unused in Play Console.
 
 The existing sideload APKs use the development key. Gradle now accepts upload credentials through environment variables. A Play release bundle fails early when those credentials are absent; ordinary sideload APK builds still work.
 

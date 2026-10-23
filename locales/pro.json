@@ -7,6 +7,7 @@
     "Table, search and calendar": "Table, search and calendar",
     "Access records from every date": "Access records from every date",
     "Edit, pay off and delete records": "Edit, pay off and delete records",
+    "After the 15-day trial, the calculator remains free. The one-time purchase unlocks records, debt and invoice lists, table, search, calendar, and CSV import and export.": "After the 15-day trial, the calculator remains free. The one-time purchase unlocks records, debt and invoice lists, table, search, calendar, and CSV import and export.",
     "Free access includes calculations, adding records and today’s List. Older records stay saved.": "Free access includes calculations, adding records and today’s List. Older records stay saved.",
     "Free access shows today only. Pro unlocks past records, search, calendar, Table, edits, payments and deletion.": "Free access shows today only. Pro unlocks past records, search, calendar, Table, edits, payments and deletion.",
     "Sign in to buy or restore Pro": "Sign in to buy or restore Pro",
@@ -20,7 +21,11 @@
     "Use the Calc account that originally bought Pro.": "Use the Calc account that originally bought Pro.",
     "Purchases are unavailable. Please try again from the Google Play version.": "Purchases are unavailable. Please try again from the Google Play version.",
     "Pro is unlocked. Thank you!": "Pro is unlocked. Thank you!",
-    "No active Pro purchase was found.": "No active Pro purchase was found."
+    "No active Pro purchase was found.": "No active Pro purchase was found.",
+    "15-day free trial": "15-day free trial",
+    "Trial active: {{days}} days remaining.": "Trial active: {{days}} days remaining.",
+    "Google Play checks your purchase. Restore it on another device with the same Play account.": "Google Play checks your purchase. Restore it on another device with the same Play account.",
+    "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.": "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account."
   },
   "hy": {
     "Unlock Pro": "Ակտիվացնել Pro",
@@ -43,7 +48,11 @@
     "Use the Calc account that originally bought Pro.": "Օգտագործեք այն Calc հաշիվը, որով գնել եք Pro-ն։",
     "Purchases are unavailable. Please try again from the Google Play version.": "Գնումներն անհասանելի են։ Կրկին փորձեք Google Play տարբերակից։",
     "Pro is unlocked. Thank you!": "Pro-ն ակտիվացված է։ Շնորհակալություն։",
-    "No active Pro purchase was found.": "Pro-ի ակտիվ գնում չի գտնվել։"
+    "No active Pro purchase was found.": "Pro-ի ակտիվ գնում չի գտնվել։",
+    "15-day free trial": "15-օրյա անվճար փորձաշրջան",
+    "Trial active: {{days}} days remaining.": "Փորձաշրջանը կավարտվի {{days}} օրից։",
+    "Google Play checks your purchase. Restore it on another device with the same Play account.": "Google Play-ը ստուգում է գնումը։ Վերականգնեք այն նույն Play հաշիվով։",
+    "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.": "Calc մուտք գործել պետք չէ։ Google Play-ը ստուգում է գնումը։ Վերականգնեք նույն Play հաշիվով։"
   },
   "ru": {
     "Unlock Pro": "Открыть Pro",
@@ -66,7 +75,11 @@
     "Use the Calc account that originally bought Pro.": "Используйте аккаунт Calc, с которого был куплен Pro.",
     "Purchases are unavailable. Please try again from the Google Play version.": "Покупки недоступны. Попробуйте снова в версии из Google Play.",
     "Pro is unlocked. Thank you!": "Pro активирован. Спасибо!",
-    "No active Pro purchase was found.": "Активная покупка Pro не найдена."
+    "No active Pro purchase was found.": "Активная покупка Pro не найдена.",
+    "15-day free trial": "15-дневный бесплатный пробный период",
+    "Trial active: {{days}} days remaining.": "Пробный период закончится через {{days}} дн.",
+    "Google Play checks your purchase. Restore it on another device with the same Play account.": "Google Play проверяет покупку. Восстановите её на другом устройстве с того же аккаунта Play.",
+    "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.": "Вход в Calc не нужен. Покупку проверяет Google Play. Восстановите её на другом устройстве с того же аккаунта Play."
   },
   "ja": {
     "Unlock Pro": "Proを有効にする",
@@ -89,7 +102,11 @@
     "Use the Calc account that originally bought Pro.": "Proを購入したCalcアカウントを使用してください。",
     "Purchases are unavailable. Please try again from the Google Play version.": "購入できません。Google Play版で再試行してください。",
     "Pro is unlocked. Thank you!": "Proが有効になりました。ありがとうございます！",
-    "No active Pro purchase was found.": "有効なProの購入が見つかりませんでした。"
+    "No active Pro purchase was found.": "有効なProの購入が見つかりませんでした。",
+    "15-day free trial": "15日間の無料トライアル",
+    "Trial active: {{days}} days remaining.": "無料期間の残りは{{days}}日です。",
+    "Google Play checks your purchase. Restore it on another device with the same Play account.": "購入はGoogle Playが確認します。同じPlayアカウントで別の端末から復元できます。",
+    "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.": "Calcへのログインは不要です。購入はGoogle Playが確認します。同じPlayアカウントで別の端末から復元できます。"
   },
   "hi": {
     "Unlock Pro": "Pro अनलॉक करें",
@@ -112,7 +129,11 @@
     "Use the Calc account that originally bought Pro.": "जिस Calc खाते से Pro खरीदा था, उसी का उपयोग करें।",
     "Purchases are unavailable. Please try again from the Google Play version.": "खरीदारी उपलब्ध नहीं है। Google Play संस्करण से फिर कोशिश करें।",
     "Pro is unlocked. Thank you!": "Pro अनलॉक हो गया है। धन्यवाद!",
-    "No active Pro purchase was found.": "Pro की कोई सक्रिय खरीदारी नहीं मिली।"
+    "No active Pro purchase was found.": "Pro की कोई सक्रिय खरीदारी नहीं मिली।",
+    "15-day free trial": "15-दिन का निःशुल्क परीक्षण",
+    "Trial active: {{days}} days remaining.": "परीक्षण के {{days}} दिन शेष हैं।",
+    "Google Play checks your purchase. Restore it on another device with the same Play account.": "Google Play आपकी खरीद की पुष्टि करता है। उसी Play खाते से दूसरे डिवाइस पर इसे पुनर्स्थापित करें।",
+    "No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.": "Calc में साइन-इन की ज़रूरत नहीं है। Google Play खरीद की पुष्टि करता है। उसी Play खाते से दूसरे डिवाइस पर पुनर्स्थापित करें।"
   },
   "ko": {
     "Unlock Pro": "Pro 이용하기",

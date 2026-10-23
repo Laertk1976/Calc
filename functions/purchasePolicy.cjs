@@ -5,7 +5,9 @@ const hash = value => createHash('sha256').update(value).digest('hex');
 const accountId = uid => hash(`calc-pro:${uid}`);
 
 function assessPurchase(purchase, uid) {
-  if (purchase.obfuscatedExternalAccountId !== accountId(uid)) return 'wrong-account';
+  // Accountless purchases are bound to the verified Play purchase token. Keep
+  // the Firebase account check for the old signed-in billing flow.
+  if (uid && purchase.obfuscatedExternalAccountId !== accountId(uid)) return 'wrong-account';
   const item = purchase.productLineItem?.find(item => item.productId === PRODUCT_ID);
   if (!item || item.productOfferDetails?.rentOfferDetails) return 'wrong-product';
   const state = purchase.purchaseStateContext?.purchaseState;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Animated, Easing, Modal, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -8,18 +8,29 @@ import { useTapSound } from './TapSoundProvider';
 import { usePro } from './ProProvider';
 import { useCustomLabels } from './CustomLabelsProvider';
 import { languages, selectLanguage } from '../i18n';
-import SyncStatus from './SyncStatus';
 import PrivacyPolicyLink from './PrivacyPolicyLink';
+import DateRangeCalendar from './DateRangeCalendar';
+import { raisedButton, pressedButton } from '../buttonAppearance';
 
-export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySync, compact = false }) {
+function todayKey() {
+  const today = new Date();
+  return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+}
+
+export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImportCsv, onOpenCalendar, syncStatus, onRetrySync, compact = false }) {
   const { t, i18n } = useTranslation();
   const { soundEnabled, toggleSound } = useTapSound();
-  const { hasPro, setPaywall } = usePro();
+  const { hasPro, inTrial, trialDaysLeft, setPaywall, requirePro } = usePro();
   const custom = useCustomLabels();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const drawerWidth = Math.min(360, width - 24);
   const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [fromDate, setFromDate] = useState(todayKey);
+  const [toDate, setToDate] = useState(todayKey);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageHeight, setLanguageHeight] = useState(0);
   const menuScroll = useRef(null);
@@ -55,10 +66,29 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
     closing.current = true;
     animate(0, () => { setOpen(false); setLanguageOpen(false); closing.current = false; action?.(); });
   };
-  const row = (icon, label, action, detail) => <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={action} style={s.row}>
+  const exportCsv = async () => {
+    if (!onExportCsv || exporting) return;
+    setExporting(true);
+    try { await onExportCsv({ fromDate, toDate }); }
+    catch (error) { Alert.alert(t('CSV export failed'), error?.message || t('Please try again.')); }
+    finally { setExporting(false); }
+  };
+  const importCsv = async () => {
+    if (!onImportCsv || importing) return;
+    setImporting(true);
+    try { await onImportCsv(); }
+    finally { setImporting(false); }
+  };
+  const row = (icon, label, action, detail) => <Pressable accessibilityRole="button" onPress={action} style={s.row}>
     <Ionicons name={icon} size={22} color="#a8caff" />
-    <View style={s.label}><Text style={s.text}>{label}</Text>{!!detail && <Text numberOfLines={2} style={s.detail}>{detail}</Text>}</View>
-    <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+    <View style={s.label}><Text style={s.text}>{label}</Text>{detail ? <Text style={s.detail}>{detail}</Text> : null}</View>
+    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+  </Pressable>;
+  const menuButton = (icon, label, action, expanded, disabled = false) => <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={expanded === undefined ? undefined : { expanded }} disabled={disabled} onPress={action} style={({ pressed }) => [s.menuButton, pressed && s.menuButtonPressed, disabled && { opacity: 0.5 }]}>
+    <View style={s.menuButtonContent}>
+      <Ionicons name={icon} size={20} color="#bfdbfe" />
+      <Text numberOfLines={1} style={s.menuButtonText}>{label}</Text>
+    </View>
   </Pressable>;
   return <>
     <Pressable testID="open-settings" accessibilityRole="button" accessibilityLabel={t('Open menu')} accessibilityState={{ expanded: open }} onPress={() => { progress.setValue(0); setOpen(true); }} style={[s.trigger, compact && { width: 24, height: 24, borderRadius: 6 }]}>
@@ -76,17 +106,29 @@ export default function SettingsDrawer({ user, onOpenAuth, syncStatus, onRetrySy
           <ScrollView ref={menuScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}
             onLayout={({ nativeEvent }) => { menuViewportHeight.current = nativeEvent.layout.height; }}
             onScroll={({ nativeEvent }) => { menuScrollOffset.current = nativeEvent.contentOffset.y; }} scrollEventThrottle={16}>
-            {row('person-circle-outline', t(user ? 'Account' : 'Sign in'), () => close(onOpenAuth), user?.email)}
-            {row('sparkles-outline', t(hasPro ? 'Pro is active' : 'Unlock Pro'), () => close(() => setPaywall(true)))}
+            {/* Account access is kept for payment verification and future reuse. */}
+            {/* {row('person-circle-outline', t(user ? 'Account' : 'Sign in'), () => close(onOpenAuth), user?.email)} */}
+            <View style={s.menuButtonRow}>
+              <View style={s.exportCalendarGroup}>
+                {menuButton('calendar-outline', t('Calendar'), () => { if (requirePro()) setCalendarOpen(value => !value); }, calendarOpen)}
+                {menuButton('download-outline', t(exporting ? 'Please wait...' : 'Export CSV'), exportCsv, undefined, exporting)}
+              </View>
+              <View style={s.importButtonSlot}>
+                {menuButton('folder-open-outline', t(importing ? 'Please wait...' : 'Import CSV'), importCsv, undefined, importing)}
+              </View>
+            </View>
+            {calendarOpen && <View style={s.calendarPanel}><DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => setCalendarOpen(false)} /></View>}
+            {row('sparkles-outline', t(hasPro ? 'Pro is active' : 'Unlock Pro'), () => close(() => setPaywall(true)), inTrial ? t('Trial active: {{days}} days remaining.', { days: trialDaysLeft }) : undefined)}
             <View style={s.row}>
               <Ionicons name="volume-medium-outline" size={22} color="#a8caff" />
               <Text style={[s.text, s.label]}>{t('Sound')}</Text>
               <Switch accessibilityLabel={t('Sound')} value={soundEnabled} onValueChange={toggleSound} trackColor={{ false: '#475569', true: '#15803d' }} thumbColor={soundEnabled ? '#86efac' : '#cbd5e1'} />
             </View>
-            <View style={s.section}>
+            {/* Server synchronization controls are retained for future reuse. */}
+            {/* <View style={s.section}>
               <Text style={s.text}>{t('Synchronization')}</Text>
               <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} showStatus />
-            </View>
+            </View> */}
             <Pressable testID="language-menu" accessibilityRole="button" accessibilityLabel={t('Language')} accessibilityState={{ expanded: languageOpen }} onPress={() => setLanguageOpen(value => !value)}
               onLayout={({ nativeEvent }) => { languageRow.current = nativeEvent.layout; }} style={s.row}>
               <Ionicons name="language-outline" size={22} color="#a8caff" />
@@ -121,11 +163,19 @@ const s = StyleSheet.create({
   drawer: { position: 'absolute', right: 0, top: 0, bottom: 0, backgroundColor: '#111827', borderLeftWidth: 1, borderColor: '#334155', paddingHorizontal: 18 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
   title: { color: '#f8fafc', fontSize: 24, fontWeight: '700' },
+  menuButtonRow: { flexDirection: 'row', gap: 8, paddingVertical: 12 },
+  exportCalendarGroup: { flex: 2, minWidth: 0, flexDirection: 'row', gap: 4, padding: 6, borderWidth: 1, borderColor: '#fff', borderRadius: 13 },
+  importButtonSlot: { flex: 1, minWidth: 0, paddingVertical: 7, paddingHorizontal: 4.5 },
+  menuButton: { ...raisedButton, flex: 1, minWidth: 0, minHeight: 58, alignItems: 'center', justifyContent: 'center', padding: 8, borderRadius: 12, backgroundColor: '#1e3a5f' },
+  menuButtonContent: { flex: 1, width: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 10, backgroundColor: '#1e3a5f', padding: 7 },
+  menuButtonPressed: pressedButton,
+  menuButtonText: { color: '#f8fafc', fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, minHeight: 62, borderBottomWidth: 1, borderColor: '#263449' },
   label: { flex: 1, minWidth: 0 },
   text: { color: '#f8fafc', fontSize: 16 },
   detail: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
   section: { paddingTop: 20, paddingBottom: 8, borderBottomWidth: 1, borderColor: '#263449', gap: 8 },
+  calendarPanel: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#1e293b', borderRadius: 12, marginBottom: 8 },
   languages: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, backgroundColor: '#1e293b', borderRadius: 12 },
   language: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, minHeight: 48, gap: 8 },
 });

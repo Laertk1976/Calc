@@ -8,8 +8,8 @@ import useProBilling from '../useProBilling';
 
 export default function ProModal({ user, onSignIn }) {
   const { t } = useTranslation();
-  const { hasPro, paywall, setPaywall } = usePro();
-  const billing = useProBilling(user, paywall);
+  const { hasPro, inTrial, trialDaysLeft, paywall, setPaywall, setPurchasedPro } = usePro();
+  const billing = useProBilling(paywall, setPurchasedPro);
   const button = (label, action, disabled = false, primary = false) => <Pressable accessibilityRole="button" disabled={disabled} onPress={action} style={[s.button, primary && s.primary, disabled && { opacity: 0.5 }]}><Text style={s.buttonText}>{label}</Text></Pressable>;
   return <Modal transparent animationType="fade" visible={paywall} onRequestClose={() => setPaywall(false)}>
     <KeyboardModalFrame style={s.backdrop}>
@@ -17,17 +17,19 @@ export default function ProModal({ user, onSignIn }) {
         <ScrollView keyboardShouldPersistTaps="handled">
           <Text accessibilityRole="header" style={s.title}>{t(hasPro ? 'Pro is active' : 'Unlock Calc Pro')}</Text>
           <Text style={s.subtitle}>{t('One-time purchase. No subscription.')}</Text>
+          <Text style={s.note}>{t('No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.')}</Text>
+          {inTrial && <Text style={s.note}>{t('Trial active: {{days}} days remaining.', { days: trialDaysLeft })}</Text>}
           <Text style={s.text}>{t('Table, search and calendar')}{'\n'}{t('Access records from every date')}{'\n'}{t('Edit, pay off and delete records')}</Text>
-          <Text style={s.note}>{t('Free access includes calculations, adding records and today’s List. Older records stay saved.')}</Text>
-          {!!user && <Text style={s.note}>{user.email}</Text>}
+          <Text style={s.note}>{t('After the 15-day trial, the calculator remains free. The one-time purchase unlocks records, debt and invoice lists, table, search, calendar, and CSV import and export.')}</Text>
+          {false && !!user && <Text style={s.note}>{user.email}</Text>}
           {!hasPro && <>
             {billing.price && <Text style={s.price}>{billing.price}</Text>}
-            {!user ? button(t('Sign in to buy or restore Pro'), onSignIn, billing.busy, true)
-              : <>
+            {/* Old signed-in button retained for later reuse: button(t('Sign in to buy or restore Pro'), onSignIn, billing.busy, true) */}
+            <>
                 {button(billing.busy ? t('Please wait...') : billing.price ? t('Buy Pro — {{price}}', { price: billing.price }) : t('Buy Pro'), billing.buy, billing.busy || !billing.available, true)}
                 {button(t('Restore purchases'), billing.restore, billing.busy)}
                 {!billing.available && button(t('Try again'), billing.retry, billing.busy)}
-              </>}
+            </>
           </>}
           {!!billing.message && !hasPro && <Text accessibilityRole="alert" style={s.note}>{t(billing.message)}</Text>}
           <PrivacyPolicyLink />

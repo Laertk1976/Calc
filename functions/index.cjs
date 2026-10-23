@@ -35,19 +35,24 @@ async function recordPurchase(uid, token, purchase, forceRevoke = false) {
   if (status === 'pending') return { active: false, pending: true };
   const tokenHash = hash(token);
   const purchaseRef = db.doc(`playPurchases/${tokenHash}`);
-  const entitlementRef = db.doc(`proEntitlements/${uid}`);
+  const entitlementRef = uid ? db.doc(`proEntitlements/${uid}`) : null;
   let active = status === 'active' && !forceRevoke;
   await db.runTransaction(async tx => {
-    const [existing, entitlement, deletion] = await Promise.all([
-      tx.get(purchaseRef), tx.get(entitlementRef), tx.get(db.doc(`accountDeletions/${uid}`)),
-    ]);
-    if (deletion.exists) throw new HttpsError('failed-precondition', 'Account deletion is pending.');
-    if (existing.exists && existing.data().uid !== uid) throw new HttpsError('permission-denied', 'Purchase already linked to another account.');
+    const existing = await tx.get(purchaseRef);
+    let entitlement = null;
+    if (uid) {
+      const [currentEntitlement, deletion] = await Promise.all([
+        tx.get(entitlementRef), tx.get(db.doc(`accountDeletions/${uid}`)),
+      ]);
+      entitlement = currentEntitlement;
+      if (deletion.exists) throw new HttpsError('failed-precondition', 'Account deletion is pending.');
+      if (existing.exists && existing.data().uid && existing.data().uid !== uid) throw new HttpsError('permission-denied', 'Purchase already linked to another account.');
+    }
     const revoked = forceRevoke || existing.data()?.revoked === true;
     if (revoked) active = false;
-    tx.set(purchaseRef, { uid, token, active, revoked, productId: PRODUCT_ID, checkedAt: FieldValue.serverTimestamp() });
+    tx.set(purchaseRef, { ...(existing.data() || {}), ...(uid ? { uid } : {}), token, active, revoked, productId: PRODUCT_ID, checkedAt: FieldValue.serverTimestamp() });
     // An old refunded token cannot revoke a later valid purchase.
-    if (active || entitlement.data()?.tokenHash === tokenHash) {
+    if (uid && (active || entitlement.data()?.tokenHash === tokenHash)) {
       tx.set(entitlementRef, { active, tokenHash, source: 'google-play', updatedAt: FieldValue.serverTimestamp() });
     }
   });
@@ -59,11 +64,12 @@ async function recordPurchase(uid, token, purchase, forceRevoke = false) {
 }
 
 exports.verifyProPurchase = onCall(options, async request => {
-  const uid = await activeUser(request);
   const token = request.data?.purchaseToken;
   if (typeof token !== 'string' || !token || token.length > 4096) throw new HttpsError('invalid-argument', 'A purchase token is required.');
   try {
-    return await recordPurchase(uid, token, await readPurchase(token));
+    // This endpoint is accountless. Google Play's verified purchase token is
+    // the ownership proof; Calc/Firebase sign-in is not required.
+    return await recordPurchase(null, token, await readPurchase(token));
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     // Do not log Google request objects: they contain purchase tokens.
@@ -77,9 +83,11 @@ exports.playBillingNotification = onMessagePublished({ ...options, topic: 'calc-
   const token = message.oneTimeProductNotification?.purchaseToken || message.voidedPurchaseNotification?.purchaseToken;
   if (!token) return;
   const purchase = await readPurchase(token);
-  if (!/^[a-f0-9]{64}$/.test(purchase.obfuscatedExternalAccountId || '')) return;
-  const binding = await db.doc(`billingAccounts/${purchase.obfuscatedExternalAccountId}`).get();
-  const uid = binding.data()?.uid;
-  if (!uid || (await db.doc(`accountDeletions/${uid}`).get()).exists) return;
+  let uid = null;
+  if (/^[a-f0-9]{64}$/.test(purchase.obfuscatedExternalAccountId || '')) {
+    const binding = await db.doc(`billingAccounts/${purchase.obfuscatedExternalAccountId}`).get();
+    uid = binding.data()?.uid || null;
+    if (uid && (await db.doc(`accountDeletions/${uid}`).get()).exists) return;
+  }
   await recordPurchase(uid, token, purchase, !!message.voidedPurchaseNotification);
 });

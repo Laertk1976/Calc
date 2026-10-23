@@ -1,13 +1,54 @@
 {
-  "en": { "Open menu": "Open menu", "Close menu": "Close menu", "Menu": "Menu", "Synchronization": "Synchronization" },
-  "hy": { "Open menu": "Բացել ընտրացանկը", "Close menu": "Փակել ընտրացանկը", "Menu": "Ընտրացանկ", "Synchronization": "Համաժամացում" },
-  "ru": { "Open menu": "Открыть меню", "Close menu": "Закрыть меню", "Menu": "Меню", "Synchronization": "Синхронизация" },
-  "ja": { "Open menu": "メニューを開く", "Close menu": "メニューを閉じる", "Menu": "メニュー", "Synchronization": "同期" },
-  "hi": { "Open menu": "मेनू खोलें", "Close menu": "मेनू बंद करें", "Menu": "मेनू", "Synchronization": "सिंक" },
+  "en": {
+    "Open menu": "Open menu",
+    "Close menu": "Close menu",
+    "Menu": "Menu",
+    "Synchronization": "Synchronization",
+    "Export CSV": "Export CSV",
+    "Import CSV": "Import CSV",
+    "CSV import complete": "CSV import complete",
+    "Imported {{count}} calculations.": "Imported {{count}} calculations.",
+    "CSV import failed": "CSV import failed",
+    "Calendar": "Calendar"
+  },
+  "hy": {
+    "Open menu": "Բացել ընտրացանկը",
+    "Close menu": "Փակել ընտրացանկը",
+    "Menu": "Ընտրացանկ",
+    "Synchronization": "Համաժամացում",
+    "Export CSV": "Արտահանել CSV",
+    "Calendar": "Օրացույց"
+  },
+  "ru": {
+    "Open menu": "Открыть меню",
+    "Close menu": "Закрыть меню",
+    "Menu": "Меню",
+    "Synchronization": "Синхронизация",
+    "Export CSV": "Экспорт CSV",
+    "Calendar": "Календарь"
+  },
+  "ja": {
+    "Open menu": "メニューを開く",
+    "Close menu": "メニューを閉じる",
+    "Menu": "メニュー",
+    "Synchronization": "同期",
+    "Export CSV": "CSVを書き出す",
+    "Calendar": "カレンダー"
+  },
+  "hi": {
+    "Open menu": "मेनू खोलें",
+    "Close menu": "मेनू बंद करें",
+    "Menu": "मेनू",
+    "Synchronization": "सिंक",
+    "Export CSV": "CSV निर्यात करें",
+    "Calendar": "कैलेंडर"
+  },
   "ko": {
     "Open menu": "메뉴 열기",
     "Close menu": "메뉴 닫기",
     "Menu": "메뉴",
-    "Synchronization": "동기화"
+    "Synchronization": "동기화",
+    "Export CSV": "CSV 내보내기",
+    "Calendar": "달력"
   }
 }
