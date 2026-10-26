@@ -12,9 +12,9 @@ Use **Undo edit** or **Undo delete** in the table for the most recent eligible c
 
 Run the history and recovery checks with `node --test calculationHistory.test.mjs`.
 
-## Account sign-in and synced calculations
+## Account sign-in and local calculations
 
-The main screen supports email/password and Google sign-in through Firebase Authentication. Calculations are stored in Cloud Firestore under the signed-in user. Drive authorization is separate and is only requested when a Drive action is pressed.
+The main screen supports email/password and Google sign-in through Firebase Authentication. Calculation records are stored locally; cloud transfer to Cloud Firestore is currently disabled. Drive authorization is separate and is only requested when a Drive action is pressed.
 
 Add these values to `.env`:
 
@@ -86,11 +86,11 @@ cd android
 .\gradlew.bat app:assembleRelease --console=plain --no-daemon
 ```
 
-Output: `android/app/build/outputs/apk/release/app-release.apk`. Install this APK and open **Calculator** directly. The release contains its JavaScript bundle and does not need Expo Go, Metro, a USB connection, or a running computer. Account sign-in, cloud sync, and Drive uploads still need internet; saved calculations remain available offline.
+Output: `android/app/build/outputs/apk/release/app-release.apk`. Install this APK and open **Calculator** directly. The release contains its JavaScript bundle and does not need Expo Go, Metro, a USB connection, or a running computer. Account sign-in and Drive uploads need internet; saved calculations remain available offline. Calculation records do not sync between devices.
 
 The local release currently uses the existing development signing key, allowing it to update the development app without clearing saved data. This is a standalone release for personal installation, not a Play Store signing setup. Keep the same signing key for future updates.
 
-The Play app now uses `com.laertkarap.calc`, so Android treats it as a separate app from existing `com.example.calc` installs. Keep the old app installed until its guest records are exported or synced and verified in the new install. For future releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict for a same-package development build, obtain a build signed with the original installation's key instead of uninstalling the app.
+The Play app now uses `com.laertkarap.calc`, so Android treats it as a separate app from existing `com.example.calc` installs. Keep the old app installed until its local records are exported and verified in the new install. For future releases, increase `versionCode` in both `app.json` and `android/app/build.gradle` and keep their version names aligned. If Android reports a signing conflict for a same-package development build, obtain a build signed with the original installation's key instead of uninstalling the app.
 
 For an EAS cloud APK build, configure/link the project and run `eas build --profile standalone --platform android`. The `standalone` profile disables the development client and builds the release variant. EAS signing credentials may differ from the local key.
 

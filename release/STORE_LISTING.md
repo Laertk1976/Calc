@@ -20,12 +20,10 @@ Features:
 - Saved records with names, notes and edit history
 - Debt and invoice lists with totals and payment details
 - Search and date filters
-- Local saving for use without an internet connection
-- Optional account sign-in for cloud sync across devices
-- Manual sync whenever you need to upload or retrieve changes
+- Local saving on this device, including offline use
 - Multiple interface languages and optional button sounds
 
-Changes save on your device immediately. Cloud sync needs an account and an internet connection. Automatic sync is scheduled every eight hours while the app can run, or when you reopen it after a sync is due. Use manual sync before switching devices.
+Changes are saved on your device. Cloud transfer and sync are currently unavailable; saved records do not automatically move to another device.
 
 Support: laertkarap@gmail.com
 
@@ -48,4 +46,4 @@ See [Google's current preview asset specifications](https://support.google.com/g
 
 ## Initial test release notes
 
-Calculate and save records, track debts and invoices, and record payments. Includes local saving, scheduled cloud sync and a manual sync button.
+Calculate and save records, track debts and invoices, and record payments. Includes local saving for offline use.

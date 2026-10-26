@@ -43,13 +43,20 @@ export async function updateSavedCalculations(change, userId = null) {
   const rows = await calculationStore.change(change, userId);
   return rows;
 }
-export async function saveCalculation(expression, display, type = 'Add', titleOverride = '', userId = null) {
+export function addSavedCalculations(rows, userId = null) {
+  return calculationStore.addMany(rows, userId);
+}
+export async function saveCalculationWithRows(expression, display, type = 'Add', titleOverride = '', userId = null) {
   const title = titleOverride.trim();
-  if (!title) return false;
+  if (!title) return null;
   const savedAt = new Date().toISOString();
-  await updateSavedCalculations({ type: 'add', row: {
+  return updateSavedCalculations({ type: 'add', row: {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: savedAt, savedAt, expression: expression || display, title, value: display, type,
   } }, userId);
+}
+export async function saveCalculation(expression, display, type = 'Add', titleOverride = '', userId = null) {
+  const rows = await saveCalculationWithRows(expression, display, type, titleOverride, userId);
+  if (!rows) return false;
   return true;
 }

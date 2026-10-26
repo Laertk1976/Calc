@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { auth } from './authClient';
-import { calculationStore, getSavedCalculations, saveCalculation, updateSavedCalculations } from './calculationStorage';
+import { addSavedCalculations, calculationStore, getSavedCalculations, saveCalculationWithRows, updateSavedCalculations } from './calculationStorage';
 // Server synchronization remains available for future reuse:
 // import { syncCalculations } from './calculationStorage';
 import { operators } from './calculatorConstants';
@@ -147,16 +147,9 @@ function AppContent() {
       const asset = picked.assets[0];
       const content = asset.file?.text ? await asset.file.text() : await FileSystem.readAsStringAsync(asset.uri);
       const imported = parseTableCsv(content, t, i18n);
-      const existing = await getSavedCalculations(user?.uid);
-      const knownIds = new Set(existing.map(row => row.id));
-      let added = 0;
-      for (const row of imported) {
-        if (knownIds.has(row.id)) continue;
-        await updateSavedCalculations({ type: 'add', row }, user?.uid);
-        knownIds.add(row.id);
-        added++;
-      }
-      setSavedCalculations(await getSavedCalculations(user?.uid));
+      if (syncStatus.deletionPending) throw new Error(t('Account deletion is pending. Open Account to finish deletion.'));
+      const { rows, added } = await addSavedCalculations(imported, user?.uid);
+      setSavedCalculations(rows);
       Alert.alert(t('CSV import complete'), t('Imported {{count}} calculations.', { count: added }));
     } catch (error) {
       Alert.alert(t('CSV import failed'), error?.message || t('Please try again.'));
@@ -181,10 +174,8 @@ function AppContent() {
     }
 
     try {
-      const saved = await saveCalculation(expression, visibleDisplay, saveType, trimmedTitle, user?.uid);
-      if (!saved) return;
-
-      const calculations = await getSavedCalculations(user?.uid);
+      const calculations = await saveCalculationWithRows(expression, visibleDisplay, saveType, trimmedTitle, user?.uid);
+      if (!calculations) return;
       setSavedCalculations(calculations);
       setSaveDialogVisible(false);
       setSaveTitle('');

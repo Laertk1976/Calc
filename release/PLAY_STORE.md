@@ -15,7 +15,7 @@ Reviewed 2026-10-21. This is a preparation pack, not approval to publish.
 
 1. Complete any remaining Play Console identity and device verification. The account is personal; confirm its creation date. If it was created after November 13, 2023, Google requires a closed test with 12 opted-in testers for 14 continuous days before production access.
 2. Choose the public developer name, target countries, audience and free/paid distribution. These are still undecided.
-3. The permanent application ID is `com.laertkarap.calc`. It is updated in Expo, Android and Play billing verification code. Firebase Android app registration and matching `google-services.json` are complete; the existing Web OAuth client still matches. The current local debug certificate is registered for local testing. Add the upload certificate fingerprint after creating the private upload keystore, then add the Play App Signing certificate after the first Play upload. The package change creates a separate Android app: existing installs and local records under `com.example.calc` will not be upgraded or copied automatically. Account-synced records can be restored by signing into the same Firebase account; guest/local-only records need to be exported/imported from the old app before switching.
+3. The permanent application ID is `com.laertkarap.calc`. It is updated in Expo, Android and Play billing verification code. Firebase Android app registration and matching `google-services.json` are complete; the existing Web OAuth client still matches. The current local debug certificate is registered for local testing. Add the upload certificate fingerprint after creating the private upload keystore, then add the Play App Signing certificate after the first Play upload. The package change creates a separate Android app: existing installs and local records under `com.example.calc` will not be upgraded or copied automatically. Export and import local records from the old app before switching; account sign-in does not restore calculation records.
 4. Create and securely back up a private upload keystore. Do not use `android/app/debug.keystore` for Play. Enable Play App Signing. Keep the upload key, its passwords and backup outside source control.
 5. Verify the deployed rules and public deletion-request page, then test **Account → Delete account** using a designated test account. The flow is implemented; production acceptance is separate. See `ACCOUNT_DELETION_PLAN.md`. Recoverable row deletion remains separate from account deletion. [Google's account-deletion requirement](https://support.google.com/googleplay/android-developer/answer/13327111).
 6. The privacy policy is published at https://calc-7271f-account.web.app/privacy and the deletion-request page at https://calc-7271f-account.web.app/delete-account. Add the privacy policy URL to the Play listing and verify both pages from the account used for Play Console.
@@ -49,7 +49,7 @@ The execution-policy option applies only to that PowerShell process; it does not
 
 Before uploading, inspect the bundle's signing certificate with JDK `keytool -printcert -jarfile <bundle-path>` and confirm it is your upload certificate, not Android Debug. Increment `versionCode` for each later uploaded version. New Play apps use an [Android App Bundle](https://support.google.com/googleplay/android-developer/answer/9859152), rather than the sideload APK.
 
-The new Play signing identity may not update an existing development-signed installation. Sync or export records before any uninstall; verify account restoration on a separate device first.
+The new Play signing identity may not update an existing development-signed installation. Export records before any uninstall; verify the exported records in the new install.
 
 ## Permissions prepared
 
@@ -62,7 +62,7 @@ The new Play signing identity may not update an existing development-signed inst
 
 - [ ] Sign in/up with email and Google; check cancellation, wrong passwords and connection errors. Email auth currently needs error handling so a rejection cannot leave its busy state stuck.
 - [ ] Test local saves after force-close, restart and device reboot.
-- [ ] Test first sign-in restoration, account isolation, manual sync, delayed sync and errors. Automatic sync is due every eight hours while running or on next reopen; it is not guaranteed background backup.
+- [ ] Confirm the listing and privacy policy describe local-only calculation records. Cloud transfer is disabled in the current app.
 - [ ] Complete device acceptance of the implemented account-deletion flow with a designated test account. Local retry, queue protection and rules tests are available.
 - [ ] Test PDF, CSV, Android sharing and Drive exports on the installed release. The current native CSV share uses a data URI; verify that it works with the native sharing API before claiming export readiness.
 - [ ] Check small screens, large fonts, keyboard, long translations, accessibility and offline behavior.

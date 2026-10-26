@@ -24,7 +24,7 @@ import useDriveAuthorization from '../useDriveAuthorization';
 import { normalizeCalculation } from '../calculationHistory';
 import CalculationHistoryModal from './CalculationHistoryModal';
 import { buildDriveExportFileName } from '../driveExportNames';
-import { getPaidOffEntries, getPaidOffTotal, getTablePaymentRows } from '../paidOff';
+import { getPaidOffEntries, getTablePaymentRows } from '../paidOff';
 
 function paidOffText(row, t) {
   return getPaidOffEntries(row).map(entry => `${t(entry.category)}: ${formatNumberDisplay(entry.amount)}`).join('\n');
@@ -91,17 +91,27 @@ function getFormulaResult(value) {
   return Number(evaluated);
 }
 
-function getInfoGrandTotal(calculations) {
+function getTableTotals(calculations) {
   return calculations.reduce((totals, calc) => {
-    const rawInfo = calc?.info || calc?.expression || '';
-    const result = getFormulaResult(rawInfo);
+    const result = getFormulaResult(calc?.info || calc?.expression || '');
+    if (result !== null) {
+      totals.info.total += result;
+      totals.info.hasValue = true;
+    }
 
-    if (result === null) return totals;
+    for (const field of ['cred', 'fact', 'fcash']) {
+      const raw = calc?.[field];
+      if (raw === '' || raw === null || raw === undefined) continue;
+      const amount = Number(String(raw).replace(/,/g, ''));
+      if (Number.isFinite(amount) && amount !== 0) totals.sections[field] += amount;
+    }
 
-    totals.total += result;
-    totals.hasValue = true;
+    for (const entry of getPaidOffEntries(calc)) {
+      const amount = Number(String(entry.amount).replace(/,/g, ''));
+      if (Number.isFinite(amount)) totals.paidOff += amount;
+    }
     return totals;
-  }, { total: 0, hasValue: false });
+  }, { info: { total: 0, hasValue: false }, sections: { cred: 0, fact: 0, fcash: 0 }, paidOff: 0 });
 }
 
 function escapeCsv(value) {
@@ -737,18 +747,9 @@ export default function CalculationTableModal({
     fromDate || toDate ? `${t('Date')}: ${getFilterLabel()}` : '',
   ].filter(Boolean).join(' | ');
 
-  const infoGrandTotal = getInfoGrandTotal(filteredRows);
-  const sectionTotals = filteredRows.reduce((totals, calc) => {
-    ['cred', 'fact', 'fcash'].forEach((field) => {
-      const raw = calc?.[field];
-      if (raw === '' || raw === null || raw === undefined) return;
-
-      const num = Number(String(raw).replace(/,/g, ''));
-      if (Number.isFinite(num) && num !== 0) totals[field] += num;
-    });
-    return totals;
-  }, { cred: 0, fact: 0, fcash: 0 });
-  const paidOffTotal = getPaidOffTotal(filteredRows);
+  const { info: infoGrandTotal, sections: sectionTotals, paidOff: paidOffTotal } = useMemo(
+    () => getTableTotals(filteredRows), [filteredRows],
+  );
   const hasAnyTotals = infoGrandTotal.hasValue || sectionTotals.cred || sectionTotals.fact || sectionTotals.fcash || paidOffTotal;
   const totalLabel = infoGrandTotal.hasValue ? `${t('TOTAL')}: ${pretty(String(Math.round(infoGrandTotal.total * 10000) / 10000))}` : t("TOTAL");
 

@@ -124,6 +124,28 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
     });
   }
 
+  async function addMany(rows, userId = null) {
+    return serialize(async () => {
+      const state = await read(userId);
+      assertWritable(userId, state);
+      const knownIds = new Set(state.rows.map(row => row.id));
+      const accepted = [];
+      for (const row of rows) {
+        if (!row?.id || knownIds.has(row.id)) continue;
+        knownIds.add(row.id);
+        accepted.push(normalizeCalculation(row));
+      }
+      if (!accepted.length) return { rows: visibleRows(state.rows), added: 0 };
+      const queue = userId && !localOnly
+        ? [...state.queue, ...accepted.map(row => ({ id: operationId(), rowId: row.id, before: null, after: row }))]
+        : state.queue;
+      const next = await persist(userId, { ...state, rows: [...accepted.reverse(), ...state.rows], queue });
+      statuses.set(userId, { phase: userId && !localOnly ? 'pending' : 'local' });
+      notify(userId, next);
+      return { rows: visibleRows(next.rows), added: accepted.length };
+    });
+  }
+
   async function importDeviceCalculations(userId) {
     if (!userId) throw new Error('Sign in before importing device calculations.');
     return serialize(async () => {
@@ -247,7 +269,7 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
   }
 
   return {
-    change, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion,
+    change, addMany, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion,
     getRows: async (userId = null) => visibleRows((await read(userId)).rows),
     getSnapshot: async (userId = null) => notify(userId, await read(userId)),
     getImportCount: async (userId) => {

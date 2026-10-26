@@ -16,9 +16,9 @@ Calc stores the calculations and records you enter, including titles, notes, deb
 
 You can save records locally without signing in. When you create an account or sign in, Firebase Authentication processes account information such as your email address and user ID. Google sign-in also uses the profile information needed by Google and Firebase to authenticate you.
 
-## Storage and synchronization
+## Storage
 
-Records are saved in app storage on your device. When you use an account, account-linked records are also synchronized to Google Cloud Firestore. Local saves happen immediately; cloud sync needs an internet connection. Scheduled sync runs when the app is available and the sync interval is due, or when you request manual sync.
+Records are saved in app storage on your device. Signing in does not upload or synchronize calculation records with Google Cloud Firestore. Cloud transfer is currently unavailable, so saved records do not automatically move to another device.
 
 Android system backup may also retain app data according to your device and Google backup settings. [VERIFY FINAL BACKUP CONFIGURATION AND DESCRIBE IT ACCURATELY.]
 
@@ -32,7 +32,7 @@ This clause does not exclude any responsibility that the law requires the develo
 
 ## Providers and exports
 
-Calc uses Google Firebase Authentication and Cloud Firestore to provide account and synchronization features. These services process data to operate and secure the service. See [Firebase privacy information](https://firebase.google.com/support/privacy) and [Google's privacy policy](https://policies.google.com/privacy).
+Calc uses Google Firebase Authentication for account sign-in. The current app does not upload calculation records to Cloud Firestore. These services may process data to operate and secure the service. See [Firebase privacy information](https://firebase.google.com/support/privacy) and [Google's privacy policy](https://policies.google.com/privacy).
 
 If you authorize a Google Drive export, the selected document is uploaded to your Google Drive. If you choose a sharing action, the selected data is sent to the app or recipient you choose. Copies you export may remain in those destinations independently of Calc.
 

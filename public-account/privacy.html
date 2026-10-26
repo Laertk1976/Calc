@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="How Calc handles calculations, accounts, cloud synchronization, exports and Pro purchases.">
+  <meta name="description" content="How Calc handles calculations, accounts, exports and Pro purchases.">
   <title>Calc — Privacy policy</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1220; color: #e2e8f0; }
@@ -33,7 +33,7 @@
 
   <h2>Calculations and records</h2>
   <p>Calc stores the information you enter, including calculations, names or titles, debts, invoices, cash invoices, amounts, payment dates, notes, comments and edit history. These records may contain personal or financial information. We use them to display your records and provide the calculation, search, reporting, payment-tracking and export features you use.</p>
-  <p>Guest records are saved locally on your device. Signed-in users have separate account-linked local records that can synchronize with Google Cloud Firestore over the internet. Signing in does not automatically move guest records into your account. Synchronization runs when the app is available and its schedule is due, or when you request it.</p>
+  <p>Guest and signed-in records are saved locally on your device. Signing in does not upload or synchronize calculation records with Google Cloud Firestore. Cloud transfer is currently unavailable, so saved records do not automatically move to another device.</p>
   <p>Free access shows today's records. Older records remain saved even when viewing or managing them requires Pro. A payment restriction does not delete those records.</p>
 
   <h2>Accounts and preferences</h2>
@@ -51,21 +51,21 @@
   <p>Exported files and shared copies remain in their destinations independently of Calc. You can manage or delete them there and revoke Calc's Google access in your Google Account settings.</p>
 
   <h2>Service providers and technical information</h2>
-  <p>Calc uses Google/Firebase services for authentication, cloud records and, when enabled, purchase verification and notifications. Google Play provides billing, and Google Drive provides optional exports. These services may process network information such as IP addresses, device or request information and operational/security logs to deliver and protect their services. Hosting this policy also involves ordinary web requests.</p>
+  <p>Calc uses Firebase Authentication for account sign-in and, when enabled, Firebase services for purchase verification and notifications. Calculation records are not uploaded to Firestore by the current app. Google Play provides billing, and Google Drive provides optional exports. These services may process network information such as IP addresses, device or request information and operational/security logs to deliver and protect their services. Hosting this policy also involves ordinary web requests.</p>
   <p>See <a href="https://firebase.google.com/support/privacy">Firebase privacy information</a> and <a href="https://policies.google.com/privacy">Google's privacy policy</a> for provider practices, including storage and processing locations. Provider processing can take place outside your country.</p>
   <p>The current app does not include advertising, Firebase Analytics or Crashlytics integrations. Calc does not sell your calculation records or use them for targeted advertising. This does not mean that service providers process no technical information.</p>
 
   <h2>Storage, security and backups</h2>
-  <p>Connections to the cloud services use HTTPS. Account-linked cloud records are protected by account access controls. Local application storage is not separately encrypted by Calc, and synchronization is not end-to-end encrypted. Device access and operating-system protections therefore matter.</p>
-  <p>Android backup is enabled in the current app. Depending on the Android version and your device/Google settings, app data may be included in system backup or device transfer. Manage those copies through your device's backup settings. Keep independent copies of important records; synchronization and backup do not guarantee recovery.</p>
+  <p>Connections to Firebase and other cloud services use HTTPS. Local application storage is not separately encrypted by Calc. Device access and operating-system protections therefore matter.</p>
+  <p>Android backup is enabled in the current app. Depending on the Android version and your device/Google settings, app data may be included in system backup or device transfer. Manage those copies through your device's backup settings. Keep independent copies of important records; backup does not guarantee recovery.</p>
 
   <h2>Retention and deletion</h2>
-  <p>Saved records remain until you delete them. A recoverable record deletion retains the information needed to restore it, including history; permanent record deletion removes its content but may retain an identifier and deletion marker to prevent synchronization from restoring it.</p>
-  <p>You can delete your Calc account without buying Pro. In the app, open <strong>Account → Delete account</strong> and verify your identity, or use the <a href="/delete-account">account-deletion request page</a>. Account deletion removes your Calc authentication account and its cloud calculations, debts, invoices, payment records, notes and history, including recoverably deleted rows. In-app deletion also clears that account's records and queued changes on the device used for deletion.</p>
-  <p>A minimal account ID and deletion timestamp are retained indefinitely to prevent old sessions or offline devices from recreating deleted cloud records. This marker contains no email address or calculation content.</p>
+  <p>Saved records remain in local app storage until you delete them or clear the app's data. A recoverable record deletion retains the information needed to restore it, including history.</p>
+  <p>You can delete your Calc account without buying Pro. In the app, open <strong>Account → Delete account</strong> and verify your identity, or use the <a href="/delete-account">account-deletion request page</a>. Account deletion removes your Calc authentication account. In-app deletion also clears the local records for that account on the device used for deletion. Records on other devices, Android backups and independent exported copies are not remotely erased.</p>
+  <p>A minimal account ID and deletion timestamp are retained indefinitely as a security marker. This marker contains no email address or calculation content.</p>
   <p>Where Pro purchases are enabled, purchase-verification records and account-to-purchase bindings are retained separately after account deletion to handle refunds and prevent receipt reuse. The current implementation has no automatic expiry for these records. They contain purchase identifiers and status information, rather than your saved calculations. Contact us with questions or deletion requests concerning these records.</p>
   <p>Google Play keeps its own transaction records under Google's policies. Deleting Calc or your Calc account does not itself request a Google Play refund.</p>
-  <p>Account deletion does not remotely erase guest records, copies on other offline devices, Android backups or exported/shared files. Clear local app data on those devices and manage backups and exports in their respective services. Deleting a Calc account does not delete your Google account.</p>
+  <p>Account deletion does not remotely erase guest records, copies on other devices, Android backups or exported/shared files. Clear local app data on those devices and manage backups and exports in their respective services. Deleting a Calc account does not delete your Google account.</p>
   <p>When you contact support, your email address and message are used to respond and verify requests. Support correspondence is retained for 12 months after the request is resolved, then deleted. Service providers may retain their own operational or security records under their policies.</p>
 
   <h2>Your choices</h2>
