@@ -63,7 +63,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const openRows = entries => { setSelectedId(entries.map(row => row.id)); setError(''); Keyboard.dismiss(); };
   const names = debtNames(calculations, search, amountField);
   const chooseName = name => {
-    setSelectedName(name); setFrom(''); setTo(''); setPicker(false);
+    setSelectedName(name); setPicker(false);
     setSearchVisible(false); setSearch(''); Keyboard.dismiss();
   };
   const total = rows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0);
@@ -165,9 +165,9 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             accessibilityLabel={t(undoable?.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}
             disabled={saving || !undoable}
             onPress={undoLatest}
-            style={[s.button, s.undoButton, (saving || !undoable) && { opacity: 0.5 }]}
+            style={[s.button, s.undoButton, s.restoreButton, (saving || !undoable) && { opacity: 0.5 }]}
           >
-            <Ionicons name="arrow-undo" size={22} color="#e2e8f0" />
+            <Ionicons name="refresh-circle" size={25} color="#86efac" />
           </Pressable>
         </View>}
         {draft ? <ScrollView keyboardShouldPersistTaps="handled">
@@ -216,19 +216,27 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             {!visibleRows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
             {visibleRows.map((row, index) => {
               const group = !selectedRow ? groups[index] : null;
-              if (group?.rows.length > 1) return <Pressable key={group.key} accessibilityRole="button" accessibilityLabel={group.title || t('Untitled')} disabled={saving} onPress={() => openRows(group.rows)} style={s.row}>
+              if (group) return <Pressable key={group.key} accessibilityRole="button" accessibilityLabel={group.title || t('Untitled')} disabled={saving} onPress={() => openRows(group.rows)} style={s.row}>
                 <Text style={[s.heading, s.detailHeading]}>{group.title || t('Untitled')}</Text>
-                <Text style={s.amount}>{pretty(String(group.total))}</Text>
+                {group.paidTotal > 0 ? (
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={s.amountLine}>
+                    <Text style={s.amount}>{pretty(String(group.originalTotal))}</Text>
+                    <Text style={s.amountSeparator}> − </Text>
+                    <Text style={s.amountPaid}>{pretty(String(group.paidTotal))}</Text>
+                    <Text style={s.amountSeparator}> = </Text>
+                    <Text style={s.amount}>{pretty(String(group.total))}</Text>
+                  </Text>
+                ) : <Text style={s.amount}>{pretty(String(group.total))}</Text>}
               </Pressable>;
               const distance = monthDistance(row.savedAt || row.createdAt);
               return <View key={row.id} style={[s.row, selectedRows.length === 1 && { flex: 1, borderBottomWidth: 0 }]}>
                 <Pressable accessibilityRole="button" accessibilityLabel={row.title || t('Untitled')} disabled={saving || !!selectedRow} onPress={() => openRows([row])} style={[{ gap: 6 }, selectedRows.length === 1 && { flex: 1 }]}>
                 <Text style={[s.heading, s.detailHeading]}>{row.title || t('Untitled')}</Text>
                 <Text style={[s.amount, row[paidAt] && { color: '#86efac' }]}>{pretty(String(row[paidAt] ? row[paidAmount] : row[amountField]))}</Text>
+                {!!row[paidAt] && <Text style={s.paidBadge}>{t('Paid off')}</Text>}
                 {!landscape && <View style={s.dateBlock}>
                   <Text style={s.text}>{t('Date')}: {t(formatSavedDate(row.savedAt || row.createdAt))}</Text>
                 </View>}
-                {!!row[paidAt] && <Text style={s.paidBadge}>{t('Paid off')}</Text>}
                 {!landscape && payoffDetails(row)}
                 {!landscape && <Text style={s.muted}>{distance === null ? t('No date') : distance < 0 ? t('In {{count}} months', { count: -distance }) : t('{{count}} months ago', { count: distance })}</Text>}
                 {!!row.comment && <Text style={s.text}>{row.comment}</Text>}
@@ -278,6 +286,9 @@ const s = StyleSheet.create({
   text: { color: '#e2e8f0', fontSize: 16 },
   muted: { color: '#94a3b8', fontSize: 14 },
   amount: { color: '#fca5a5', fontSize: 16.8, fontWeight: '600' },
+  amountLine: { fontSize: 15, fontWeight: '600', flexShrink: 1 },
+  amountPaid: { color: '#86efac', fontSize: 15, fontWeight: '600' },
+  amountSeparator: { color: '#cbd5e1', fontSize: 14, fontWeight: '500' },
   dateBlock: { backgroundColor: '#1e293b', borderRadius: 8, padding: 10, alignSelf: 'stretch' },
   paid: { color: '#86efac', fontSize: 14, marginVertical: 8 },
   paidBadge: { color: '#86efac', backgroundColor: '#14532d', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, fontWeight: '700' },
@@ -285,6 +296,7 @@ const s = StyleSheet.create({
   button: { backgroundColor: '#334155', paddingHorizontal: 8, paddingVertical: 8.4, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 30.8 },
   rowButton: { flex: 1, minWidth: 0 },
   undoButton: { width: 44, minHeight: 44 },
+  restoreButton: { backgroundColor: '#14532d', borderColor: '#22c55e', borderWidth: 1 },
   unpaidButton: { flexDirection: 'row', flexShrink: 1, minWidth: 0, gap: 4, minHeight: 32, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 8 },
   unpaidButtonText: { fontSize: 8.96, flexShrink: 1, minWidth: 0 },
   unpaidButtonActive: { backgroundColor: '#1d4ed8' },

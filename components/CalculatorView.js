@@ -82,6 +82,11 @@ export default function CalculatorView({
   const pressKey = (key) => {
     onKeyPress(key);
   };
+  const keyPressScales = useRef(new Map()).current;
+  const getKeyPressScale = (key) => {
+    if (!keyPressScales.has(key)) keyPressScales.set(key, new Animated.Value(1));
+    return keyPressScales.get(key);
+  };
   const finishEditing = () => {
     if (!editing) return;
     onEditExpression(draft);
@@ -213,10 +218,22 @@ export default function CalculatorView({
                 {row.map((key) => {
                   const isOperator = operators.includes(key) || key === '=';
                   const isFunction = ['AC', 'C', '±', '%'].includes(key);
+                  const keyPressScale = getKeyPressScale(key);
+                  const animateKeyPress = (pressed) => {
+                    keyPressScale.stopAnimation();
+                    Animated.spring(keyPressScale, {
+                      toValue: pressed ? 0.96 : 1,
+                      speed: 30,
+                      bounciness: 2,
+                      useNativeDriver: true,
+                    }).start();
+                  };
                   return (
-                    <Pressable key={key} android_disableSound onPressIn={() => compact ? pressKey(key) : playKeyFeedback()} onPress={() => { if (!compact) pressKey(key); }} style={({ pressed }) => [styles.key, desktop && { height: workspaceLayout.keyHeight }, isOperator && styles.operator, isFunction && styles.function, pressed && (compact ? { backgroundColor: '#334155', opacity: 0.9 } : styles.pressed)]}>
+                    <Animated.View key={key} style={{ flex: 1, minWidth: 0, transform: [{ scale: keyPressScale }] }}>
+                    <Pressable android_disableSound onPressIn={() => animateKeyPress(true)} onPressOut={() => animateKeyPress(false)} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, desktop && { height: workspaceLayout.keyHeight }, isOperator && styles.operator, isFunction && styles.function, pressed && (compact ? { backgroundColor: '#334155', opacity: 0.9 } : styles.pressed)]}>
                       <Text style={[styles.keyText, compact && { fontSize: 22 }, isFunction && styles.functionText]}>{key}</Text>
                     </Pressable>
+                    </Animated.View>
                   );
                 })}
               </View>

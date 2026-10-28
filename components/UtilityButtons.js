@@ -1,7 +1,7 @@
 import Pressable from './SoundPressable';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import { customLabelKeys, useCustomLabels } from './CustomLabelsProvider';
 import { utilityKeys } from '../calculatorConstants';
 import { styles } from '../calculatorStyles';
@@ -56,6 +56,7 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
       <ButtonLabel
         accessibilityLabel={label}
         naturalWrap={desktop || armenianInvoice || customizable}
+        containerStyle={armenianInvoice && key === 'Fact' ? { bottom: 20 } : undefined}
         style={[
           styles.utilityKeyText,
           armenianInvoice && { fontSize: 18, lineHeight: 23 },
@@ -66,6 +67,25 @@ export default function UtilityButtons({ onSaveType, onList, onButtonPress, onDe
           ? t(key).replace('現金払い', '現金払い\n')
           : label}
       </ButtonLabel>
+      {(key === 'Cred' || key === 'Fact') && !needsLabel && (
+        <View
+          pointerEvents="none"
+          accessible={false}
+          style={{
+            position: 'absolute',
+            right: 3,
+            bottom: 3,
+            paddingHorizontal: 4,
+            paddingVertical: 1,
+            borderRadius: 3,
+            backgroundColor: 'rgba(15, 23, 42, 0.3)',
+          }}
+        >
+          <Text style={{ color: '#ffffff', fontSize: 8, lineHeight: 10, fontWeight: '700' }}>
+            {t('Hold')}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
   };

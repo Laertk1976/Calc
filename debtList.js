@@ -15,15 +15,22 @@ export function monthDistance(value, now = new Date()) {
 export const debtNameKey = name => String(name || '').trim().normalize('NFC').toLowerCase();
 
 export function groupDebtRows(rows, amountField = 'cred') {
+  const paidField = amountField === 'fact' ? 'invoicePaidOffAmount' : 'paidOffAmount';
   const groups = new Map();
   for (const row of rows) {
     const key = debtNameKey(row.title) || `untitled:${row.id}`;
-    if (!groups.has(key)) groups.set(key, { key, title: row.title, rows: [], total: 0 });
+    if (!groups.has(key)) groups.set(key, { key, title: row.title, rows: [], total: 0, paidTotal: 0 });
     const group = groups.get(key);
     group.rows.push(row);
     group.total += Number(String(row[amountField]).replace(/,/g, '')) || 0;
+    group.paidTotal += Number(String(row[paidField] ?? 0).replace(/,/g, '')) || 0;
   }
-  return [...groups.values()].map(group => ({ ...group, total: Number(group.total.toPrecision(15)) }));
+  return [...groups.values()].map(group => ({
+    ...group,
+    total: Number(group.total.toPrecision(15)),
+    paidTotal: Number(group.paidTotal.toPrecision(15)),
+    originalTotal: Number((group.total + group.paidTotal).toPrecision(15)),
+  }));
 }
 
 export function debtNames(calculations, query = '', amountField = 'cred') {

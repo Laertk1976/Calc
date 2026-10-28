@@ -2,12 +2,12 @@ import { Children, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 // Each word is an unbreakable item; the surrounding row wraps between words.
-export default function ButtonLabel({ children, style, numberOfLines, accessibilityLabel, naturalWrap = false, ...props }) {
+export default function ButtonLabel({ children, style, numberOfLines, accessibilityLabel, naturalWrap = false, containerStyle, ...props }) {
   const text = Children.toArray(children).join('');
   const fontSize = StyleSheet.flatten(style)?.fontSize || 14;
   const lines = text.trim().split('\n');
   if (naturalWrap) {
-    return <WrappedLabel style={style} accessibilityLabel={accessibilityLabel || text} {...props}>{text}</WrappedLabel>;
+    return <WrappedLabel style={style} containerStyle={containerStyle} accessibilityLabel={accessibilityLabel || text} {...props}>{text}</WrappedLabel>;
   }
   if (numberOfLines === 1) {
     return (
@@ -33,7 +33,7 @@ export default function ButtonLabel({ children, style, numberOfLines, accessibil
   );
 }
 
-function WrappedLabel({ children, style, ...props }) {
+function WrappedLabel({ children, style, containerStyle, ...props }) {
   const label = useRef(null);
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const baseSize = StyleSheet.flatten(style)?.fontSize || 18;
@@ -53,7 +53,7 @@ function WrappedLabel({ children, style, ...props }) {
     return () => { active = false; };
   }, [bounds.width, bounds.height, baseSize, children]);
   return <View onLayout={({ nativeEvent: { layout } }) => setBounds(current => current.width === layout.width && current.height === layout.height ? current : { width: layout.width, height: layout.height })}
-    style={{ position: 'absolute', left: 5, right: 5, top: 7, bottom: 7, overflow: 'hidden', justifyContent: 'center' }}>
+    style={[{ position: 'absolute', left: 5, right: 5, top: 7, bottom: 7, overflow: 'hidden', justifyContent: 'center' }, containerStyle]}>
     <Text ref={label} {...props} textBreakStrategy="simple" android_hyphenationFrequency="none"
       adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={Platform.OS === 'web' ? undefined : 5}
       style={[style, { width: bounds.width || '100%', maxHeight: bounds.height || '100%', lineHeight: undefined, paddingHorizontal: 0, flexShrink: 1, textAlign: 'center', overflow: 'hidden' },

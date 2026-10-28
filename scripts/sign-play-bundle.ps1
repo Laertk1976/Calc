@@ -2,10 +2,11 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $projectDirectory = Split-Path -Parent $PSScriptRoot
+$appVersion = (Get-Content -LiteralPath (Join-Path $projectDirectory 'app.json') -Raw | ConvertFrom-Json).expo.version
 $credentialPath = Join-Path $projectDirectory '.signing/calc-upload-credentials.xml'
 $candidatePath = Join-Path $projectDirectory 'android/app/build/outputs/bundle/release/app-release.aab'
-$unsignedPath = Join-Path $projectDirectory 'android/app/build/outputs/bundle/release/calc-1.2.2-unsigned.aab'
-$signedPath = Join-Path $projectDirectory 'android/app/build/outputs/bundle/release/calc-1.2.2-play.aab'
+$unsignedPath = Join-Path $projectDirectory "android/app/build/outputs/bundle/release/calc-$appVersion-unsigned.aab"
+$signedPath = Join-Path $projectDirectory "android/app/build/outputs/bundle/release/calc-$appVersion-play.aab"
 $jdkBin = 'C:\Program Files\Java\jdk-21.0.11\bin'
 $jarSigner = Join-Path $jdkBin 'jarsigner.exe'
 $keyTool = Join-Path $jdkBin 'keytool.exe'
@@ -54,6 +55,7 @@ try {
         throw 'The signed bundle did not verify with the expected Play upload certificate.'
     }
 
+    Copy-Item -LiteralPath $signedPath -Destination $candidatePath -Force
     $signedFile = Get-Item -LiteralPath $signedPath
     Write-Output "Signed Play bundle: $($signedFile.FullName)"
     Write-Output "Size: $([Math]::Round($signedFile.Length / 1MB, 1)) MB"
