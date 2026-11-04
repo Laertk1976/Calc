@@ -9,7 +9,16 @@
     "CSV import complete": "CSV import complete",
     "Imported {{count}} calculations.": "Imported {{count}} calculations.",
     "CSV import failed": "CSV import failed",
-    "Calendar": "Calendar"
+    "Calendar": "Calendar",
+    "Full backup": "Full backup",
+    "Import / restore": "Import / restore",
+    "Backup failed": "Backup failed",
+    "Restore backup?": "Restore backup?",
+    "Backup restore confirmation": "Merge {{records}} saved calculations and {{results}} recent results from this backup? Existing records will be kept. Duplicate records are not overwritten.",
+    "Restore": "Restore",
+    "Backup restored": "Backup restored",
+    "Backup merge summary": "Added {{added}} calculations; skipped {{conflicts}} matching records; added {{history}} history entries.",
+    "Import failed": "Import failed"
   },
   "hy": {
     "Open menu": "Բացել ընտրացանկը",
@@ -17,7 +26,16 @@
     "Menu": "Ընտրացանկ",
     "Synchronization": "Համաժամացում",
     "Export CSV": "Արտահանել CSV",
-    "Calendar": "Օրացույց"
+    "Calendar": "Օրացույց",
+    "Full backup": "Ամբողջական պահուստ",
+    "Import / restore": "Ներմուծել / վերականգնել",
+    "Backup failed": "Պահուստավորումը ձախողվեց",
+    "Restore backup?": "Վերականգնե՞լ պահուստը",
+    "Backup restore confirmation": "Միավորե՞լ {{records}} պահպանված հաշվարկ և {{results}} վերջին արդյունք այս պահուստից։ Գոյություն ունեցող տվյալները կպահպանվեն։ Կրկնվող գրառումները չեն փոխարինվի։",
+    "Restore": "Վերականգնել",
+    "Backup restored": "Պահուստը վերականգնված է",
+    "Backup merge summary": "Ավելացվել է {{added}} հաշվարկ, բաց է թողնվել {{conflicts}} կրկնվող գրառում, ավելացվել է {{history}} պատմության գրառում։",
+    "Import failed": "Ներմուծումը ձախողվեց"
   },
   "ru": {
     "Open menu": "Открыть меню",
@@ -25,7 +43,16 @@
     "Menu": "Меню",
     "Synchronization": "Синхронизация",
     "Export CSV": "Экспорт CSV",
-    "Calendar": "Календарь"
+    "Calendar": "Календарь",
+    "Full backup": "Полная копия",
+    "Import / restore": "Импорт / восстановление",
+    "Backup failed": "Не удалось создать копию",
+    "Restore backup?": "Восстановить копию?",
+    "Backup restore confirmation": "Объединить {{records}} сохранённых расчётов и {{results}} последних результатов из этой копии? Существующие данные сохранятся. Повторяющиеся записи не заменяются.",
+    "Restore": "Восстановить",
+    "Backup restored": "Копия восстановлена",
+    "Backup merge summary": "Добавлено расчётов: {{added}}; пропущено совпадений: {{conflicts}}; добавлено записей истории: {{history}}.",
+    "Import failed": "Не удалось импортировать"
   },
   "ja": {
     "Open menu": "メニューを開く",
@@ -33,7 +60,16 @@
     "Menu": "メニュー",
     "Synchronization": "同期",
     "Export CSV": "CSVを書き出す",
-    "Calendar": "カレンダー"
+    "Calendar": "カレンダー",
+    "Full backup": "完全バックアップ",
+    "Import / restore": "読み込み／復元",
+    "Backup failed": "バックアップに失敗しました",
+    "Restore backup?": "バックアップを復元しますか？",
+    "Backup restore confirmation": "このバックアップから保存済み計算 {{records}} 件と最近の結果 {{results}} 件を統合しますか？既存のデータは保持され、重複する記録は上書きされません。",
+    "Restore": "復元",
+    "Backup restored": "バックアップを復元しました",
+    "Backup merge summary": "計算を {{added}} 件追加、重複記録を {{conflicts}} 件スキップ、履歴を {{history}} 件追加しました。",
+    "Import failed": "インポートに失敗しました"
   },
   "hi": {
     "Open menu": "मेनू खोलें",
@@ -41,7 +77,16 @@
     "Menu": "मेनू",
     "Synchronization": "सिंक",
     "Export CSV": "CSV निर्यात करें",
-    "Calendar": "कैलेंडर"
+    "Calendar": "कैलेंडर",
+    "Full backup": "पूरा बैकअप",
+    "Import / restore": "आयात / पुनर्स्थापित करें",
+    "Backup failed": "बैकअप विफल",
+    "Restore backup?": "बैकअप पुनर्स्थापित करें?",
+    "Backup restore confirmation": "इस बैकअप से {{records}} सहेजी गई गणनाएँ और {{results}} हाल के परिणाम मिलाएँ? मौजूदा डेटा सुरक्षित रहेगा। दोहराए गए रिकॉर्ड बदले नहीं जाएँगे।",
+    "Restore": "पुनर्स्थापित करें",
+    "Backup restored": "बैकअप पुनर्स्थापित",
+    "Backup merge summary": "{{added}} गणनाएँ जोड़ी गईं; {{conflicts}} दोहराए गए रिकॉर्ड छोड़े गए; {{history}} इतिहास प्रविष्टियाँ जोड़ी गईं।",
+    "Import failed": "आयात विफल"
   },
   "ko": {
     "Open menu": "메뉴 열기",
@@ -49,6 +94,15 @@
     "Menu": "메뉴",
     "Synchronization": "동기화",
     "Export CSV": "CSV 내보내기",
-    "Calendar": "달력"
+    "Calendar": "달력",
+    "Full backup": "전체 백업",
+    "Import / restore": "가져오기 / 복원",
+    "Backup failed": "백업 실패",
+    "Restore backup?": "백업을 복원할까요?",
+    "Backup restore confirmation": "이 백업의 저장된 계산 {{records}}개와 최근 결과 {{results}}개를 병합할까요? 기존 데이터는 유지되며 중복 기록은 덮어쓰지 않습니다.",
+    "Restore": "복원",
+    "Backup restored": "백업 복원 완료",
+    "Backup merge summary": "계산 {{added}}개 추가, 중복 기록 {{conflicts}}개 건너뜀, 기록 {{history}}개 추가.",
+    "Import failed": "가져오기 실패"
   }
 }

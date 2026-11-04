@@ -34,6 +34,18 @@ export function createLocalCalculationHistory(storage) {
       if (!expression || !Number.isFinite(Number(result))) return run();
       return run(current => [{ id: `${Date.now()}-${++sequence}`, expression, result: String(result) }, ...current].slice(0, 100));
     },
+    merge(imported) {
+      return run(current => {
+        const known = new Set(current.map(entry => entry.id));
+        return [...current, ...imported.filter(entry => {
+          if (known.has(entry.id)) return false;
+          known.add(entry.id);
+          return true;
+        })]
+          .sort((a, b) => b.id.localeCompare(a.id)).slice(0, 100);
+      });
+    },
     remove: id => run(current => current.filter(item => item.id !== id)),
+    clear: () => run(() => []),
   };
 }

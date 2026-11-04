@@ -7,7 +7,6 @@ import TableActionsMenu from './TableActionsMenu';
 import translations from '../i18n';
 import { useTranslation } from 'react-i18next';
 import DateRangeCalendar from './DateRangeCalendar';
-import SyncStatus from './SyncStatus';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -61,8 +60,7 @@ function escapeHtml(value) {
 
 function formatNumberDisplay(val) {
   if (!val && val !== 0) return '';
-  const num = Number(String(val).replace(/,/g, ''));
-  return Number.isNaN(num) ? String(val) : pretty(String(val));
+  return pretty(String(val));
 }
 
 function getFormulaResult(value) {
@@ -440,8 +438,6 @@ async function createPdfUri(calculations, filterSummary) {
 }
 
 export default function CalculationTableModal({
-  syncStatus,
-  onRetrySync,
   visible,
   calculations,
   onClose,
@@ -688,6 +684,13 @@ export default function CalculationTableModal({
     if (warningModal.type === 'delete_line') {
       saved = await commitChange({ type: 'delete', id: rows[warningModal.rowIndex].id });
     } else if (warningModal.type === 'change_number') {
+      if (['cred', 'fact', 'fcash'].includes(warningModal.field)) {
+        const normalized = String(warningModal.newValue).trim().replace(/,/g, '');
+        if (normalized && !Number.isFinite(Number(normalized))) {
+          Alert.alert(t('Invalid amount'), t('Enter a valid amount.'));
+          return;
+        }
+      }
       saved = await commitChange({ type: 'edit', id: rows[warningModal.rowIndex].id, changes: { [warningModal.field]: warningModal.newValue } });
     }
     if (saved) setWarningModal({ visible: false, type: null });
@@ -895,7 +898,6 @@ export default function CalculationTableModal({
             </Pressable>
           </View>}
           {saving ? <Text style={{ color: '#cbd5e1' }}>{t("Saving...")}</Text> : null}
-          {!inline && <SyncStatus syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>

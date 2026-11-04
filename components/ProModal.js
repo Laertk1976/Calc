@@ -20,7 +20,7 @@ export default function ProModal({ user, onSignIn }) {
           <Text style={s.note}>{t('No Calc sign-in is needed. Google Play checks your purchase. Restore on another device with the same Play account.')}</Text>
           {inTrial && <Text style={s.note}>{t('Trial active: {{days}} days remaining.', { days: trialDaysLeft })}</Text>}
           <Text style={s.text}>{t('Table, search and calendar')}{'\n'}{t('Access records from every date')}{'\n'}{t('Edit, pay off and delete records')}</Text>
-          <Text style={s.note}>{t('After the 15-day trial, the calculator remains free. The one-time purchase unlocks records, debt and invoice lists, table, search, calendar, and CSV import and export.')}</Text>
+          <Text style={s.note}>{t('After the 60-day trial, the calculator remains free. The one-time purchase unlocks records, debt and invoice lists, table, search, calendar, and CSV import and export.')}</Text>
           {false && !!user && <Text style={s.note}>{user.email}</Text>}
           {!hasPro && <>
             {billing.price && <Text style={s.price}>{billing.price}</Text>}

@@ -50,7 +50,9 @@ export default function CalculatorView({
   onConfirmSave,
   onOpenTable,
   onExportCsv,
+  onBackupData,
   onImportCsv,
+  onClearAll,
   onOpenCalendar,
   onUpdateCalculations,
   onOpenAuth,
@@ -220,6 +222,7 @@ export default function CalculatorView({
                   const isFunction = ['AC', 'C', '±', '%'].includes(key);
                   const keyPressScale = getKeyPressScale(key);
                   const animateKeyPress = (pressed) => {
+                    if (pressed) playKeyFeedback();
                     keyPressScale.stopAnimation();
                     Animated.spring(keyPressScale, {
                       toValue: pressed ? 0.96 : 1,
@@ -245,7 +248,7 @@ export default function CalculatorView({
     <StatusBar style="light" hidden={compact && Platform.OS !== 'web'} />
     <DesktopWorkspace layout={workspaceLayout} onCalculatorLayout={({ nativeEvent }) => setWorkspaceHeight(nativeEvent.layout.height)} tab={desktopTab} onTabChange={setDesktopTab} display={displayPanel} keypad={keypadPanel}
       calculations={savedCalculations} onUpdateCalculations={onUpdateCalculations}
-      user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} tableAction={tableAction} onTableActionHandled={onTableActionHandled} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      user={user} onOpenAuth={onOpenAuth} onSignOut={onSignOut} onExportCsv={onExportCsv} onBackupData={onBackupData} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} tableAction={tableAction} onTableActionHandled={onTableActionHandled} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     <SaveCalculationModal visible={saveDialogVisible} title={saveTitle} userId={user?.uid} onTitleChange={onTitleChange} onConfirm={onConfirmSave} onClose={onCloseSaveDialog} />
   </>;
 
@@ -255,7 +258,7 @@ export default function CalculatorView({
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" scrollEnabled={!drawerVisible} onLayout={measure('viewport')} contentContainerStyle={[styles.calculator, { flex: undefined, flexGrow: 1, justifyContent: 'flex-start', paddingBottom: drawerVisible ? 0 : 20 }]}>
         <View onLayout={measure('header')} style={{ paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-            <SettingsDrawer user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+            <SettingsDrawer user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onBackupData={onBackupData} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} onClearAll={onClearAll} syncStatus={syncStatus} onRetrySync={onRetrySync} />
           </View>
           <Pressable onPress={onOpenTable} style={({ pressed }) => [styles.titleButton, { alignSelf: 'flex-start', marginTop: 4, marginBottom: 0 }, pressed && styles.pressed]} hitSlop={6} accessibilityRole="button">
             <Text style={styles.title}>CALC</Text>
@@ -271,8 +274,6 @@ export default function CalculatorView({
         <CalculationTableModal
           visible={tableVisible}
           calculations={savedCalculations}
-          syncStatus={syncStatus}
-          onRetrySync={onRetrySync}
           onClose={onCloseTable}
           onUpdateCalculations={onUpdateCalculations}
           requestedAction={tableAction}

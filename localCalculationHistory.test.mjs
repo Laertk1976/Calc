@@ -39,3 +39,18 @@ test('queues changes behind hydration and recovers from a failed write', async (
   await history.add('1 / 0', 'Error');
   assert.equal((await history.load()).length, 2);
 });
+
+test('merges restored results without replacing existing IDs or exceeding the history limit', async () => {
+  const values = new Map([[HISTORY_KEY, JSON.stringify([{ id: '2', expression: 'current', result: '2' }])]]);
+  const storage = { getItem: async key => values.get(key), setItem: async (key, value) => values.set(key, value) };
+  const history = createLocalCalculationHistory(storage);
+  const restored = await history.merge([
+    { id: '2', expression: 'backup', result: '9' },
+    { id: '1', expression: 'older', result: '1' },
+  ]);
+  assert.deepEqual(restored, [
+    { id: '2', expression: 'current', result: '2' },
+    { id: '1', expression: 'older', result: '1' },
+  ]);
+  assert.deepEqual(await createLocalCalculationHistory(storage).load(), restored);
+});

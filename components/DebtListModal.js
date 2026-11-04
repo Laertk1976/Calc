@@ -15,6 +15,8 @@ import { formatSavedDate } from '../calculatorUtils';
 import DateRangeCalendar from './DateRangeCalendar';
 import useCalculatorStyles from '../useCalculatorStyles';
 
+const UNDO_WINDOW_MS = 5 * 60 * 1000;
+
 export default function DebtListModal({ calculations, onClose, onUpdate, syncStatus, onRetrySync, amountField = 'cred', inline = false }) {
   const { hasPro, requirePro, today: todayKey } = usePro();
   const { t, i18n } = useTranslation();
@@ -35,20 +37,31 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
   const [search, setSearch] = useState('');
   const [selectedName, setSelectedName] = useState(null);
   const [unpaidOnly, setUnpaidOnly] = useState(false);
+  const [, setUndoExpiryTick] = useState(0);
   useEffect(() => {
     if (!hasPro) {
       setFrom(todayKey.split('-').reverse().join('/')); setTo(todayKey.split('-').reverse().join('/'));
       setPicker(false); setSearchVisible(false); setSearch(''); setSelectedName(null); setDraft(null); setSelectedId(null);
     }
   }, [hasPro, todayKey]);
-  const filterUnpaid = !invoice && unpaidOnly;
+  const filterUnpaid = unpaidOnly;
   const undoable = latestUndoableChange(calculations.map(normalizeCalculation).filter(row =>
     selectedId?.includes(row.id) &&
     [row, row.history.at(-1)?.before].some(value => value?.[amountField] !== undefined && value[amountField] !== null && value[amountField] !== '')
   ));
+  const undoExpiresAt = undoable ? Date.parse(undoable.event.at) + UNDO_WINDOW_MS : NaN;
+  const undoActive = Boolean(undoable && Number.isFinite(undoExpiresAt)
+    && Date.now() >= Date.parse(undoable.event.at) && Date.now() < undoExpiresAt);
+  useEffect(() => {
+    if (!Number.isFinite(undoExpiresAt)) return undefined;
+    const remaining = undoExpiresAt - Date.now();
+    if (remaining <= 0) return undefined;
+    const timer = setTimeout(() => setUndoExpiryTick(value => value + 1), remaining);
+    return () => clearTimeout(timer);
+  }, [undoable?.event.id, undoExpiresAt]);
   const undoLatest = async () => {
     if (!requirePro()) return;
-    if (saving || !undoable) return;
+    if (saving || !undoable || !undoActive) return;
     setSaving(true); setError('');
     try {
       await onUpdate({ type: 'undo', id: undoable.row.id, eventId: undoable.event.id });
@@ -56,7 +69,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     finally { setSaving(false); }
   };
   const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField, filterUnpaid);
-  const selectedRows = selectedId === null ? [] : debtRows(calculations, '', '', null, amountField).filter(row => selectedId.includes(row.id));
+  const selectedRows = selectedId === null ? [] : calculations.map(normalizeCalculation).filter(row =>
+    selectedId.includes(row.id)
+      && row[amountField] !== '' && row[amountField] !== null && row[amountField] !== undefined
+      && (!row.deletedAt || row.history.at(-1)?.type === 'delete')
+  );
   const selectedRow = selectedRows[0];
   const groups = groupDebtRows(rows, amountField);
   const visibleRows = selectedRow ? selectedRows : groups.map(group => group.rows[0]);
@@ -66,7 +83,24 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     setSelectedName(name); setPicker(false);
     setSearchVisible(false); setSearch(''); Keyboard.dismiss();
   };
-  const total = rows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0);
+  const getAmount = (value) => {
+    const normalized = String(value ?? '').replace(/,/g, '').trim();
+    if (!normalized) return 0;
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? amount : NaN;
+  };
+  const total = rows.reduce((sum, row) => sum + getAmount(row[amountField]), 0);
+  const paidTotal = rows.reduce((sum, row) => sum + getAmount(row[paidAmount]), 0);
+  const originalTotal = total + paidTotal;
+  const amountEquation = (original, paid, remaining, style = s.amountLine) => (
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={style}>
+      <Text style={s.amount}>{pretty(String(original))}</Text>
+      <Text style={s.amountSeparator}> − </Text>
+      <Text style={s.amountPaid}>{pretty(String(paid))}</Text>
+      <Text style={s.amountSeparator}> = </Text>
+      <Text style={s.amount}>{pretty(String(remaining))}</Text>
+    </Text>
+  );
   const rangeLabel = !from && !to ? t('All dates') : from === to ? from : `${from} - ${to}`;
   const today = new Date();
   const calendarLabel = !from && !to
@@ -80,7 +114,6 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     setSaving(true); setError('');
     try {
       await onUpdate({ type: 'delete', id: row.id });
-      if (selectedId?.length === 1 && selectedId[0] === row.id) setSelectedId(null);
     } catch { setError(t('Save failed')); }
     finally { setSaving(false); }
   };
@@ -117,7 +150,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={[s.heading, s.headerTitle, landscape && { fontSize: 13 }]}>{t(invoice ? 'Invoices' : 'Debts')}</Text>
           {landscape && !draft && !selectedRow && <SyncStatus compact iconOnly syncStatus={syncStatus} onRetrySync={onRetrySync} />}
           {landscape && !draft && !selectedRow && <View style={[s.controls, s.landscapeHeaderControls]}>
-            {!invoice && <Pressable
+            <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Unpaid only')}
               accessibilityState={{ selected: unpaidOnly }}
@@ -127,7 +160,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               <Ionicons name={unpaidOnly ? 'filter' : 'filter-outline'} size={12} color="#e2e8f0" />
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
               {unpaidOnly && <Ionicons name="checkmark" size={12} color="#e2e8f0" />}
-            </Pressable>}
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton, s.landscapeIconControl]}>
               <Ionicons name="search" size={16} color="#f8fafc" />
             </Pressable>
@@ -139,7 +172,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
             </Pressable>
           </View>}
           {!landscape && !draft && !selectedRow && <View style={[s.controls, s.headerControls]}>
-            {!invoice && <Pressable
+            <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Unpaid only')}
               accessibilityState={{ selected: unpaidOnly }}
@@ -149,7 +182,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               <Ionicons name={unpaidOnly ? 'filter' : 'filter-outline'} size={14.4} color="#e2e8f0" />
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.buttonText, s.unpaidButtonText]}>{t('Unpaid only')}</Text>
               {unpaidOnly && <Ionicons name="checkmark" size={14.4} color="#e2e8f0" />}
-            </Pressable>}
+            </Pressable>
           {!draft && <Pressable accessibilityRole="button" accessibilityLabel={t('Search names...')} accessibilityState={{ expanded: searchVisible }} onPress={() => { if (!requirePro()) return; setSearchVisible(current => !current); setSearch(''); }} style={[s.button, s.searchButton]}>
             <View style={{ width: 14, height: 14, borderWidth: 2, borderColor: '#f8fafc', borderRadius: 7 }} />
             <View style={{ position: 'absolute', width: 8, height: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '45deg' }], right: 8, bottom: 10 }} />
@@ -163,11 +196,11 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t(undoable?.event.type === 'delete' ? 'Undo delete' : 'Undo edit')}
-            disabled={saving || !undoable}
+            disabled={saving || !undoActive}
             onPress={undoLatest}
-            style={[s.button, s.undoButton, s.restoreButton, (saving || !undoable) && { opacity: 0.5 }]}
+            style={[s.button, s.undoButton, undoActive ? s.restoreButton : s.undoButtonInactive, (saving || !undoActive) && { opacity: 0.7 }]}
           >
-            <Ionicons name="refresh-circle" size={25} color="#86efac" />
+            <Ionicons name="refresh-circle" size={25} color={undoActive ? '#86efac' : '#94a3b8'} />
           </Pressable>
         </View>}
         {draft ? <ScrollView keyboardShouldPersistTaps="handled">
@@ -207,32 +240,36 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
           </View>}
           <View style={landscape && { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             {!landscape && <Text style={[s.text, s.summaryText]} accessibilityLiveRegion="polite">{rangeLabel}</Text>}
-            <Text style={[s.heading, s.detailHeading, landscape && { fontSize: 12, flexShrink: 0 }]}>{t('TOTAL')}: {pretty(String(Number(total.toPrecision(15))))}</Text>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2, flexShrink: 1, minWidth: 0 }}>
+              <Text style={[s.heading, s.detailHeading, landscape && { fontSize: 12, flexShrink: 0 }]}>{t('TOTAL')}:</Text>
+              {amountEquation(originalTotal, paidTotal, total, s.summaryAmountLine)}
+            </View>
           </View>
           </>}
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-          {selectedRows.length > 1 && <Text style={s.heading}>{selectedRow.title || t('Untitled')} · {t('TOTAL')}: {pretty(String(Number(selectedRows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0).toPrecision(15))))}</Text>}
+          {selectedRows.length > 1 && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <Text style={s.heading}>{selectedRow.title || t('Untitled')} · {t('TOTAL')}:</Text>
+            {amountEquation(
+              selectedRows.reduce((sum, row) => sum + getAmount(row[amountField]) + getAmount(row[paidAmount]), 0),
+              selectedRows.reduce((sum, row) => sum + getAmount(row[paidAmount]), 0),
+              selectedRows.reduce((sum, row) => sum + getAmount(row[amountField]), 0),
+            )}
+          </View>}
           <ScrollView key={selectedRow ? selectedRow.id : 'list'} keyboardShouldPersistTaps="handled" style={inline || selectedRow ? { flex: 1, minHeight: 0 } : { flexShrink: 1 }} contentContainerStyle={inline || selectedRow ? { flexGrow: 1, paddingBottom: inline && landscape ? 36 : 0 } : undefined}>
-            {!visibleRows.length && <Text style={s.text}>{t(invoice ? 'No invoices in this date range.' : filterUnpaid ? 'No unpaid debts match these filters.' : 'No debts in this date range.')}</Text>}
+            {!visibleRows.length && <Text style={s.text}>{t(filterUnpaid ? invoice ? 'No unpaid invoices match these filters.' : 'No unpaid debts match these filters.' : invoice ? 'No invoices in this date range.' : 'No debts in this date range.')}</Text>}
             {visibleRows.map((row, index) => {
               const group = !selectedRow ? groups[index] : null;
               if (group) return <Pressable key={group.key} accessibilityRole="button" accessibilityLabel={group.title || t('Untitled')} disabled={saving} onPress={() => openRows(group.rows)} style={s.row}>
                 <Text style={[s.heading, s.detailHeading]}>{group.title || t('Untitled')}</Text>
-                {group.paidTotal > 0 ? (
-                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={s.amountLine}>
-                    <Text style={s.amount}>{pretty(String(group.originalTotal))}</Text>
-                    <Text style={s.amountSeparator}> − </Text>
-                    <Text style={s.amountPaid}>{pretty(String(group.paidTotal))}</Text>
-                    <Text style={s.amountSeparator}> = </Text>
-                    <Text style={s.amount}>{pretty(String(group.total))}</Text>
-                  </Text>
-                ) : <Text style={s.amount}>{pretty(String(group.total))}</Text>}
+                {amountEquation(group.originalTotal, group.paidTotal, group.total)}
               </Pressable>;
               const distance = monthDistance(row.savedAt || row.createdAt);
               return <View key={row.id} style={[s.row, selectedRows.length === 1 && { flex: 1, borderBottomWidth: 0 }]}>
                 <Pressable accessibilityRole="button" accessibilityLabel={row.title || t('Untitled')} disabled={saving || !!selectedRow} onPress={() => openRows([row])} style={[{ gap: 6 }, selectedRows.length === 1 && { flex: 1 }]}>
                 <Text style={[s.heading, s.detailHeading]}>{row.title || t('Untitled')}</Text>
-                <Text style={[s.amount, row[paidAt] && { color: '#86efac' }]}>{pretty(String(row[paidAt] ? row[paidAmount] : row[amountField]))}</Text>
+                {row[paidAt]
+                  ? amountEquation(getAmount(row[amountField]) + getAmount(row[paidAmount]), getAmount(row[paidAmount]), getAmount(row[amountField]))
+                  : <Text style={s.amount}>{pretty(String(row[amountField]))}</Text>}
                 {!!row[paidAt] && <Text style={s.paidBadge}>{t('Paid off')}</Text>}
                 {!landscape && <View style={s.dateBlock}>
                   <Text style={s.text}>{t('Date')}: {t(formatSavedDate(row.savedAt || row.createdAt))}</Text>
@@ -241,14 +278,14 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
                 {!landscape && <Text style={s.muted}>{distance === null ? t('No date') : distance < 0 ? t('In {{count}} months', { count: -distance }) : t('{{count}} months ago', { count: distance })}</Text>}
                 {!!row.comment && <Text style={s.text}>{row.comment}</Text>}
                 </Pressable>
-                <View style={s.controls}>
+                {!row.deletedAt && <View style={s.controls}>
                   {button(t('Edit'), () => { if (!requirePro()) return; setError(''); setDraft({ ...row }); }, saving, true)}
                   {!row[paidAt] && button(t('Pay off'), () => save(true, row), saving, true)}
                   <Pressable accessibilityRole="button" disabled={saving} onPress={() => deleteDebt(row)} style={[s.button, s.rowButton, { backgroundColor: '#7f1d1d' }, saving && { opacity: 0.5 }]}>
                     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={s.buttonText}>{t('Delete')}</Text>
                   </Pressable>
                   {!!row[paidAt] && button(t('Undo payoff'), () => undoPayoff(row), saving, true)}
-                </View>
+                </View>}
               </View>;
             })}
           </ScrollView>
@@ -287,6 +324,7 @@ const s = StyleSheet.create({
   muted: { color: '#94a3b8', fontSize: 14 },
   amount: { color: '#fca5a5', fontSize: 16.8, fontWeight: '600' },
   amountLine: { fontSize: 15, fontWeight: '600', flexShrink: 1 },
+  summaryAmountLine: { fontSize: 13, fontWeight: '600', flexShrink: 1, minWidth: 0, alignSelf: 'stretch' },
   amountPaid: { color: '#86efac', fontSize: 15, fontWeight: '600' },
   amountSeparator: { color: '#cbd5e1', fontSize: 14, fontWeight: '500' },
   dateBlock: { backgroundColor: '#1e293b', borderRadius: 8, padding: 10, alignSelf: 'stretch' },
@@ -297,6 +335,7 @@ const s = StyleSheet.create({
   rowButton: { flex: 1, minWidth: 0 },
   undoButton: { width: 44, minHeight: 44 },
   restoreButton: { backgroundColor: '#14532d', borderColor: '#22c55e', borderWidth: 1 },
+  undoButtonInactive: { backgroundColor: '#334155', borderColor: '#64748b', borderWidth: 1 },
   unpaidButton: { flexDirection: 'row', flexShrink: 1, minWidth: 0, gap: 4, minHeight: 32, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 8 },
   unpaidButtonText: { fontSize: 8.96, flexShrink: 1, minWidth: 0 },
   unpaidButtonActive: { backgroundColor: '#1d4ed8' },

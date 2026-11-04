@@ -1,9 +1,11 @@
 export function pretty(value) {
   value = String(value);
   if (value === 'Error') return value;
-  if (/[eE]/.test(value)) return Number(value).toLocaleString('en-US', { maximumSignificantDigits: 15 });
+  const numericValue = Number(value.replace(/,/g, ''));
+  if (!Number.isFinite(numericValue)) return value.trim() ? '—' : '0';
+  if (/[eE]/.test(value)) return numericValue.toLocaleString('en-US', { maximumSignificantDigits: 15 });
   const [whole, decimal] = value.split('.');
-  const formatted = whole === '-0' ? '-0' : Number(whole).toLocaleString('en-US');
+  const formatted = whole === '-0' ? '-0' : Number(whole.replace(/,/g, '')).toLocaleString('en-US');
   return decimal === undefined ? formatted : `${formatted}.${decimal}`;
 }
 
@@ -48,7 +50,9 @@ export function evaluateExpression(value) {
     if (!Number.isFinite(total) || !Number.isFinite(term)) return 'Error';
   }
   const result = total + sign * term;
-  return Number.isFinite(result) ? Number(result.toPrecision(15)) : 'Error';
+  // Keep the full precision available from JavaScript numbers. Rounding here
+  // truncated otherwise valid calculator results to 15 significant digits.
+  return Number.isFinite(result) ? result : 'Error';
 }
 
 export function applyPercentage(expression, display) {

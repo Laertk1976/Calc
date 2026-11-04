@@ -4,12 +4,19 @@ import { readFile } from 'node:fs/promises';
 const url = (s) => `data:text/javascript;base64,${Buffer.from(s).toString('base64')}`;
 const utils = url(await readFile('calculatorUtils.js', 'utf8'));
 const history = url((await readFile('calculationHistory.js', 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils)));
-const { createOfflineCalculationStore, mergeRemoteCalculation } = await import(url((await readFile('offlineCalculationStore.js', 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
+const backup = url(await readFile('dataBackup.js', 'utf8'));
+const { createOfflineCalculationStore, mergeRemoteCalculation } = await import(url((await readFile('offlineCalculationStore.js', 'utf8'))
+  .replace("'./calculationHistory'", JSON.stringify(history))
+  .replace("'./dataBackup'", JSON.stringify(backup))));
 function fixture() {
   const data = new Map();
   const cloud = new Map();
   let online = false;
-  const storage = { getItem: async (key) => data.get(key), setItem: async (key, value) => data.set(key, value) };
+  const storage = {
+    getItem: async (key) => data.get(key),
+    setItem: async (key, value) => data.set(key, value),
+    getAllKeys: async () => [...data.keys()],
+  };
   const remote = {
     list: async () => { if (!online) throw Object.assign(new Error('offline'), { code: 'unavailable' }); return [...cloud.values()]; },
     push: async (_, op) => { const result = { row: op.after, docId: op.rowId }; cloud.set(op.rowId, result); return result; },
@@ -132,6 +139,40 @@ test('history deletion scrubs queued snapshots and survives restart and sync', a
   const [saved] = await store.getRows('account');
   assert.equal(saved.title, 'Updated');
   assert.equal(saved.history[0].type, 'purged');
+});
+
+test('full backup retains deleted records and edit history; restore merges without replacing conflicts', async () => {
+  const source = fixture();
+  const deleted = {
+    ...row,
+    deletedAt: '2026-10-04T10:00:00Z',
+    history: [{ id: 'delete-one', at: '2026-10-04T10:00:00Z', type: 'delete', before: { title: 'Work' }, after: {} }],
+  };
+  await source.storage.setItem('calculatorCalculations', JSON.stringify([deleted]));
+  await source.storage.setItem('calculatorCalculations:user:account%40example.com', JSON.stringify({
+    version: 1, rows: [{ ...row, id: 'permanent', permanentlyDeletedAt: '2026-10-04T10:00:00Z' }],
+    queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null,
+  }));
+  await source.storage.setItem('calc.localCalculationHistory.v1', JSON.stringify([
+    { id: '2026-10-04-00', expression: '2 + 3', result: '5' },
+  ]));
+  const sourceStore = createOfflineCalculationStore(source);
+  const backup = await sourceStore.createBackup('calc.localCalculationHistory.v1');
+  assert.equal(backup.calculationStores.length, 2);
+  assert.equal(backup.localHistory[0].result, '5');
+
+  const target = fixture();
+  await target.storage.setItem('calculatorCalculations', JSON.stringify([{ ...row, title: 'Keep existing' }]));
+  const targetStore = createOfflineCalculationStore(target);
+  const result = await targetStore.restoreBackup(backup);
+  assert.equal(result.added, 1);
+  assert.equal(result.conflicts, 1);
+  assert.equal(result.historyAdded, 1);
+  const guestRows = await targetStore.getRows();
+  assert.equal(guestRows.find(item => item.id === 'one').title, 'Keep existing');
+  assert.equal(guestRows.find(item => item.id === 'one').history[0].id, 'delete-one');
+  const restoredAccount = JSON.parse(await target.storage.getItem('calculatorCalculations:user:account%40example.com'));
+  assert.deepEqual(restoredAccount.rows, [{ id: 'permanent', permanentlyDeletedAt: '2026-10-04T10:00:00Z' }]);
 });
 
 test('permanent deletion wins over stale edits and imports on other devices', () => {

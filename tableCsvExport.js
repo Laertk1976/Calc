@@ -72,7 +72,9 @@ export function filterCalculationsForDateRange(calculations, fromDate, toDate) {
     .filter(row => {
       const key = dateKey(row.savedAt || row.createdAt);
       return !!key && (!from || key >= from) && (!to || key <= to);
-    });
+    })
+    .sort((first, second) => dateKey(second.savedAt || second.createdAt)
+      .localeCompare(dateKey(first.savedAt || first.createdAt)));
 }
 
 function parseCsvRows(text) {

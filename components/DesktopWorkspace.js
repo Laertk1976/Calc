@@ -11,7 +11,7 @@ import SafeAreaView from './CalculatorSafeArea';
 
 const tabs = [['list', 'List'], ['table', 'Table'], ['debts', 'Debts'], ['invoices', 'Invoices']];
 
-export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, onExportCsv, onImportCsv, onOpenCalendar, tableAction, onTableActionHandled, syncStatus, onRetrySync }) {
+export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab, onTabChange, display, keypad, calculations, onUpdateCalculations, user, onOpenAuth, onSignOut, onExportCsv, onBackupData, onImportCsv, onOpenCalendar, tableAction, onTableActionHandled, syncStatus, onRetrySync }) {
   const { compact = false, calculatorWidth = 380 } = layout;
   const { hasPro, requirePro } = usePro();
   useEffect(() => { if (!hasPro && ['table', 'debts', 'invoices'].includes(tab)) onTabChange('list'); }, [hasPro, tab]);
@@ -30,7 +30,7 @@ export default function DesktopWorkspace({ layout = {}, onCalculatorLayout, tab,
     <View style={[s.toolbar, compact && { minHeight: 24, paddingHorizontal: 8, gap: 4 }]}>
       <Text style={[s.brand, compact && { fontSize: 14, letterSpacing: 3 }]}>CALC</Text>
       <View style={s.toolbarSpacer} />
-      <SettingsDrawer compact={compact} user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} syncStatus={syncStatus} onRetrySync={onRetrySync} />
+      <SettingsDrawer compact={compact} user={user} onOpenAuth={onOpenAuth} onExportCsv={onExportCsv} onBackupData={onBackupData} onImportCsv={onImportCsv} onOpenCalendar={onOpenCalendar} syncStatus={syncStatus} onRetrySync={onRetrySync} />
     </View>
     <View style={[s.workspace, compact && { gap: 8, padding: 8 }]}>
       <View testID="desktop-records" style={s.records}>

@@ -17,7 +17,7 @@ function todayKey() {
   return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 }
 
-export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImportCsv, onOpenCalendar, syncStatus, onRetrySync, compact = false }) {
+export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onBackupData, onImportCsv, onOpenCalendar, onClearAll, syncStatus, onRetrySync, compact = false }) {
   const { t, i18n } = useTranslation();
   const { soundEnabled, toggleSound } = useTapSound();
   const { hasPro, inTrial, trialDaysLeft, setPaywall, requirePro } = usePro();
@@ -30,6 +30,7 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImport
   const [fromDate, setFromDate] = useState(todayKey);
   const [toDate, setToDate] = useState(todayKey);
   const [exporting, setExporting] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
   const [importing, setImporting] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageHeight, setLanguageHeight] = useState(0);
@@ -79,6 +80,13 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImport
     try { await onImportCsv(); }
     finally { setImporting(false); }
   };
+  const backupData = async () => {
+    if (!onBackupData || backingUp) return;
+    setBackingUp(true);
+    try { await onBackupData(); }
+    catch (error) { Alert.alert(t('Backup failed'), error?.message || t('Please try again.')); }
+    finally { setBackingUp(false); }
+  };
   const row = (icon, label, action, detail) => <Pressable accessibilityRole="button" onPress={action} style={s.row}>
     <Ionicons name={icon} size={22} color="#a8caff" />
     <View style={s.label}><Text style={s.text}>{label}</Text>{detail ? <Text style={s.detail}>{detail}</Text> : null}</View>
@@ -87,7 +95,7 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImport
   const menuButton = (icon, label, action, expanded, disabled = false) => <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={expanded === undefined ? undefined : { expanded }} disabled={disabled} onPress={action} style={({ pressed }) => [s.menuButton, pressed && s.menuButtonPressed, disabled && { opacity: 0.5 }]}>
     <View style={s.menuButtonContent}>
       <Ionicons name={icon} size={20} color="#bfdbfe" />
-      <Text numberOfLines={1} style={s.menuButtonText}>{label}</Text>
+      <Text numberOfLines={2} style={s.menuButtonText}>{label}</Text>
     </View>
   </Pressable>;
   return <>
@@ -111,10 +119,11 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImport
             <View style={s.menuButtonRow}>
               <View style={s.exportCalendarGroup}>
                 {menuButton('calendar-outline', t('Calendar'), () => { if (requirePro()) setCalendarOpen(value => !value); }, calendarOpen)}
+                {menuButton('archive-outline', t(backingUp ? 'Please wait...' : 'Full backup'), backupData, undefined, backingUp)}
                 {menuButton('download-outline', t(exporting ? 'Please wait...' : 'Export CSV'), exportCsv, undefined, exporting)}
               </View>
               <View style={s.importButtonSlot}>
-                {menuButton('folder-open-outline', t(importing ? 'Please wait...' : 'Import CSV'), importCsv, undefined, importing)}
+                {menuButton('folder-open-outline', t(importing ? 'Please wait...' : 'Import / restore'), importCsv, undefined, importing)}
               </View>
             </View>
             {calendarOpen && <View style={s.calendarPanel}><DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => setCalendarOpen(false)} /></View>}
@@ -150,6 +159,17 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onImport
             </View>
             </Animated.View>
             <PrivacyPolicyLink />
+            <View style={s.dataSection}>
+              <Text style={s.dataSectionTitle}>{t('Data')}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('Clear all calculations')} onPress={() => close(onClearAll)} style={s.dangerRow}>
+                <Ionicons name="trash-outline" size={14} color="#fca5a5" />
+                <View style={s.label}>
+                  <Text style={s.dangerText}>{t('Clear all calculations')}</Text>
+                  <Text style={s.dangerDetail}>{t('Remove saved records and recent results from this phone.')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={12} color="#64748b" />
+              </Pressable>
+            </View>
           </ScrollView>
         </Animated.View>
       </View>
@@ -164,17 +184,22 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
   title: { color: '#f8fafc', fontSize: 24, fontWeight: '700' },
   menuButtonRow: { flexDirection: 'row', gap: 8, paddingVertical: 12 },
-  exportCalendarGroup: { flex: 2, minWidth: 0, flexDirection: 'row', gap: 4, padding: 6, borderWidth: 1, borderColor: '#fff', borderRadius: 13 },
+  exportCalendarGroup: { flex: 3, minWidth: 0, flexDirection: 'row', gap: 3, padding: 4, borderWidth: 1, borderColor: '#fff', borderRadius: 13 },
   importButtonSlot: { flex: 1, minWidth: 0, paddingVertical: 7, paddingHorizontal: 4.5 },
-  menuButton: { ...raisedButton, flex: 1, minWidth: 0, minHeight: 58, alignItems: 'center', justifyContent: 'center', padding: 8, borderRadius: 12, backgroundColor: '#1e3a5f' },
-  menuButtonContent: { flex: 1, width: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 10, backgroundColor: '#1e3a5f', padding: 7 },
+  menuButton: { ...raisedButton, flex: 1, minWidth: 0, minHeight: 64, alignItems: 'center', justifyContent: 'center', padding: 5, borderRadius: 12, backgroundColor: '#1e3a5f' },
+  menuButtonContent: { flex: 1, width: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 10, backgroundColor: '#1e3a5f', padding: 4 },
   menuButtonPressed: pressedButton,
-  menuButtonText: { color: '#f8fafc', fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
+  menuButtonText: { color: '#f8fafc', fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'center', flexWrap: 'wrap' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, minHeight: 62, borderBottomWidth: 1, borderColor: '#263449' },
   label: { flex: 1, minWidth: 0 },
   text: { color: '#f8fafc', fontSize: 16 },
   detail: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
   section: { paddingTop: 20, paddingBottom: 8, borderBottomWidth: 1, borderColor: '#263449', gap: 8 },
+  dataSection: { marginTop: 8, paddingTop: 8, paddingBottom: 4, borderTopWidth: 1, borderColor: '#263449', gap: 3 },
+  dataSectionTitle: { color: '#94a3b8', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  dangerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, minHeight: 36 },
+  dangerText: { color: '#fca5a5', fontSize: 12, lineHeight: 15, fontWeight: '600' },
+  dangerDetail: { color: '#94a3b8', fontSize: 9, lineHeight: 11, marginTop: 1 },
   calendarPanel: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#1e293b', borderRadius: 12, marginBottom: 8 },
   languages: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, backgroundColor: '#1e293b', borderRadius: 12 },
   language: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, minHeight: 48, gap: 8 },

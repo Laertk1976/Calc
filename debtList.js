@@ -13,6 +13,12 @@ export function monthDistance(value, now = new Date()) {
 }
 
 export const debtNameKey = name => String(name || '').trim().normalize('NFC').toLowerCase();
+const amountValue = value => {
+  const normalized = String(value ?? '').replace(/,/g, '').trim();
+  if (!normalized) return 0;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : NaN;
+};
 
 export function groupDebtRows(rows, amountField = 'cred') {
   const paidField = amountField === 'fact' ? 'invoicePaidOffAmount' : 'paidOffAmount';
@@ -22,14 +28,14 @@ export function groupDebtRows(rows, amountField = 'cred') {
     if (!groups.has(key)) groups.set(key, { key, title: row.title, rows: [], total: 0, paidTotal: 0 });
     const group = groups.get(key);
     group.rows.push(row);
-    group.total += Number(String(row[amountField]).replace(/,/g, '')) || 0;
-    group.paidTotal += Number(String(row[paidField] ?? 0).replace(/,/g, '')) || 0;
+    group.total += amountValue(row[amountField]);
+    group.paidTotal += amountValue(row[paidField]);
   }
   return [...groups.values()].map(group => ({
     ...group,
-    total: Number(group.total.toPrecision(15)),
-    paidTotal: Number(group.paidTotal.toPrecision(15)),
-    originalTotal: Number((group.total + group.paidTotal).toPrecision(15)),
+    total: Number.isFinite(group.total) ? Number(group.total.toPrecision(15)) : NaN,
+    paidTotal: Number.isFinite(group.paidTotal) ? Number(group.paidTotal.toPrecision(15)) : NaN,
+    originalTotal: Number.isFinite(group.total + group.paidTotal) ? Number((group.total + group.paidTotal).toPrecision(15)) : NaN,
   }));
 }
 

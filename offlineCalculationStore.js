@@ -1,6 +1,7 @@
 import { applyCalculationChange, normalizeCalculation, limitCalculationHistory, applyHistoryFloor } from './calculationHistory';
+import { CALCULATION_STORAGE_KEY, createDataBackup, mergeCalculationStore, parseDataBackup } from './dataBackup';
 
-const DEVICE_KEY = 'calculatorCalculations';
+const DEVICE_KEY = CALCULATION_STORAGE_KEY;
 export const AUTO_SYNC_INTERVAL_MS = 8 * 60 * 60 * 1000;
 const keyFor = (userId) => userId ? `${DEVICE_KEY}:user:${encodeURIComponent(userId)}` : DEVICE_KEY;
 const freshState = () => ({ version: 1, rows: [], queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null });
@@ -268,8 +269,84 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
     });
   }
 
+  async function clearAllLocal(userId = null) {
+    if (!localOnly) throw new Error('Clear all is available only for local calculation storage.');
+    return serialize(async () => {
+      const state = await read(userId);
+      assertWritable(userId, state);
+      const next = await persist(userId, { ...state, rows: [], queue: [] });
+      statuses.set(userId, { phase: 'local' });
+      notify(userId, next);
+      return [];
+    });
+  }
+
+  async function createBackup(historyKey) {
+    return serialize(async () => {
+      const keys = (await storage.getAllKeys()).filter(key =>
+        key === DEVICE_KEY || key.startsWith(`${DEVICE_KEY}:user:`)).sort();
+      const calculationStores = [];
+      for (const key of keys) {
+        const raw = await storage.getItem(key);
+        if (raw === null) continue;
+        const value = JSON.parse(raw);
+        const rows = (Array.isArray(value) ? value : value.rows).map((row, index) =>
+          normalizeCalculation({ ...row, id: row.id || row.createdAt || `legacy-${index}` }));
+        calculationStores.push({
+          key,
+          value: Array.isArray(value) ? rows : {
+            version: 1,
+            rows,
+            queue: [],
+            remoteIds: {},
+            importedIds: [],
+            lastSyncedAt: null,
+          },
+        });
+      }
+      const historyRaw = await storage.getItem(historyKey);
+      return createDataBackup(calculationStores, historyRaw ? JSON.parse(historyRaw) : []);
+    });
+  }
+
+  async function restoreBackup(value) {
+    const backup = parseDataBackup(value);
+    return serialize(async () => {
+      const existingKeys = new Set(await storage.getAllKeys());
+      const summary = { added: 0, conflicts: 0, historyAdded: 0 };
+      for (const store of backup.calculationStores) {
+        const raw = existingKeys.has(store.key) ? await storage.getItem(store.key) : null;
+        const existing = raw === null ? null : JSON.parse(raw);
+        if (existing === null) {
+          const value = Array.isArray(store.value) ? store.value : {
+            version: 1, rows: store.value.rows, queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null,
+          };
+          await storage.setItem(store.key, JSON.stringify(value));
+          summary.added += (Array.isArray(value) ? value : value.rows).length;
+          summary.historyAdded += (Array.isArray(value) ? value : value.rows)
+            .reduce((count, row) => count + (row.history || []).length, 0);
+          continue;
+        }
+        const merged = mergeCalculationStore(existing, store.value);
+        if (existing.deletionPending) {
+          summary.conflicts += (Array.isArray(store.value) ? store.value : store.value.rows).length;
+          continue;
+        }
+        await storage.setItem(store.key, JSON.stringify(merged.value));
+        summary.added += merged.added;
+        summary.conflicts += merged.conflicts;
+        summary.historyAdded += merged.historyAdded;
+        const match = store.key.match(/^calculatorCalculations:user:(.+)$/);
+        const userId = match ? decodeURIComponent(match[1]) : null;
+        notify(userId, await read(userId));
+      }
+      return { ...summary, localHistory: backup.localHistory };
+    });
+  }
+
   return {
-    change, addMany, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion,
+    change, addMany, sync, importDeviceCalculations, beginAccountDeletion, clearAccountForDeletion, clearAllLocal,
+    createBackup, restoreBackup,
     getRows: async (userId = null) => visibleRows((await read(userId)).rows),
     getSnapshot: async (userId = null) => notify(userId, await read(userId)),
     getImportCount: async (userId) => {

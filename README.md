@@ -12,6 +12,12 @@ Use **Undo edit** or **Undo delete** in the table for the most recent eligible c
 
 Run the history and recovery checks with `node --test calculationHistory.test.mjs`.
 
+## Full data backup and restore
+
+Open the menu and choose **Full backup** to create a JSON backup containing saved calculation data from every local account namespace, including deleted rows and their available edit history, plus recent calculator results. Save or share the file somewhere outside the app; on mobile, choose a durable destination in the system share sheet. Unlike CSV, the backup does not depend on the selected date range.
+
+Choose **Import / restore** and select a Calc JSON backup to restore it. Restore is non-destructive: missing records are added, matching records are kept, and available edit history is merged without replacing existing fields. The confirmation and completion messages report additions and conflicts. The same action continues to support CSV import. Backups do not contain cloud data, sign-in credentials, or app settings.
+
 ## Account sign-in and local calculations
 
 The main screen supports email/password and Google sign-in through Firebase Authentication. Calculation records are stored locally; cloud transfer to Cloud Firestore is currently disabled. Drive authorization is separate and is only requested when a Drive action is pressed.

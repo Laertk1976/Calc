@@ -1,5 +1,5 @@
 export const PRO_PRODUCT_ID = 'calc_pro_lifetime';
-export const TRIAL_DURATION_MS = 15 * 24 * 60 * 60 * 1000;
+export const TRIAL_DURATION_MS = 60 * 24 * 60 * 60 * 1000;
 
 export function isTrialActive(startedAt, now = Date.now()) {
   return Number.isFinite(startedAt) && startedAt > 0 && now >= startedAt && now < startedAt + TRIAL_DURATION_MS;
