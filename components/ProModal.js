@@ -1,7 +1,7 @@
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Pressable from './SoundPressable';
-import PrivacyPolicyLink from './PrivacyPolicyLink';
+import LegalLinks from './LegalLinks';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import { usePro } from './ProProvider';
 import useProBilling from '../useProBilling';
@@ -32,7 +32,7 @@ export default function ProModal({ user, onSignIn }) {
             </>
           </>}
           {!!billing.message && !hasPro && <Text accessibilityRole="alert" style={s.note}>{t(billing.message)}</Text>}
-          <PrivacyPolicyLink />
+          <LegalLinks />
           {button(t('Close'), () => setPaywall(false))}
         </ScrollView>
       </View>

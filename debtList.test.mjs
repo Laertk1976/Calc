@@ -5,7 +5,7 @@ const url = text => `data:text/javascript;base64,${Buffer.from(text).toString('b
 const utils = url(await readFile(new URL('./calculatorUtils.js', import.meta.url), 'utf8'));
 const history = url((await readFile(new URL('./calculationHistory.js', import.meta.url), 'utf8')).replace("'./calculatorUtils'", JSON.stringify(utils)));
 const { applyCalculationChange, getCalculationListResults } = await import(history);
-const { debtNames, debtRows, groupDebtRows, monthDistance } = await import(url((await readFile(new URL('./debtList.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
+const { debtNames, debtRows, groupDebtRows, monthDistance, selectedDebtRows } = await import(url((await readFile(new URL('./debtList.js', import.meta.url), 'utf8')).replace("'./calculationHistory'", JSON.stringify(history))));
 
 test('merged names combine debt and invoice totals while retaining every dated entry', () => {
   const entries = [
@@ -42,6 +42,24 @@ test('name groups sum filtered amounts and preserve separate dated records', () 
 
 test('unnamed records remain separate cards', () => {
   assert.equal(groupDebtRows([{ id: 'a', cred: '1' }, { id: 'b', cred: '2' }]).length, 2);
+});
+test('name cards sort newest date first and show each group’s latest record first', () => {
+  const cards = groupDebtRows([
+    { id: 'old-shop', title: 'Shop', cred: '10', savedAt: '2026-09-01T10:00:00Z' },
+    { id: 'new-client', title: 'Client', cred: '20', savedAt: '2026-11-02T10:00:00Z' },
+    { id: 'new-shop', title: 'Shop', cred: '30', savedAt: '2026-11-01T10:00:00Z' },
+  ]);
+  assert.deepEqual(cards.map(group => group.title), ['Client', 'Shop']);
+  assert.equal(cards[1].latestAt, '2026-11-01T10:00:00Z');
+  assert.deepEqual(cards[1].rows.map(row => row.id), ['new-shop', 'old-shop']);
+});
+test('selected detail rows retain the newest-first order of their name card', () => {
+  const entries = [
+    { id: 'older', title: 'Market', cred: '10', savedAt: '2026-10-31T10:00:00Z' },
+    { id: 'newer', title: 'Market', cred: '20', savedAt: '2026-11-03T10:00:00Z' },
+  ];
+  const group = groupDebtRows(debtRows(entries))[0];
+  assert.deepEqual(selectedDebtRows(entries, group.rows.map(row => row.id)).map(row => row.id), ['newer', 'older']);
 });
 const rows = [
   { id: 'a', type: 'Cred', value: '20', createdAt: '2025-12-31T12:00:00', title: 'A' },

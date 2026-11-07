@@ -8,7 +8,7 @@ import { useTapSound } from './TapSoundProvider';
 import { usePro } from './ProProvider';
 import { useCustomLabels } from './CustomLabelsProvider';
 import { languages, selectLanguage } from '../i18n';
-import PrivacyPolicyLink from './PrivacyPolicyLink';
+import LegalLinks from './LegalLinks';
 import DateRangeCalendar from './DateRangeCalendar';
 import { raisedButton, pressedButton } from '../buttonAppearance';
 
@@ -158,7 +158,7 @@ export default function SettingsDrawer({ user, onOpenAuth, onExportCsv, onBackup
               <Pressable accessibilityRole="radio" accessibilityState={{ checked: custom.active }} onPress={() => { custom.chooseCustom(); setLanguageOpen(false); }} style={s.language}><Text style={[s.text, s.label]}>Custom</Text>{custom.active && <Ionicons name="checkmark" size={20} color="#86efac" />}</Pressable>
             </View>
             </Animated.View>
-            <PrivacyPolicyLink />
+            <LegalLinks />
             <View style={s.dataSection}>
               <Text style={s.dataSectionTitle}>{t('Data')}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={t('Clear all calculations')} onPress={() => close(onClearAll)} style={s.dangerRow}>

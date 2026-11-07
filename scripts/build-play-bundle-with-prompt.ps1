@@ -93,7 +93,7 @@ try {
 
     $bundle = Get-Item -LiteralPath $bundleFile
     Write-Output "Verified Play AAB: $($bundle.FullName)"
-    Write-Output "Version: 1.2.8 (41); size: $([Math]::Round($bundle.Length / 1MB, 1)) MB"
+    Write-Output "Version: 1.3.0 (43); size: $([Math]::Round($bundle.Length / 1MB, 1)) MB"
     Write-Output 'The AAB signing certificate matches the registered upload key.'
 } finally {
     foreach ($name in @('CALC_UPLOAD_STORE_FILE', 'CALC_UPLOAD_STORE_PASSWORD', 'CALC_UPLOAD_KEY_ALIAS', 'CALC_UPLOAD_KEY_PASSWORD')) {

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import KeyboardModalFrame from './KeyboardModalFrame';
 import SyncStatus from './SyncStatus';
-import { debtNames, debtRows, groupDebtRows, monthDistance } from '../debtList';
+import { debtNames, debtRows, groupDebtRows, monthDistance, selectedDebtRows } from '../debtList';
 import { latestUndoableChange, normalizeCalculation } from '../calculationHistory';
 import { pretty } from '../calculatorUtils';
 import { formatSavedDate } from '../calculatorUtils';
@@ -45,7 +45,8 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     }
   }, [hasPro, todayKey]);
   const filterUnpaid = unpaidOnly;
-  const undoable = latestUndoableChange(calculations.map(normalizeCalculation).filter(row =>
+  const normalizedCalculations = calculations.map(normalizeCalculation);
+  const undoable = latestUndoableChange(normalizedCalculations.filter(row =>
     selectedId?.includes(row.id) &&
     [row, row.history.at(-1)?.before].some(value => value?.[amountField] !== undefined && value[amountField] !== null && value[amountField] !== '')
   ));
@@ -69,11 +70,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
     finally { setSaving(false); }
   };
   const rows = debtRows(calculations, from.split('/').reverse().join('-'), to.split('/').reverse().join('-'), selectedName, amountField, filterUnpaid);
-  const selectedRows = selectedId === null ? [] : calculations.map(normalizeCalculation).filter(row =>
-    selectedId.includes(row.id)
-      && row[amountField] !== '' && row[amountField] !== null && row[amountField] !== undefined
-      && (!row.deletedAt || row.history.at(-1)?.type === 'delete')
-  );
+  const selectedRows = selectedId === null ? [] : selectedDebtRows(calculations, selectedId, amountField);
   const selectedRow = selectedRows[0];
   const groups = groupDebtRows(rows, amountField);
   const visibleRows = selectedRow ? selectedRows : groups.map(group => group.rows[0]);
@@ -262,6 +259,7 @@ export default function DebtListModal({ calculations, onClose, onUpdate, syncSta
               if (group) return <Pressable key={group.key} accessibilityRole="button" accessibilityLabel={group.title || t('Untitled')} disabled={saving} onPress={() => openRows(group.rows)} style={s.row}>
                 <Text style={[s.heading, s.detailHeading]}>{group.title || t('Untitled')}</Text>
                 {amountEquation(group.originalTotal, group.paidTotal, group.total)}
+                {!!group.latestAt && <Text style={s.muted}>{t('Latest')}: {formatSavedDate(group.latestAt)}</Text>}
               </Pressable>;
               const distance = monthDistance(row.savedAt || row.createdAt);
               return <View key={row.id} style={[s.row, selectedRows.length === 1 && { flex: 1, borderBottomWidth: 0 }]}>

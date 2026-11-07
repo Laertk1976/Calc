@@ -1,11 +1,12 @@
 {
-  "en": { "Privacy policy": "Privacy policy", "Open this address in your browser:": "Open this address in your browser:" },
-  "hy": { "Privacy policy": "Գաղտնիության քաղաքականություն", "Open this address in your browser:": "Բացեք այս հասցեն ձեր դիտարկիչում՝" },
-  "ru": { "Privacy policy": "Политика конфиденциальности", "Open this address in your browser:": "Откройте этот адрес в браузере:" },
-  "ja": { "Privacy policy": "プライバシーポリシー", "Open this address in your browser:": "ブラウザでこのアドレスを開いてください：" },
-  "hi": { "Privacy policy": "गोपनीयता नीति", "Open this address in your browser:": "अपने ब्राउज़र में यह पता खोलें:" },
+  "en": { "Privacy policy": "Privacy policy", "Terms of use": "Terms of use", "Open this address in your browser:": "Open this address in your browser:" },
+  "hy": { "Privacy policy": "Գաղտնիության քաղաքականություն", "Terms of use": "Օգտագործման պայմաններ", "Open this address in your browser:": "Բացեք այս հասցեն ձեր դիտարկիչում՝" },
+  "ru": { "Privacy policy": "Политика конфиденциальности", "Terms of use": "Условия использования", "Open this address in your browser:": "Откройте этот адрес в браузере:" },
+  "ja": { "Privacy policy": "プライバシーポリシー", "Terms of use": "利用規約", "Open this address in your browser:": "ブラウザでこのアドレスを開いてください：" },
+  "hi": { "Privacy policy": "गोपनीयता नीति", "Terms of use": "उपयोग की शर्तें", "Open this address in your browser:": "अपने ब्राउज़र में यह पता खोलें:" },
   "ko": {
     "Privacy policy": "개인정보 처리방침",
+    "Terms of use": "이용약관",
     "Open this address in your browser:": "브라우저에서 다음 주소를 여세요:"
   }
 }
