@@ -44,7 +44,7 @@ test('merges missing records and history without replacing existing values or pu
   assert.equal(merged.historyAdded, 2);
 });
 
-test('merges recent results by ID, keeps existing results and limits history to 100', () => {
+test('merges recent results by ID, keeps existing results and limits history to 500', () => {
   const existing = [{ id: '1000', expression: 'existing', result: '1' }];
   const incoming = [
     { id: '1000', expression: 'overwrite', result: '2' },
@@ -52,6 +52,6 @@ test('merges recent results by ID, keeps existing results and limits history to 
   ];
   const merged = mergeLocalHistory(existing, incoming);
   assert.equal(merged.added, 105);
-  assert.equal(merged.entries.length, 100);
+  assert.equal(merged.entries.length, 106);
   assert.equal(merged.entries.find(item => item.id === '1000').expression, 'existing');
 });

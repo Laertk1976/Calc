@@ -28,6 +28,7 @@ import { parseTableCsv } from './tableCsvExport';
 import { parseDataBackup } from './dataBackup';
 
 const localHistory = createLocalCalculationHistory(AsyncStorage);
+const MAX_INPUT_DIGITS = 15;
 
 export default function App() {
   return <ProProvider><AppContent /></ProProvider>;
@@ -234,7 +235,7 @@ function AppContent() {
         const records = backup.calculationStores.reduce((count, store) => count + (Array.isArray(store.value) ? store.value : store.value.rows).length, 0);
         if (!await confirmBackupRestore({ records, results: backup.localHistory.length })) return;
         const previousRecentResults = await localHistory.load();
-        const restored = await calculationStore.restoreBackup(backup);
+        const restored = await calculationStore.restoreBackup(backup, user?.uid || null);
         const recentResults = await localHistory.merge(restored.localHistory);
         const previousIds = new Set(previousRecentResults.map(entry => entry.id));
         const recentHistoryAdded = recentResults.filter(entry => !previousIds.has(entry.id)).length;
@@ -412,6 +413,10 @@ function AppContent() {
     }
 
     if (key === '.' && display.includes('.') && !freshInput) return;
+    if (/^\d$/.test(key)) {
+      const digitCount = freshInput ? 0 : (display.match(/\d/g) || []).length;
+      if (digitCount >= MAX_INPUT_DIGITS) return;
+    }
     const next = freshInput ? (key === '.' ? '0.' : key) : `${display}${key}`;
     setDisplay(next);
     setExpression((current) => {

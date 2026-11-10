@@ -4,16 +4,16 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('./localCalculationHistory.js', import.meta.url), 'utf8');
 const { createLocalCalculationHistory, HISTORY_KEY } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
-test('keeps newest 100, persists deletion and reloads without account/cloud data', async () => {
+test('keeps newest 500, persists deletion and reloads without account/cloud data', async () => {
   const values = new Map();
   const storage = { getItem: async key => values.get(key), setItem: async (key, value) => { values.set(key, value); } };
   const history = createLocalCalculationHistory(storage);
-  await Promise.all(Array.from({ length: 101 }, (_, i) => history.add(`${i} + 1`, i + 1)));
+  await Promise.all(Array.from({ length: 501 }, (_, i) => history.add(`${i} + 1`, i + 1)));
   let rows = await history.load();
-  assert.equal(rows.length, 100);
-  assert.equal(rows[0].expression, '100 + 1');
+  assert.equal(rows.length, 500);
+  assert.equal(rows[0].expression, '500 + 1');
   assert.equal(rows.at(-1).expression, '1 + 1');
-  assert.equal(new Set(rows.map(row => row.id)).size, 100);
+  assert.equal(new Set(rows.map(row => row.id)).size, 500);
   await history.remove(rows[20].id);
   rows = await createLocalCalculationHistory(storage).load();
   assert.equal(rows.length, 99);

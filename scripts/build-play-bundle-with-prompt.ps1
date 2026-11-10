@@ -92,8 +92,15 @@ try {
     }
 
     $bundle = Get-Item -LiteralPath $bundleFile
+    $gradleFile = Join-Path $projectDirectory 'android\app\build.gradle'
+    $gradleConfig = Get-Content -Raw -LiteralPath $gradleFile
+    $versionCodeMatch = [regex]::Match($gradleConfig, '(?m)^\s*versionCode\s+(\d+)\s*$')
+    $versionNameMatch = [regex]::Match($gradleConfig, '(?m)^\s*versionName\s+"([^"]+)"\s*$')
+    if (-not $versionCodeMatch.Success -or -not $versionNameMatch.Success) {
+        throw 'Could not read the Android version code and name from build.gradle.'
+    }
     Write-Output "Verified Play AAB: $($bundle.FullName)"
-    Write-Output "Version: 1.3.0 (43); size: $([Math]::Round($bundle.Length / 1MB, 1)) MB"
+    Write-Output "Version: $($versionNameMatch.Groups[1].Value) ($($versionCodeMatch.Groups[1].Value)); size: $([Math]::Round($bundle.Length / 1MB, 1)) MB"
     Write-Output 'The AAB signing certificate matches the registered upload key.'
 } finally {
     foreach ($name in @('CALC_UPLOAD_STORE_FILE', 'CALC_UPLOAD_STORE_PASSWORD', 'CALC_UPLOAD_KEY_ALIAS', 'CALC_UPLOAD_KEY_PASSWORD')) {

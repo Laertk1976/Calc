@@ -309,19 +309,23 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
     });
   }
 
-  async function restoreBackup(value) {
+  async function restoreBackup(value, targetUserId = null) {
     const backup = parseDataBackup(value);
     return serialize(async () => {
       const existingKeys = new Set(await storage.getAllKeys());
       const summary = { added: 0, conflicts: 0, historyAdded: 0 };
       for (const store of backup.calculationStores) {
-        const raw = existingKeys.has(store.key) ? await storage.getItem(store.key) : null;
+        // A device backup's guest rows should appear in the currently open account
+        // after the user explicitly imports that backup while signed in.
+        const key = targetUserId && store.key === DEVICE_KEY ? keyFor(targetUserId) : store.key;
+        const raw = existingKeys.has(key) ? await storage.getItem(key) : null;
         const existing = raw === null ? null : JSON.parse(raw);
         if (existing === null) {
           const value = Array.isArray(store.value) ? store.value : {
             version: 1, rows: store.value.rows, queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null,
           };
-          await storage.setItem(store.key, JSON.stringify(value));
+          await storage.setItem(key, JSON.stringify(value));
+          existingKeys.add(key);
           summary.added += (Array.isArray(value) ? value : value.rows).length;
           summary.historyAdded += (Array.isArray(value) ? value : value.rows)
             .reduce((count, row) => count + (row.history || []).length, 0);
@@ -332,11 +336,11 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
           summary.conflicts += (Array.isArray(store.value) ? store.value : store.value.rows).length;
           continue;
         }
-        await storage.setItem(store.key, JSON.stringify(merged.value));
+        await storage.setItem(key, JSON.stringify(merged.value));
         summary.added += merged.added;
         summary.conflicts += merged.conflicts;
         summary.historyAdded += merged.historyAdded;
-        const match = store.key.match(/^calculatorCalculations:user:(.+)$/);
+        const match = key.match(/^calculatorCalculations:user:(.+)$/);
         const userId = match ? decodeURIComponent(match[1]) : null;
         notify(userId, await read(userId));
       }

@@ -893,7 +893,7 @@ export default function CalculationTableModal({
       <KeyboardModalFrame style={[styles.modalBackdrop, styles.tableModalBackdrop, inline && { padding: 0, backgroundColor: 'transparent' }]} onKeyboardVisibilityChange={setKeyboardVisible}>
         <View style={[styles.tablePanel, { pointerEvents: saving ? 'none' : 'auto' }, !inline && Platform.OS !== 'web' && { paddingTop: Math.max(StyleSheet.flatten(styles.tablePanel).padding || 0, insets.top + 4) }, inline && { maxWidth: '100%', padding: compactLandscape ? 4 : 16, paddingBottom: compactLandscape ? 4 : 16, minHeight: 0 }, compactLandscape && { position: 'relative' }]}>
           {!compactLandscape && <View style={{ flexDirection: 'row', direction: 'ltr', flexWrap: 'nowrap', marginBottom: 3, alignItems: 'stretch' }}>
-            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.authButton, { width: compactLandscape ? undefined : '50%', minHeight: compactLandscape ? 30 : undefined, paddingVertical: compactLandscape ? 3 : undefined, flexGrow: 0, flexShrink: 0, minWidth: 0, alignItems: 'center', justifyContent: 'center' }]} accessibilityRole="button">
+            <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={({ pressed }) => [styles.authButton, { width: compactLandscape ? undefined : '50%', minHeight: Platform.OS !== 'web' ? 56 : undefined, paddingVertical: Platform.OS !== 'web' ? 14 : undefined, flexGrow: 0, flexShrink: 0, minWidth: 0, alignItems: 'center', justifyContent: 'center' }, pressed && styles.pressed]} accessibilityRole="button">
               <ButtonLabel numberOfLines={1} style={[styles.authButtonText, { textAlign: 'center' }]}>{t('History')}</ButtonLabel>
             </Pressable>
           </View>}
@@ -901,7 +901,7 @@ export default function CalculationTableModal({
           <View style={styles.tableTopHeader}>
             <View style={styles.tableTitleGroup}>
               <Text style={[styles.listTitle, styles.tableTitle]}>{t("Calculator table")}</Text>
-              {compactLandscape && <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={[styles.searchIconButton, { width: 28, height: 28 }]} accessibilityRole="button" accessibilityLabel={t('History')}>
+              {compactLandscape && <Pressable onPress={() => setHistoryVisible(true)} disabled={saving} style={({ pressed }) => [styles.searchIconButton, { width: Platform.OS !== 'web' ? 36 : 28, height: Platform.OS !== 'web' ? 36 : 28 }, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={t('History')}>
                 <Ionicons name="time-outline" size={16} color="#f8fafc" />
               </Pressable>}
               <Pressable

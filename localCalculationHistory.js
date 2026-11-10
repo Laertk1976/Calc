@@ -1,4 +1,5 @@
 export const HISTORY_KEY = 'calc.localCalculationHistory.v1';
+export const LOCAL_HISTORY_LIMIT = 500;
 
 // Serialize hydration and mutations so fast calculations/deletions cannot overwrite each other.
 export function createLocalCalculationHistory(storage) {
@@ -14,7 +15,7 @@ export function createLocalCalculationHistory(storage) {
         try { parsed = JSON.parse(raw || '[]'); } catch { parsed = []; }
         entries = (Array.isArray(parsed) ? parsed : []).filter(item =>
           item && typeof item.id === 'string' && typeof item.expression === 'string'
-          && typeof item.result === 'string').slice(0, 100);
+          && typeof item.result === 'string').slice(0, LOCAL_HISTORY_LIMIT);
       }
       if (change) {
         const next = change(entries);
@@ -32,7 +33,7 @@ export function createLocalCalculationHistory(storage) {
     subscribe(listener) { listeners.add(listener); if (entries) listener(entries); return () => listeners.delete(listener); },
     add(expression, result) {
       if (!expression || !Number.isFinite(Number(result))) return run();
-      return run(current => [{ id: `${Date.now()}-${++sequence}`, expression, result: String(result) }, ...current].slice(0, 100));
+      return run(current => [{ id: `${Date.now()}-${++sequence}`, expression, result: String(result) }, ...current].slice(0, LOCAL_HISTORY_LIMIT));
     },
     merge(imported) {
       return run(current => {
@@ -42,7 +43,7 @@ export function createLocalCalculationHistory(storage) {
           known.add(entry.id);
           return true;
         })]
-          .sort((a, b) => b.id.localeCompare(a.id)).slice(0, 100);
+          .sort((a, b) => b.id.localeCompare(a.id)).slice(0, LOCAL_HISTORY_LIMIT);
       });
     },
     remove: id => run(current => current.filter(item => item.id !== id)),

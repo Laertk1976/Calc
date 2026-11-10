@@ -2,6 +2,7 @@ export const DATA_BACKUP_FORMAT = 'calc-data-backup';
 export const DATA_BACKUP_VERSION = 1;
 export const CALCULATION_STORAGE_KEY = 'calculatorCalculations';
 export const LOCAL_HISTORY_STORAGE_KEY = 'calc.localCalculationHistory.v1';
+const LOCAL_HISTORY_LIMIT = 500;
 
 const isObject = value => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 const isCalculationKey = key => key === CALCULATION_STORAGE_KEY || key.startsWith(`${CALCULATION_STORAGE_KEY}:user:`);
@@ -125,7 +126,7 @@ export function mergeLocalHistory(existing = [], incoming = []) {
     }
   }
   return {
-    entries: [...byId.values()].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 100),
+    entries: [...byId.values()].sort((a, b) => b.id.localeCompare(a.id)).slice(0, LOCAL_HISTORY_LIMIT),
     added,
   };
 }

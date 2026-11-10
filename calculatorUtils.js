@@ -23,6 +23,7 @@ export function formatSavedDate(value) {
 }
 
 export function evaluateExpression(value) {
+  const MAX_CALCULABLE_VALUE = Number.MAX_SAFE_INTEGER;
   let remaining = String(value).trim().replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/');
   const readNumber = () => {
     const match = remaining.match(/^[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?/i);
@@ -33,13 +34,13 @@ export function evaluateExpression(value) {
   let term = readNumber();
   let total = 0;
   let sign = 1;
-  if (!Number.isFinite(term)) return 'Error';
+  if (!Number.isFinite(term) || Math.abs(term) > MAX_CALCULABLE_VALUE) return 'Error';
   while (remaining) {
     const operator = remaining[0];
     if (!['+', '-', '*', '/'].includes(operator)) return 'Error';
     remaining = remaining.slice(1).trimStart();
     const operand = readNumber();
-    if (!Number.isFinite(operand) || (operator === '/' && operand === 0)) return 'Error';
+    if (!Number.isFinite(operand) || Math.abs(operand) > MAX_CALCULABLE_VALUE || (operator === '/' && operand === 0)) return 'Error';
     if (operator === '*') term *= operand;
     else if (operator === '/') term /= operand;
     else {
@@ -47,12 +48,13 @@ export function evaluateExpression(value) {
       sign = operator === '+' ? 1 : -1;
       term = operand;
     }
-    if (!Number.isFinite(total) || !Number.isFinite(term)) return 'Error';
+    if (!Number.isFinite(total) || !Number.isFinite(term)
+      || Math.abs(total) > MAX_CALCULABLE_VALUE || Math.abs(term) > MAX_CALCULABLE_VALUE) return 'Error';
   }
   const result = total + sign * term;
   // Keep the full precision available from JavaScript numbers. Rounding here
   // truncated otherwise valid calculator results to 15 significant digits.
-  return Number.isFinite(result) ? result : 'Error';
+  return Number.isFinite(result) && Math.abs(result) <= MAX_CALCULABLE_VALUE ? result : 'Error';
 }
 
 export function applyPercentage(expression, display) {
