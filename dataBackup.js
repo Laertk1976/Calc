@@ -34,6 +34,7 @@ export function parseDataBackup(value) {
     || !Array.isArray(backup.calculationStores) || !Array.isArray(backup.localHistory)) {
     throw new Error('This file is not a supported Calc backup.');
   }
+  if (backup.singleCalculation !== undefined && backup.singleCalculation !== true) throw new Error('The backup contains an invalid single-card marker.');
   const keys = new Set();
   for (const store of backup.calculationStores) {
     if (!isObject(store) || typeof store.key !== 'string' || keys.has(store.key)) {
@@ -67,13 +68,50 @@ export function createDataBackup(calculationStores, localHistory, createdAt = ne
   });
 }
 
+export function createSingleCalculationBackup(row, createdAt = new Date().toISOString()) {
+  if (!isObject(row) || typeof row.id !== 'string') throw new Error('A saved calculation is required for this backup.');
+  return { ...createDataBackup([{ key: CALCULATION_STORAGE_KEY, value: [row] }], [], createdAt), singleCalculation: true };
+}
+
+export function mergeSingleCalculationBackup(existingValue, backupValue) {
+  const existing = stateFor(existingValue);
+  const backup = stateFor(backupValue);
+  const rows = [...existing.rows];
+  const byId = new Map(rows.map((row, index) => [row.id, index]));
+  let added = 0;
+  let conflicts = 0;
+  let historyAdded = 0;
+  for (const incoming of backup.rows) {
+    const index = byId.get(incoming.id);
+    if (index === undefined) {
+      byId.set(incoming.id, rows.length);
+      rows.push(incoming);
+      added += 1;
+      historyAdded += (incoming.history || []).length;
+      continue;
+    }
+    conflicts += 1;
+    const current = rows[index];
+    if (current.permanentlyDeletedAt) continue;
+    const history = new Map((current.history || []).map(event => [event.id, event]));
+    for (const event of incoming.history || []) {
+      if (!history.has(event.id)) { history.set(event.id, event); historyAdded += 1; }
+    }
+    rows[index] = { ...current, ...incoming, history: [...history.values()] };
+  }
+  return {
+    value: Array.isArray(existingValue) ? rows : { ...existing, rows },
+    added, conflicts, historyAdded,
+  };
+}
+
 function stateFor(value) {
   return Array.isArray(value)
     ? { version: 1, rows: value, queue: [], remoteIds: {}, importedIds: [], lastSyncedAt: null }
     : value;
 }
 
-export function mergeCalculationStore(existingValue, backupValue) {
+export function mergeCalculationStore(existingValue, backupValue, { replaceConflicts = false } = {}) {
   const existing = stateFor(existingValue);
   const backup = stateFor(backupValue);
   const rows = [...existing.rows];
@@ -100,7 +138,9 @@ export function mergeCalculationStore(existingValue, backupValue) {
         historyAdded += 1;
       }
     }
-    rows[index] = { ...current, history: [...events.values()] };
+    rows[index] = replaceConflicts
+      ? { ...current, ...incoming, history: [...events.values()] }
+      : { ...current, history: [...events.values()] };
   }
   const state = {
     ...existing,

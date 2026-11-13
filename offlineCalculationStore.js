@@ -331,7 +331,7 @@ export function createOfflineCalculationStore({ storage, remote, localOnly = fal
             .reduce((count, row) => count + (row.history || []).length, 0);
           continue;
         }
-        const merged = mergeCalculationStore(existing, store.value);
+        const merged = mergeCalculationStore(existing, store.value, { replaceConflicts: backup.singleCalculation === true });
         if (existing.deletionPending) {
           summary.conflicts += (Array.isArray(store.value) ? store.value : store.value.rows).length;
           continue;

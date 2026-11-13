@@ -169,7 +169,7 @@ export default function CalculatorView({
               <TextInput
                 ref={expressionInput}
                 accessibilityLabel={t("Edit calculation")}
-                style={[styles.expression, { width: '100%', textAlign: 'right', padding: 0, borderWidth: 0, includeFontPadding: false }, compact && { fontSize: 16, marginBottom: 2 }, Platform.OS === 'web' && { outlineStyle: 'none' }]}
+                style={[styles.expression, { width: '100%', textAlign: 'right', padding: 0, borderWidth: 0, includeFontPadding: false, fontSize: 180, lineHeight: 190 }, compact && { fontSize: 80, lineHeight: 88, marginBottom: 2 }, Platform.OS === 'web' && { outlineStyle: 'none' }]}
                 value={draft}
                 onChangeText={setDraft}
                 onBlur={finishEditing}

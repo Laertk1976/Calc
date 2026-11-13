@@ -514,6 +514,7 @@ export default function CalculationTableModal({
   });
   const [fromDate, setFromDate] = useState(() => getDateKey(new Date()));
   const [toDate, setToDate] = useState(() => getDateKey(new Date()));
+  const [calendarRangeApplied, setCalendarRangeApplied] = useState(false);
   const [dateDropdownVisible, setDateDropdownVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -548,6 +549,7 @@ export default function CalculationTableModal({
       const today = getDateKey(new Date());
       setFromDate(today);
       setToDate(today);
+      setCalendarRangeApplied(false);
       setSearchVisible(false);
       setSearchText('');
     }
@@ -562,7 +564,7 @@ export default function CalculationTableModal({
 
     const dateKey = getDateKey(r.savedAt || r.createdAt);
 
-    if (fromDate || toDate) {
+    if ((!searchValue || calendarRangeApplied) && (fromDate || toDate)) {
       const t = parseDateKeyToTime(dateKey);
       const firstT = fromDate ? parseDateKeyToTime(fromDate) : 0;
       const lastT = toDate ? parseDateKeyToTime(toDate) : Infinity;
@@ -575,10 +577,10 @@ export default function CalculationTableModal({
   }).sort((first, second) => (
     new Date(second.savedAt || second.createdAt).getTime()
     - new Date(first.savedAt || first.createdAt).getTime()
-  )), [rows, searchValue, fromDate, toDate]);
+  )), [rows, searchValue, fromDate, toDate, calendarRangeApplied]);
 
   const getFilterLabel = () => {
-    if (searchValue) return t('All Dates');
+    if (searchValue && !calendarRangeApplied) return t('All Dates');
     if (fromDate && toDate) {
       if (fromDate === toDate) return fromDate;
       return `${fromDate} ➔ ${toDate}`;
@@ -726,6 +728,7 @@ export default function CalculationTableModal({
   const handleAddRow = () => {
     setFromDate('');
     setToDate('');
+    setCalendarRangeApplied(true);
     setSearchText('');
     const now = new Date().toISOString();
     const newRow = {
@@ -1181,6 +1184,7 @@ export default function CalculationTableModal({
           <View style={[styles.tableFooter, { zIndex: 11 }, compactLandscape && { position: 'absolute', right: 0, bottom: 0, paddingBottom: 0 }, keyboardVisible && { display: 'none' }]}>
             <TableActionsMenu floating={compactLandscape} open={actionsVisible} onToggle={() => setActionsVisible(value => !value)} onDismiss={() => setActionsVisible(false)} actions={[
               { id: 'add', label: t('+ Add Row'), onPress: handleAddRow },
+              { id: 'exportFiltered', label: t('Export filtered lines'), onPress: handleSaveCsv, disabled: !filteredRows.length },
               { id: 'pdf', label: t('Save PDF'), onPress: saveTableAsPdf },
               { id: 'csv', label: t('Save CSV'), onPress: handleSaveCsv },
               { id: 'share', label: t('Share'), onPress: shareTable },
@@ -1333,7 +1337,7 @@ export default function CalculationTableModal({
           <View style={[styles.dropdownPanel, { maxHeight: '90%' }]}>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
               <Text style={styles.dropdownTitle}>{t("Choose date range")}</Text>
-              {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => setDateDropdownVisible(false)} />}
+              {dateDropdownVisible && <DateRangeCalendar fromDate={fromDate} toDate={toDate} onChange={(from, to) => { setFromDate(from); setToDate(to); }} onApply={() => { setCalendarRangeApplied(true); setDateDropdownVisible(false); }} />}
               <Text style={styles.listSubtitle}>{getFilterLabel()}</Text>
               <Text style={styles.listSubtitle}>{t('Rows in range')}: {filteredRows.length}</Text>
             </ScrollView>

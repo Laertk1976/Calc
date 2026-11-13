@@ -9,8 +9,9 @@ export function buildListExport({ rows, amountField, title, summary, t, formatDa
   const invoice = amountField === 'fact';
   const paidAt = invoice ? 'invoicePaidOffAt' : 'paidOffAt';
   const paidAmount = invoice ? 'invoicePaidOffAmount' : 'paidOffAmount';
-  const headers = ['Name', 'Date', invoice ? 'Invoice' : 'Debt', 'Paid off amount', 'Paid off at', 'Comments'].map(key => t(key));
-  const values = rows.map(row => [row.title || t('Untitled'), formatDate(row.savedAt || row.createdAt), row[amountField], row[paidAt] ? row[paidAmount] : '', row[paidAt] ? formatDate(row[paidAt]) : '', row.comment || '']);
+  const companionField = invoice ? 'cred' : 'fact';
+  const headers = ['Name', 'Date', invoice ? 'Invoice' : 'Debt', invoice ? 'Debt' : 'Invoice', 'Paid off amount', 'Paid off at', 'Comments'].map(key => t(key));
+  const values = rows.map(row => [row.title || t('Untitled'), formatDate(row.savedAt || row.createdAt), row[amountField], row[companionField] ?? '', row[paidAt] ? row[paidAmount] : '', row[paidAt] ? formatDate(row[paidAt]) : '', row.comment || '']);
   const total = rows.reduce((sum, row) => sum + (Number(String(row[amountField]).replace(/,/g, '')) || 0), 0);
   const totalText = String(Number(total.toPrecision(15)));
   const csv = [[title], [summary], headers, ...values, [t('TOTAL'), '', totalText]].map(row => row.map(csvCell).join(',')).join('\r\n');

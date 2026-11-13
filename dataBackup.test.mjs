@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('./dataBackup.js', import.meta.url), 'utf8');
-const { parseDataBackup, mergeCalculationStore, mergeLocalHistory } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const { parseDataBackup, mergeCalculationStore, mergeLocalHistory, createSingleCalculationBackup } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 test('validates backup format, storage keys, calculation rows and recent history', () => {
   assert.throws(() => parseDataBackup('not json'), /valid Calc backup/);
@@ -42,6 +42,18 @@ test('merges missing records and history without replacing existing values or pu
   assert.equal(merged.added, 1);
   assert.equal(merged.conflicts, 1);
   assert.equal(merged.historyAdded, 2);
+});
+
+test('single card backup carries one row and receiver merge updates its fields', () => {
+  const incoming = { id: 'card', title: 'Client', cred: '125', fact: '60', history: [{ id: 'remote-edit', at: '3', type: 'edit' }] };
+  const backup = createSingleCalculationBackup(incoming);
+  assert.equal(backup.singleCalculation, true);
+  assert.deepEqual(backup.calculationStores[0].value, [incoming]);
+  const current = [{ id: 'card', title: 'Old', cred: '100', history: [{ id: 'local-edit', at: '2', type: 'edit' }] }];
+  const merged = mergeCalculationStore(current, backup.calculationStores[0].value, { replaceConflicts: backup.singleCalculation });
+  assert.equal(merged.value[0].title, 'Client');
+  assert.equal(merged.value[0].cred, '125');
+  assert.deepEqual(merged.value[0].history.map(event => event.id), ['local-edit', 'remote-edit']);
 });
 
 test('merges recent results by ID, keeps existing results and limits history to 500', () => {

@@ -9,14 +9,40 @@ import useDriveAuthorization from '../useDriveAuthorization';
 import { uploadFileToGoogleDrive } from '../googleDrive';
 import { buildListExport } from '../listExport';
 import { formatSavedDate } from '../calculatorUtils';
+import { CALCULATION_STORAGE_KEY, createDataBackup, createSingleCalculationBackup } from '../dataBackup';
+import { normalizeCalculation } from '../calculationHistory';
 
-export default function ListExportActions({ rows, amountField, summary, accessibilityLabel, floating = false }) {
+export default function ListExportActions({ rows, amountField, summary, accessibilityLabel, floating = false, backupRow = null, backupRows = null }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
   const drive = useDriveAuthorization();
   const title = t(amountField === 'fact' ? 'Invoices' : 'Debts');
+  const runBackup = async () => {
+    const rowsToBackup = backupRows || (backupRow ? [backupRow] : null);
+    if (!rowsToBackup?.length || running.current) return;
+    running.current = true;
+    setBusy(true);
+    try {
+      const fileName = `calc-${amountField === 'fact' ? 'invoices' : 'debts'}-${new Date().toISOString().slice(0, 10)}.json`;
+      const content = JSON.stringify(backupRows
+        ? createDataBackup([{ key: CALCULATION_STORAGE_KEY, value: rowsToBackup.map(normalizeCalculation) }], [])
+        : createSingleCalculationBackup(normalizeCalculation(backupRow)), null, 2);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url; link.download = fileName; document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        const uri = `${FileSystem.cacheDirectory}${fileName}`;
+        await FileSystem.writeAsStringAsync(uri, content);
+        await Sharing.shareAsync(uri, { mimeType: 'application/json', UTI: 'public.json' });
+      }
+    } catch (error) {
+      Alert.alert(t('Export failed'), error?.message || t('Please try again.'));
+    } finally { running.current = false; setBusy(false); }
+  };
   const run = async (format, toDrive = false) => {
     if (running.current) return;
     running.current = true;
@@ -83,5 +109,6 @@ export default function ListExportActions({ rows, amountField, summary, accessib
     { id: 'share', label: t('Share'), onPress: () => run('pdf') },
     { id: 'drivePdf', label: t('Drive PDF'), onPress: () => run('pdf', true) },
     { id: 'driveCsv', label: t('Drive CSV'), onPress: () => run('csv', true) },
-  ].map(action => ({ ...action, disabled: busy || !rows.length }))} />;
+    ...((backupRow || backupRows) ? [{ id: 'backup', label: t(backupRows ? 'Export filtered cards for import' : 'Export card for import'), onPress: runBackup }] : []),
+  ].map(action => ({ ...action, disabled: busy || (action.id === 'backup' ? !(backupRows?.length || backupRow) : !rows.length) }))} />;
 }

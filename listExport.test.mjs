@@ -12,7 +12,7 @@ test('exports only supplied rows and totals outstanding amounts separately from 
   ] });
   assert.ok(result.csv.includes('"TOTAL","","1200"'));
   assert.ok(result.csv.includes('"300","2026-09-03"'));
-  assert.ok(!result.csv.includes('999'));
+  assert.ok(result.csv.includes('"999"'));
   assert.ok(!result.csv.includes('777'));
   assert.ok(result.html.includes(options.summary));
 });
@@ -22,6 +22,7 @@ test('invoice export uses invoice amounts and payoff fields', () => {
     { title: 'Client', fact: '0', cred: '99', invoicePaidOffAt: '2026-09-04', invoicePaidOffAmount: '45', paidOffAmount: '22' },
   ] });
   assert.ok(result.csv.includes('"Invoice"'));
+  assert.ok(result.csv.includes('"99"'));
   assert.ok(result.csv.includes('"45","2026-09-04"'));
   assert.ok(result.csv.includes('"TOTAL","","0"'));
   assert.ok(!result.csv.includes('"22"'));
